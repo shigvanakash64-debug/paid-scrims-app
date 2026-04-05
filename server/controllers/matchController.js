@@ -68,6 +68,12 @@ export const submitResult = async (req, res) => {
       image: screenshotUrl,
     });
 
+    // Set result deadline if not already set (5 minutes from first submission)
+    if (!match.resultDeadline) {
+      const DEADLINE_MS = 5 * 60 * 1000; // 5 minutes
+      match.resultDeadline = new Date(Date.now() + DEADLINE_MS);
+    }
+
     // RESULT LOGIC ENGINE
     const submittedCount = match.result.submittedBy.length;
     const totalPlayers = match.players.length;
@@ -95,9 +101,8 @@ export const submitResult = async (req, res) => {
         match.result.decidedAt = new Date();
       }
     } else if (submittedCount === 1) {
-      // First submission - set timeout for opponent to submit
-      const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-      match.timeout = new Date(Date.now() + TIMEOUT_MS);
+      // First submission - deadline already set above
+      match.status = "result_pending"; // Waiting for opponent
     }
 
     await match.save();

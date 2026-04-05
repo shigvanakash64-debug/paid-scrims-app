@@ -2,7 +2,7 @@ import Match from "../models/Match.js";
 
 /**
  * Process payout for match winner
- * - Prevents duplicate payouts with atomic update
+ * - Prevents duplicate payouts with atomic update using isPaid flag
  * - Assumes User model has wallet property
  * - Calculates platform fee (10%)
  * @param {string} matchId - Match ID
@@ -19,9 +19,14 @@ export const processPayout = async (matchId, winnerId, userModel) => {
       throw new Error("Match not found");
     }
 
-    // Prevent duplicate payouts - atomic check
-    if (match.result.paidOut) {
+    // Prevent duplicate payouts - check isPaid flag (CRITICAL)
+    if (match.isPaid) {
       throw new Error("Payout already processed for this match");
+    }
+
+    // Also check paidOut flag for backwards compatibility
+    if (match.result.paidOut) {
+      throw new Error("Payout already processed (result.paidOut flag set)");
     }
 
     // Verify winner is in the match
@@ -38,12 +43,15 @@ export const processPayout = async (matchId, winnerId, userModel) => {
     const platformFee = totalPool * 0.1; // 10% fee
     const winnerAmount = totalPool - platformFee;
 
-    // Update match atomically before wallet update
+    console.log(`[PAYOUT] Processing payout for match ${matchId}. Winner: ${winnerId}, Amount: ${winnerAmount}`);
+
+    // Update match atomically BEFORE wallet update - Both flags must be set
     const updatedMatch = await Match.findByIdAndUpdate(
       matchId,
       {
         $set: {
-          "result.paidOut": true,
+          isPaid: true, // PRIMARY safety flag
+          "result.paidOut": true, // SECONDARY safety flag
           "result.winner": winnerId,
           "result.decidedAt": new Date(),
           status: "completed",
@@ -52,8 +60,8 @@ export const processPayout = async (matchId, winnerId, userModel) => {
       { new: true }
     );
 
-    if (!updatedMatch.result.paidOut) {
-      throw new Error("Atomic match update failed");
+    if (!updatedMatch.isPaid || !updatedMatch.result.paidOut) {
+      throw new Error("Atomic match update failed - safety flags not set");
     }
 
     // Credit winner wallet
@@ -73,6 +81,8 @@ export const processPayout = async (matchId, winnerId, userModel) => {
       },
       { new: true }
     );
+
+    console.log(`[PAYOUT] Successfully paid ${winnerId} ${winnerAmount}. New balance: ${updatedUser?.wallet?.balance}`);
 
     return {
       success: true,

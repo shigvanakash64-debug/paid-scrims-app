@@ -44,7 +44,12 @@ const matchSchema = new mongoose.Schema(
         default: false,
       },
     },
-    timeout: Date, // For auto-resolve if only one player submits
+    resultDeadline: Date, // Deadline for result submission
+    startedAt: Date, // When match became "in-progress"
+    isPaid: {
+      type: Boolean,
+      default: false, // Safety flag to prevent duplicate payouts
+    },
   },
   { timestamps: true }
 );
