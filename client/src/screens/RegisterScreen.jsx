@@ -3,11 +3,10 @@ import { useState } from 'react';
 export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [ffUid, setFfUid] = useState('');
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    onRegister({ username: username.trim(), password, ffUid: ffUid.trim() });
+    onRegister({ username: username.trim(), password });
   };
 
   return (
@@ -36,16 +35,6 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Create a password"
               required
-            />
-          </label>
-          <label className="auth-field">
-            <span className="auth-label">Free Fire UID</span>
-            <input
-              className="auth-input"
-              type="text"
-              value={ffUid}
-              onChange={(event) => setFfUid(event.target.value)}
-              placeholder="Enter your Free Fire UID"
             />
           </label>
           <div className="auth-actions">

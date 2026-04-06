@@ -22,7 +22,7 @@ const sanitizeUser = (user) => ({
 
 export const register = async (req, res) => {
   try {
-    const { username, password, ffUid } = req.body;
+    const { username, password } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ error: "Username and password are required" });
@@ -41,16 +41,13 @@ export const register = async (req, res) => {
       username: username.trim(),
       password: passwordHash,
       passwordSalt: salt,
-      ffUid: ffUid?.trim() || "",
-      wallet: { balance: 0 },
-      trustScore: 100,
     });
 
     const token = createToken({ userId: user._id.toString() });
     return res.status(201).json({ user: sanitizeUser(user), token });
   } catch (error) {
     if (error.code === 11000) {
-      return sendError(res, 409, 'Username or email already exists', error);
+      return sendError(res, 409, 'Username already exists', error);
     }
     return sendError(res, 500, 'Registration failed', error);
   }

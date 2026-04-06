@@ -87,12 +87,12 @@ function App() {
     }
   };
 
-  const handleRegister = async ({ username, password, ffUid }) => {
+  const handleRegister = async ({ username, password }) => {
     try {
       const response = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password, ffUid: ffUid.trim() }),
+        body: JSON.stringify({ username: username.trim(), password }),
       });
 
       const data = await response.json();
