@@ -1,8 +1,6 @@
 import User from "../models/User.js";
 import { createToken, generateSalt, hashPassword } from "../utils/authUtils.js";
 
-const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
 const sendError = (res, status, message, error) => {
   if (process.env.NODE_ENV !== 'production') {
     console.error(`[AUTH ERROR] ${message}:`, error);
@@ -31,7 +29,7 @@ export const register = async (req, res) => {
     }
 
     const existing = await User.findOne({
-      username: new RegExp(`^${escapeRegex(username.trim())}$`, 'i'),
+      username: username.trim().toLowerCase(),
     });
     if (existing) {
       return res.status(409).json({ error: "Username already exists" });
@@ -41,7 +39,6 @@ export const register = async (req, res) => {
     const passwordHash = hashPassword(password, salt);
     const user = await User.create({
       username: username.trim(),
-      email: `${username.trim().toLowerCase()}@clutchzone.local`,
       password: passwordHash,
       passwordSalt: salt,
       ffUid: ffUid?.trim() || "",
@@ -68,7 +65,7 @@ export const login = async (req, res) => {
     }
 
     const user = await User.findOne({
-      username: new RegExp(`^${escapeRegex(username.trim())}$`, 'i'),
+      username: username.trim().toLowerCase(),
     });
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });

@@ -19,6 +19,21 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
+app.get("/health", async (req, res) => {
+  try {
+    // Test database connection
+    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      database: dbStatus,
+      mongoUri: process.env.MONGO_URI ? 'set' : 'not set'
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/auth", authRoutes); // Alias for simpler deployed URL usage
