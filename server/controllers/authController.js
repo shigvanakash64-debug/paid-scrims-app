@@ -156,28 +156,3 @@ export const updateProfile = async (req, res) => {
     return sendError(res, 500, 'Failed to update profile', error);
   }
 };
-
-    await user.save();
-
-    return res.json({ message: "Password changed successfully" });
-  } catch (error) {
-    return sendError(res, 500, 'Failed to change password', error);
-  }
-};
-
-export const updateProfile = async (req, res) => {
-  try {
-    const { ffUid } = req.body;
-    const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    user.ffUid = ffUid?.trim() || "";
-    await user.save();
-
-    return res.json({ user: sanitizeUser(user) });
-  } catch (error) {
-    return sendError(res, 500, 'Failed to update profile', error);
-  }
-};
