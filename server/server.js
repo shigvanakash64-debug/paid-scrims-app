@@ -45,8 +45,10 @@ app.use("/api/admin", adminRoutes);
 const PORT = process.env.PORT || 5000;
 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log("MongoDB Connected");
+
+    await cleanupLegacyIndexes();
     
     // Import User model for cron jobs (adjust path if needed)
     // For now, we'll defer User model import until cron initialization
@@ -89,5 +91,24 @@ async function initializeCronJobsWithUserModel(app) {
     console.log("  // From adminController: app.locals.Match = Match;");
   } catch (error) {
     console.error("Error initializing cron jobs:", error);
+  }
+}
+
+async function cleanupLegacyIndexes() {
+  try {
+    const { default: User } = await import("./models/User.js");
+    const hasEmailIndex = await User.collection.indexExists("email_1");
+    if (hasEmailIndex) {
+      await User.collection.dropIndex("email_1");
+      console.log("Dropped legacy email_1 index from users collection");
+    } else {
+      console.log("No legacy email_1 index found");
+    }
+  } catch (error) {
+    if (error.message.includes("index not found")) {
+      console.log("Legacy email index not found, no cleanup needed.");
+      return;
+    }
+    console.error("Error cleaning up legacy indexes:", error);
   }
 }
