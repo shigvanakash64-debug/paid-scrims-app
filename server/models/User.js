@@ -116,12 +116,10 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Indexes for performance
-userSchema.index({ trustScore: -1 });
-userSchema.index({ isBanned: 1 });
-userSchema.index({ createdAt: -1 });
-
-// Virtual for trust score category
+// Pre-save middleware to update updatedAt
+userSchema.pre('save', async function() {
+  this.updatedAt = new Date();
+});
 userSchema.virtual('trustCategory').get(function() {
   if (this.trustScore >= 80) return 'high';
   if (this.trustScore >= 40) return 'medium';
