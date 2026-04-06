@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import axios from 'axios';
 import { HomeScreen } from './screens/HomeScreen';
 import { MatchScreen } from './screens/MatchScreen';
 import { ResultScreen } from './screens/ResultScreen';
@@ -29,20 +30,12 @@ function App() {
       }
 
       try {
-        const response = await fetch(`${API_BASE}/auth/me`, {
+        const response = await axios.get(`${API_BASE}/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-
-        if (!response.ok) {
-          localStorage.removeItem(TOKEN_KEY);
-          setLoadingAuth(false);
-          return;
-        }
-
-        const data = await response.json();
-        setUser(data.user);
+        setUser(response.data.user);
         setCurrentScreen('home');
       } catch (error) {
         localStorage.removeItem(TOKEN_KEY);
@@ -69,46 +62,30 @@ function App() {
 
   const handleLogin = async ({ username, password }) => {
     try {
-      const response = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password }),
+      const response = await axios.post(`${API_BASE}/auth/login`, {
+        username: username.trim(),
+        password,
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        alert(data.error || 'Login failed');
-        return;
-      }
-
-      setSession(data.user, data.token);
+      setSession(response.data.user, response.data.token);
     } catch (error) {
-      alert('Unable to login. Try again later.');
+      alert(error.response?.data?.error || 'Login failed');
     }
   };
 
   const handleRegister = async ({ username, password }) => {
     try {
       const normalizedUsername = username.trim().toLowerCase();
-      const response = await fetch(`${API_BASE}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: normalizedUsername, password }),
+      const response = await axios.post(`${API_BASE}/auth/register`, {
+        username: normalizedUsername,
+        password,
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        if (response.status === 409) {
-          alert('Username already exists. Choose a different username.');
-        } else {
-          alert(data.error || 'Registration failed');
-        }
-        return;
-      }
-
-      setSession(data.user, data.token);
+      setSession(response.data.user, response.data.token);
     } catch (error) {
-      alert('Unable to register. Try again later.');
+      if (error.response?.status === 409) {
+        alert('Username already exists. Choose a different username.');
+      } else {
+        alert(error.response?.data?.error || 'Registration failed');
+      }
     }
   };
 
@@ -119,25 +96,16 @@ function App() {
   const handleProfileSave = async (updates) => {
     try {
       const token = localStorage.getItem(TOKEN_KEY);
-      const response = await fetch(`${API_BASE}/auth/profile`, {
-        method: 'PUT',
+      const response = await axios.put(`${API_BASE}/auth/profile`, updates, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(updates),
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        alert(data.error || 'Could not save profile changes');
-        return;
-      }
-
-      setUser(data.user);
+      setUser(response.data.user);
       alert('Profile updated successfully');
     } catch (error) {
-      alert('Unable to update profile. Try again later.');
+      alert(error.response?.data?.error || 'Could not save profile changes');
     }
   };
 
@@ -159,7 +127,7 @@ function App() {
 
     switch (currentScreen) {
       case 'home':
-        return <HomeScreen user={user} onFindMatch={setCurrentMatch} onScreenChange={setCurrentScreen} />;
+        return <HomeScreen user={user} onFindMatch={setCurrentMatch} onScreenChange={setCurrentScreen} currentMatch={currentMatch} />;
       case 'match':
         return <MatchScreen match={currentMatch} user={user} onScreenChange={setCurrentScreen} />;
       case 'result':

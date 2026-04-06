@@ -33,7 +33,7 @@ const getPlayersCount = (mode) => {
   }
 };
 
-export const HomeScreen = ({ user, onFindMatch, onScreenChange }) => {
+export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) => {
   const [selectedMode, setSelectedMode] = useState('1v1');
   const [selectedType, setSelectedType] = useState('Headshot');
   const [selectedFee, setSelectedFee] = useState(50);
@@ -44,6 +44,14 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange }) => {
   const prizePool = Math.floor(totalPool - platformFee);
 
   const handleFindMatch = () => {
+    if (user.balance < selectedFee) {
+      alert('Insufficient balance to create this match.');
+      return;
+    }
+    if (currentMatch) {
+      alert('You already have an active match. Complete it first before creating a new one.');
+      return;
+    }
     const match = {
       id: Date.now().toString(),
       mode: selectedMode,

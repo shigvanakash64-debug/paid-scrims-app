@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 const modeOptions = ['1v1', '2v2', '3v3', '4v4'];
@@ -71,6 +72,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('live-opponents');
 
   const filteredSamples = useMemo(
     () => sampleMatches.filter(
@@ -80,20 +82,14 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   );
 
   useEffect(() => {
-    const controller = new AbortController();
     const fetchMatches = async () => {
       setLoading(true);
       setError('');
       try {
-        const response = await fetch(
-          `${API_BASE}/match/list?mode=${encodeURIComponent(mode)}&type=${encodeURIComponent(type)}&entry=${entry}`,
-          { signal: controller.signal }
+        const response = await axios.get(
+          `${API_BASE}/match/list?mode=${encodeURIComponent(mode)}&type=${encodeURIComponent(type)}&entry=${entry}`
         );
-        if (!response.ok) {
-          throw new Error('Live matches not available');
-        }
-        const data = await response.json();
-        setMatches(data.matches || filteredSamples);
+        setMatches(response.data.matches || filteredSamples);
       } catch (err) {
         setError('Live marketplace offline. Showing active lobby.');
         setMatches(filteredSamples);
@@ -103,11 +99,6 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     };
 
     fetchMatches();
-    const interval = setInterval(fetchMatches, 5000);
-    return () => {
-      controller.abort();
-      clearInterval(interval);
-    };
   }, [mode, type, entry, filteredSamples]);
 
   const handleJoin = (matchItem) => {
@@ -171,89 +162,119 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         </div>
       </div>
 
+      <div className="pairing-tabs">
+        <button
+          className={`pairing-tab ${activeTab === 'my-matches' ? 'active' : ''}`}
+          onClick={() => setActiveTab('my-matches')}
+        >
+          My Matches
+        </button>
+        <button
+          className={`pairing-tab ${activeTab === 'live-opponents' ? 'active' : ''}`}
+          onClick={() => setActiveTab('live-opponents')}
+        >
+          Live Opponents
+        </button>
+      </div>
+
       <div className="section" style={{ paddingBottom: 12 }}>
         <div className="section-announce">
           {error || `Live feed · ${matches.length} matches available`}
         </div>
       </div>
 
-      {activeMatch && (
+      {activeTab === 'my-matches' ? (
         <div className="section">
-          <div className="section-label">Your Match</div>
-          <div className="match-card pinned-match">
-            <div className="match-card-header">
-              <div>
-                <div className="match-tag">YOUR MATCH</div>
-                <div className="match-title">
-                  {activeMatch.mode} · {activeMatch.type} · ₹{activeMatch.entryFee}
+          <div className="section-label">Your Active Match</div>
+          {activeMatch ? (
+            <div className="match-card pinned-match">
+              <div className="match-card-header">
+                <div>
+                  <div className="match-tag">YOUR MATCH</div>
+                  <div className="match-title">
+                    {activeMatch.mode} · {activeMatch.type} · ₹{activeMatch.entryFee}
+                  </div>
+                </div>
+                <div className={`trust-pill ${getTrustClass(user?.trustScore || 0)}`}>
+                  TG{user?.trustScore ?? 0}
                 </div>
               </div>
-              <div className={`trust-pill ${getTrustClass(user?.trustScore || 0)}`}>
-                TG{user?.trustScore ?? 0}
+              <div className="match-meta-row">
+                <span>{activeMatch.status}</span>
+                <span>Prize Pool ₹{activeMatch.prizePool}</span>
+              </div>
+              <div className="match-actions">
+                <button className="btn-outline" type="button" onClick={() => onScreenChange('match')}>
+                  View Match
+                </button>
+                <button className="btn-outline" type="button" onClick={() => onScreenChange('home')}>
+                  Cancel Match
+                </button>
               </div>
             </div>
-            <div className="match-meta-row">
-              <span>{activeMatch.status}</span>
-              <span>Prize Pool ₹{activeMatch.prizePool}</span>
-            </div>
-            <div className="match-actions">
-              <button className="btn-outline" type="button" onClick={() => onScreenChange('home')}>
-                Cancel Match
+          ) : (
+            <div className="empty-state">
+              <h3>No active match</h3>
+              <p>You don't have any active matches right now.</p>
+              <button className="btn-primary" type="button" onClick={() => onScreenChange('home')}>
+                Create Match
               </button>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      ) : (
+        <>
+          <div className="section">
+            <div className="section-header">
+              <span>LIVE MATCHES</span>
+              <span>{matches.length} results</span>
+            </div>
 
-      <div className="section">
-        <div className="section-header">
-          <span>LIVE MATCHES</span>
-          <span>{matches.length} results</span>
-        </div>
-
-        {loading ? (
-          <div className="loading-state">Refreshing live matches…</div>
-        ) : matches.length === 0 ? (
-          <div className="empty-state">
-            <h3>No active matches found</h3>
-            <p>Try changing your filters or start a new match from Home.</p>
-            <button className="btn-primary" type="button" onClick={() => onScreenChange('home')}>
-              Create Match
-            </button>
-          </div>
-        ) : (
-          <div className="match-list">
-            {matches.map((item) => (
-              <div key={item.id} className="match-card">
-                <div className="match-card-header">
-                  <div>
-                    <div className="match-tag">{item.type}</div>
-                    <div className="match-title">{item.mode} · ₹{item.entryFee}</div>
-                  </div>
-                  <div className={`trust-pill ${getTrustClass(item.trustScore)}`}>
-                    {item.trustScore}
-                  </div>
-                </div>
-                <div className="match-meta-row">
-                  <span>Player: {item.creator}</span>
-                  <span>Status: {item.status}</span>
-                </div>
-                <div className="match-card-footer">
-                  <span className="match-detail">Prize ₹{item.prizePool}</span>
-                  <button
-                    className="join-btn"
-                    type="button"
-                    disabled={(user?.balance || 0) < item.entryFee}
-                    onClick={() => handleJoin(item)}
-                  >
-                    JOIN MATCH
-                  </button>
-                </div>
+            {loading ? (
+              <div className="loading-state">Loading live matches…</div>
+            ) : matches.length === 0 ? (
+              <div className="empty-state">
+                <h3>No active matches found</h3>
+                <p>Try changing your filters or create a new match from Home.</p>
+                <button className="btn-primary" type="button" onClick={() => onScreenChange('home')}>
+                  Create Match
+                </button>
               </div>
-            ))}
+            ) : (
+              <div className="match-list">
+                {matches.map((item) => (
+                  <div key={item.id} className="match-card">
+                    <div className="match-card-header">
+                      <div>
+                        <div className="match-tag">{item.type}</div>
+                        <div className="match-title">{item.mode} · ₹{item.entryFee}</div>
+                      </div>
+                      <div className={`trust-pill ${getTrustClass(item.trustScore)}`}>
+                        {item.trustScore}
+                      </div>
+                    </div>
+                    <div className="match-meta-row">
+                      <span>Player: {item.creator}</span>
+                      <span>Status: {item.status}</span>
+                    </div>
+                    <div className="match-card-footer">
+                      <span className="match-detail">Prize ₹{item.prizePool}</span>
+                      <button
+                        className="join-btn"
+                        type="button"
+                        disabled={(user?.balance || 0) < item.entryFee}
+                        onClick={() => handleJoin(item)}
+                      >
+                        JOIN MATCH
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 };

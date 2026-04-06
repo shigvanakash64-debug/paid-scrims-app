@@ -184,4 +184,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .empty-state h3{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:#fff;margin-bottom:10px}
 .empty-state p{font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6}
 .loading-state{padding:16px 16px 0;color:var(--muted);font-size:13px}
+.pairing-tabs{display:flex;border-bottom:1px solid var(--border);margin:0 16px}
+.pairing-tab{flex:1;padding:14px 0;text-align:center;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);background:transparent;border:none;cursor:pointer;transition:color .12s}
+.pairing-tab.active{color:var(--orange);border-bottom:2px solid var(--orange)}
 
