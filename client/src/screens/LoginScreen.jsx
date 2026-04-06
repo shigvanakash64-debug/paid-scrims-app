@@ -6,7 +6,7 @@ export const LoginScreen = ({ onLogin, onNavigateRegister }) => {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    onLogin({ username: username.trim() || 'Player123', password });
+    onLogin({ username: username.trim(), password });
   };
 
   return (

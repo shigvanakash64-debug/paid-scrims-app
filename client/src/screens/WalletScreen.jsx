@@ -1,12 +1,5 @@
 ﻿export const WalletScreen = ({ user }) => {
-  const transactions = [
-    { id: 1, title: 'Match Win vs GHOST_X99', date: 'Today · 2:14 PM', amount: 90, type: 'credit' },
-    { id: 2, title: 'Entry Fee — 1v1', date: 'Today · 2:10 PM', amount: -50, type: 'debit' },
-    { id: 3, title: 'Entry Fee — 1v1', date: 'Yesterday · 7:33 PM', amount: -50, type: 'debit' },
-    { id: 4, title: 'Added Money', date: 'Apr 4 · 11:00 AM', amount: 500, type: 'credit' },
-    { id: 5, title: 'Match Win vs SNIPER_KD', date: 'Apr 3 · 9:15 PM', amount: 180, type: 'credit' },
-    { id: 6, title: 'Withdrawal', date: 'Apr 2 · 3:00 PM', amount: -1000, type: 'debit' }
-  ];
+  const transactions = user?.transactions || [];
 
   return (
     <div id="screen-wallet" className="screen-wallet">
@@ -31,17 +24,21 @@
         <span style={{ fontSize: '11px', color: 'var(--muted)' }}>Last 30 days</span>
       </div>
       <div className="txn-list">
-        {transactions.map((txn) => (
-          <div key={txn.id} className="txn-row">
-            <div className="txn-left">
-              <div className="txn-title">{txn.title}</div>
-              <div className="txn-date">{txn.date}</div>
+        {transactions.length === 0 ? (
+          <div className="txn-empty">No transactions to display.</div>
+        ) : (
+          transactions.map((txn) => (
+            <div key={txn.id} className="txn-row">
+              <div className="txn-left">
+                <div className="txn-title">{txn.title}</div>
+                <div className="txn-date">{txn.date}</div>
+              </div>
+              <div className={`txn-amount ${txn.type === 'credit' ? 'credit' : 'debit'}`}>
+                {txn.type === 'credit' ? '+' : '-'}₹{Math.abs(txn.amount)}
+              </div>
             </div>
-            <div className={`txn-amount ${txn.type === 'credit' ? 'credit' : 'debit'}`}>
-              {txn.type === 'credit' ? '+' : '-'}₹{Math.abs(txn.amount)}
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

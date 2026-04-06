@@ -27,15 +27,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange }) => {
       mode: selectedMode,
       type: selectedType,
       entryFee: selectedFee,
-      prizePool,
-      roomId: 'FF-8847-XK',
-      password: '9921',
-      server: 'IN-Mumbai',
-      opponent: {
-        username: 'GHOST_X99',
-        trustScore: 91,
-        winRate: '78%'
-      }
+      prizePool
     };
 
     onFindMatch(match);

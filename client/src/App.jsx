@@ -17,28 +17,32 @@ function App() {
 
   const handleLogin = ({ username }) => {
     setUser({
-      id: '1',
-      username: username || 'Player123',
-      balance: 250,
-      trustScore: 85,
-      matchesPlayed: 45,
-      matchesWon: 28,
-      disputesRaised: 2,
-      ffUid: ''
+      id: Date.now().toString(),
+      username: username.trim(),
+      balance: 0,
+      trustScore: 0,
+      matchesPlayed: 0,
+      matchesWon: 0,
+      disputesRaised: 0,
+      ffUid: '',
+      transactions: [],
+      history: []
     });
     setCurrentScreen('home');
   };
 
   const handleRegister = ({ username, ffUid }) => {
     setUser({
-      id: '1',
-      username: username || 'Player123',
-      balance: 250,
-      trustScore: 85,
-      matchesPlayed: 45,
-      matchesWon: 28,
-      disputesRaised: 2,
-      ffUid: ffUid || ''
+      id: Date.now().toString(),
+      username: username.trim(),
+      balance: 0,
+      trustScore: 0,
+      matchesPlayed: 0,
+      matchesWon: 0,
+      disputesRaised: 0,
+      ffUid: ffUid.trim(),
+      transactions: [],
+      history: []
     });
     setCurrentScreen('home');
   };

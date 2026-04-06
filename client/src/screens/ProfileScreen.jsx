@@ -24,13 +24,7 @@ export const ProfileScreen = ({ user, onUserUpdate }) => {
     return initials || username.slice(0, 2).toUpperCase();
   };
 
-  const history = [
-    { id: 1, mode: '1v1 · Headshot', meta: 'vs GHOST_X99 · ₹50 · Today', result: 'win' },
-    { id: 2, mode: '2v2 · Bodyshot', meta: 'vs DARK_FURY · ₹100 · Yesterday', result: 'loss' },
-    { id: 3, mode: '1v1 · Headshot', meta: 'vs SNIPER_KD · ₹100 · Apr 4', result: 'win' },
-    { id: 4, mode: '1v1 · Headshot', meta: 'vs RAGE_ZX · ₹50 · Apr 3', result: 'dispute' },
-    { id: 5, mode: '4v4 · Bodyshot', meta: 'vs SQUAD_7 · ₹200 · Apr 2', result: 'win' }
-  ];
+  const history = user.history || [];
 
   const handleSaveUid = () => {
     if (onUserUpdate) {
@@ -81,15 +75,19 @@ export const ProfileScreen = ({ user, onUserUpdate }) => {
         <span style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: '10px', letterSpacing: '3px', color: 'var(--dim)', textTransform: 'uppercase' }}>Match History</span>
       </div>
       <div style={{ borderTop: '1px solid var(--border)' }}>
-        {history.map((item) => (
-          <div key={item.id} className="hist-row">
-            <div>
-              <div className="hist-mode">{item.mode}</div>
-              <div className="hist-meta">{item.meta}</div>
+        {history.length === 0 ? (
+          <div className="hist-empty">No match history available.</div>
+        ) : (
+          history.map((item) => (
+            <div key={item.id} className="hist-row">
+              <div>
+                <div className="hist-mode">{item.mode}</div>
+                <div className="hist-meta">{item.meta}</div>
+              </div>
+              <div className={`result-chip ${item.result}`}>{item.result.toUpperCase()}</div>
             </div>
-            <div className={`result-chip ${item.result}`}>{item.result.toUpperCase()}</div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

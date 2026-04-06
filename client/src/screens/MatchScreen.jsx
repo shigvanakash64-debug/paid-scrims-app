@@ -62,11 +62,11 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
           </div>
         </div>
         <div className="opp-body">
-          <div className="opp-name">{match.opponent?.username ?? 'GHOST_X99'}</div>
+          <div className="opp-name">{match.opponent?.username || 'Opponent pending'}</div>
           <div className="opp-stats">
-            <div className="opp-stat">W/L: <strong>142/38</strong></div>
-            <div className="opp-stat">TG: <strong style={{ color: 'var(--orange)' }}>{match.opponent?.trustScore ?? 91}</strong></div>
-            <div className="opp-stat">WR: <strong>{match.opponent?.winRate ?? '78%'}</strong></div>
+            <div className="opp-stat">W/L: <strong>{match.opponent?.record || 'N/A'}</strong></div>
+            <div className="opp-stat">TG: <strong style={{ color: 'var(--orange)' }}>{match.opponent?.trustScore ?? 'N/A'}</strong></div>
+            <div className="opp-stat">WR: <strong>{match.opponent?.winRate ?? 'N/A'}</strong></div>
           </div>
         </div>
       </div>
@@ -80,9 +80,9 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
         <div className="detail-row"><span className="detail-key">Mode</span><span className="detail-val orange">{match.mode} {match.type}</span></div>
         <div className="detail-row"><span className="detail-key">Entry Fee</span><span className="detail-val">₹{match.entryFee}</span></div>
         <div className="detail-row"><span className="detail-key">Prize Pool</span><span className="detail-val orange">₹{match.prizePool}</span></div>
-        <div className="detail-row"><span className="detail-key">Room ID</span><span className="detail-val">{match.roomId}</span></div>
-        <div className="detail-row"><span className="detail-key">Password</span><span className="detail-val">{match.password}</span></div>
-        <div className="detail-row"><span className="detail-key">Server</span><span className="detail-val">{match.server}</span></div>
+        <div className="detail-row"><span className="detail-key">Room ID</span><span className="detail-val">{match.roomId ?? 'N/A'}</span></div>
+        <div className="detail-row"><span className="detail-key">Password</span><span className="detail-val">{match.password ?? 'N/A'}</span></div>
+        <div className="detail-row"><span className="detail-key">Server</span><span className="detail-val">{match.server ?? 'N/A'}</span></div>
       </div>
       <div className="btn-cta-wrap">
         <button className="btn-primary" type="button" onClick={() => onScreenChange('result')}>

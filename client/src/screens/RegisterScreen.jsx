@@ -7,7 +7,7 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    onRegister({ username: username.trim() || 'Player123', password, ffUid: ffUid.trim() });
+    onRegister({ username: username.trim(), password, ffUid: ffUid.trim() });
   };
 
   return (
