@@ -7,6 +7,7 @@ export const SettingsScreen = ({ user }) => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -21,7 +22,7 @@ export const SettingsScreen = ({ user }) => {
     setSaving(true);
     try {
       const token = localStorage.getItem('clutchzone_token');
-      const response = await fetch('http://localhost:5000/api/auth/change-password', {
+      const response = await fetch(`${API_BASE}/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

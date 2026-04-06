@@ -11,7 +11,7 @@ import { BottomNav } from './components/BottomNav';
 import { Header } from './components/Header';
 import './App.css';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 const TOKEN_KEY = 'clutchzone_token';
 
 function App() {
