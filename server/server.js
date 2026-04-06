@@ -21,6 +21,7 @@ app.get("/", (req, res) => {
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes); // Alias for simpler deployed URL usage
 app.use("/api/match", matchRoutes);
 app.use("/api/admin", adminRoutes);
 
