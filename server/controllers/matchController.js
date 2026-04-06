@@ -194,6 +194,79 @@ export const getMatch = async (req, res) => {
 };
 
 /**
+ * List available open matches for the pairing lobby
+ */
+export const listMatches = async (req, res) => {
+  try {
+    const { mode, type, entry } = req.query;
+    const availableMatches = [
+      {
+        id: 'match-001',
+        mode: '1v1',
+        type: 'Headshot',
+        entryFee: 50,
+        prizePool: 80,
+        creator: 'Akash_77',
+        trustScore: 82,
+        status: 'Waiting for opponent',
+      },
+      {
+        id: 'match-002',
+        mode: '1v1',
+        type: 'Bodyshot',
+        entryFee: 100,
+        prizePool: 160,
+        creator: 'Riya_09',
+        trustScore: 74,
+        status: 'Waiting for opponent',
+      },
+      {
+        id: 'match-003',
+        mode: '2v2',
+        type: 'Headshot',
+        entryFee: 200,
+        prizePool: 320,
+        creator: 'ShadowKing',
+        trustScore: 88,
+        status: 'Waiting for opponents',
+      },
+      {
+        id: 'match-004',
+        mode: '1v1',
+        type: 'Headshot',
+        entryFee: 30,
+        prizePool: 48,
+        creator: 'Nova_X',
+        trustScore: 65,
+        status: 'Waiting for opponent',
+      },
+      {
+        id: 'match-005',
+        mode: '3v3',
+        type: 'Bodyshot',
+        entryFee: 500,
+        prizePool: 800,
+        creator: 'AlphaRider',
+        trustScore: 91,
+        status: 'Waiting for teammates',
+      },
+    ];
+
+    const filtered = availableMatches.filter((match) => {
+      if (mode && match.mode !== mode) return false;
+      if (type && match.type !== type) return false;
+      if (entry && Number(match.entryFee) !== Number(entry)) return false;
+      return true;
+    });
+
+    res.status(200).json({ matches: filtered });
+  } catch (error) {
+    console.error("listMatches error:", error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
+
+/**
  * Resolve disputed matches manually (for admin)
  */
 export const resolveDispute = async (req, res) => {

@@ -4,6 +4,7 @@ import upload from "../middleware/uploadMiddleware.js";
 import {
   submitResult,
   getMatch,
+  listMatches,
   resolveDispute,
   raiseDispute,
   getMatchDisputes,
@@ -24,6 +25,12 @@ router.post(
   upload.single("screenshot"),
   submitResult
 );
+
+/**
+ * GET /api/match/:matchId
+ * Get match details with results
+ */
+router.get("/list", listMatches);
 
 /**
  * GET /api/match/:matchId

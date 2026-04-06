@@ -28,8 +28,8 @@ export const Header = ({ user, onNavigate, onLogout }) => {
                 <button className="menu-item" type="button" onClick={() => handleNavigate('profile')}>
                   Profile
                 </button>
-                <button className="menu-item" type="button" onClick={() => handleNavigate('wallet')}>
-                  Wallet
+                <button className="menu-item" type="button" onClick={() => handleNavigate('pairing')}>
+                  Pairing
                 </button>
                 <button className="menu-item" type="button" onClick={() => handleNavigate('settings')}>
                   Settings

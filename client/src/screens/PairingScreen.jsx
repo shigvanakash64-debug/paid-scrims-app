@@ -1,91 +1,259 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-const filterOptions = [
-  'Region',
-  'Skill Level',
-  'Latency',
-  'Platform',
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const modeOptions = ['1v1', '2v2', '3v3', '4v4'];
+const typeOptions = ['Headshot', 'Bodyshot'];
+const entryOptions = [30, 50, 100, 200, 500, 1000];
+
+const sampleMatches = [
+  {
+    id: 'match-001',
+    mode: '1v1',
+    type: 'Headshot',
+    entryFee: 50,
+    prizePool: 80,
+    creator: 'Akash_77',
+    trustScore: 82,
+    status: 'Waiting for opponent',
+  },
+  {
+    id: 'match-002',
+    mode: '1v1',
+    type: 'Bodyshot',
+    entryFee: 100,
+    prizePool: 160,
+    creator: 'Riya_09',
+    trustScore: 74,
+    status: 'Waiting for opponent',
+  },
+  {
+    id: 'match-003',
+    mode: '2v2',
+    type: 'Headshot',
+    entryFee: 200,
+    prizePool: 320,
+    creator: 'ShadowKing',
+    trustScore: 88,
+    status: 'Waiting for opponents',
+  },
+  {
+    id: 'match-004',
+    mode: '1v1',
+    type: 'Headshot',
+    entryFee: 30,
+    prizePool: 48,
+    creator: 'Nova_X',
+    trustScore: 65,
+    status: 'Waiting for opponent',
+  },
+  {
+    id: 'match-005',
+    mode: '3v3',
+    type: 'Bodyshot',
+    entryFee: 500,
+    prizePool: 800,
+    creator: 'AlphaRider',
+    trustScore: 91,
+    status: 'Waiting for teammates',
+  },
 ];
 
-export const PairingScreen = ({ match, user, onScreenChange }) => {
-  const [selectedFilters, setSelectedFilters] = useState([]);
+const getTrustClass = (score) => {
+  if (score >= 80) return 'green';
+  if (score >= 40) return 'yellow';
+  return 'red';
+};
 
-  const toggleFilter = (filter) => {
-    setSelectedFilters((prev) =>
-      prev.includes(filter) ? prev.filter((item) => item !== filter) : [...prev, filter]
-    );
+export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) => {
+  const [mode, setMode] = useState(match?.mode || '1v1');
+  const [type, setType] = useState(match?.type || 'Headshot');
+  const [entry, setEntry] = useState(match?.entryFee || 50);
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const filteredSamples = useMemo(
+    () => sampleMatches.filter(
+      (item) => item.mode === mode && item.type === type && item.entryFee === entry
+    ),
+    [mode, type, entry]
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const fetchMatches = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const response = await fetch(
+          `${API_BASE}/match/list?mode=${encodeURIComponent(mode)}&type=${encodeURIComponent(type)}&entry=${entry}`,
+          { signal: controller.signal }
+        );
+        if (!response.ok) {
+          throw new Error('Live matches not available');
+        }
+        const data = await response.json();
+        setMatches(data.matches || filteredSamples);
+      } catch (err) {
+        setError('Live marketplace offline. Showing active lobby.');
+        setMatches(filteredSamples);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMatches();
+    const interval = setInterval(fetchMatches, 5000);
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
+  }, [mode, type, entry, filteredSamples]);
+
+  const handleJoin = (matchItem) => {
+    if (!user) {
+      alert('Please login to join a match.');
+      return;
+    }
+    if ((user.balance || 0) < matchItem.entryFee) {
+      alert('Insufficient balance to join this match.');
+      return;
+    }
+    onMatchSelect?.(matchItem);
+    onScreenChange('match');
   };
+
+  const activeMatch = match
+    ? {
+        ...match,
+        id: match.id || 'my-match',
+        status: 'Waiting for opponent',
+      }
+    : null;
 
   return (
     <div id="screen-pairing" className="screen-pairing">
       <div className="hero">
-        <div className="screen-title">PAIRING</div>
-        <div className="screen-sub">Pair with other players after selecting match details</div>
+        <div className="screen-title">Pairing Lobby</div>
+        <div className="screen-sub">Live match marketplace — jump into competitive games instantly.</div>
       </div>
 
-      {!match ? (
+      <div className="pairing-topbar">
+        <div className="pairing-filter">
+          <span className="filter-label">Mode</span>
+          <select className="pairing-select" value={mode} onChange={(e) => setMode(e.target.value)}>
+            {modeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="pairing-filter">
+          <span className="filter-label">Type</span>
+          <select className="pairing-select" value={type} onChange={(e) => setType(e.target.value)}>
+            {typeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="pairing-filter">
+          <span className="filter-label">Entry</span>
+          <select className="pairing-select" value={entry} onChange={(e) => setEntry(Number(e.target.value))}>
+            {entryOptions.map((option) => (
+              <option key={option} value={option}>
+                ₹{option}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="section" style={{ paddingBottom: 12 }}>
+        <div className="section-announce">
+          {error || `Live feed · ${matches.length} matches available`}
+        </div>
+      </div>
+
+      {activeMatch && (
         <div className="section">
-          <div className="section-label">Ready to pair?</div>
-          <div className="section-note">
-            Select your match mode, kill type, and entry fee from Home first. Your request will then appear here.
-          </div>
-          <div className="btn-cta-wrap">
-            <button className="btn-primary" type="button" onClick={() => onScreenChange('home')}>
-              Go to Home
-            </button>
+          <div className="section-label">Your Match</div>
+          <div className="match-card pinned-match">
+            <div className="match-card-header">
+              <div>
+                <div className="match-tag">YOUR MATCH</div>
+                <div className="match-title">
+                  {activeMatch.mode} · {activeMatch.type} · ₹{activeMatch.entryFee}
+                </div>
+              </div>
+              <div className={`trust-pill ${getTrustClass(user?.trustScore || 0)}`}>
+                TG{user?.trustScore ?? 0}
+              </div>
+            </div>
+            <div className="match-meta-row">
+              <span>{activeMatch.status}</span>
+              <span>Prize Pool ₹{activeMatch.prizePool}</span>
+            </div>
+            <div className="match-actions">
+              <button className="btn-outline" type="button" onClick={() => onScreenChange('home')}>
+                Cancel Match
+              </button>
+            </div>
           </div>
         </div>
-      ) : (
-        <>
-          <div className="section">
-            <div className="section-label">Your Pairing Request</div>
-            <div className="match-summary">
-              <div className="summary-row"><span>Mode</span><strong>{match.mode}</strong></div>
-              <div className="summary-row"><span>Type</span><strong>{match.type}</strong></div>
-              <div className="summary-row"><span>Entry Fee</span><strong>₹{match.entryFee}</strong></div>
-              <div className="summary-row"><span>Prize Pool</span><strong>₹{match.prizePool}</strong></div>
-            </div>
-            <div className="section-note">
-              This screen is where you pair with opponents after placing your entry. Use filters to narrow down your matchups.
-            </div>
-          </div>
-
-          <div className="section">
-            <div className="section-label">Pairing Filters</div>
-            <div className="filter-grid">
-              {filterOptions.map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  className={`filter-pill ${selectedFilters.includes(filter) ? 'active' : ''}`}
-                  onClick={() => toggleFilter(filter)}
-                >
-                  {filter}
-                </button>
-              ))}
-            </div>
-            <div className="section-note">
-              Selected filters: {selectedFilters.length > 0 ? selectedFilters.join(', ') : 'None'}
-            </div>
-          </div>
-
-          <div className="section">
-            <div className="section-label">Available pairing requests</div>
-            <div className="pair-list">
-              <div className="pair-card">
-                <div className="pair-header">Player: ShadowKing</div>
-                <div className="pair-meta">TG: 95 · Region: AP · Platform: Mobile</div>
-                <button className="btn-outline" type="button">Invite</button>
-              </div>
-              <div className="pair-card">
-                <div className="pair-header">Player: Phoenix</div>
-                <div className="pair-meta">TG: 88 · Region: EU · Platform: Mobile</div>
-                <button className="btn-outline" type="button">Invite</button>
-              </div>
-            </div>
-          </div>
-        </>
       )}
+
+      <div className="section">
+        <div className="section-header">
+          <span>LIVE MATCHES</span>
+          <span>{matches.length} results</span>
+        </div>
+
+        {loading ? (
+          <div className="loading-state">Refreshing live matches…</div>
+        ) : matches.length === 0 ? (
+          <div className="empty-state">
+            <h3>No active matches found</h3>
+            <p>Try changing your filters or start a new match from Home.</p>
+            <button className="btn-primary" type="button" onClick={() => onScreenChange('home')}>
+              Create Match
+            </button>
+          </div>
+        ) : (
+          <div className="match-list">
+            {matches.map((item) => (
+              <div key={item.id} className="match-card">
+                <div className="match-card-header">
+                  <div>
+                    <div className="match-tag">{item.type}</div>
+                    <div className="match-title">{item.mode} · ₹{item.entryFee}</div>
+                  </div>
+                  <div className={`trust-pill ${getTrustClass(item.trustScore)}`}>
+                    {item.trustScore}
+                  </div>
+                </div>
+                <div className="match-meta-row">
+                  <span>Player: {item.creator}</span>
+                  <span>Status: {item.status}</span>
+                </div>
+                <div className="match-card-footer">
+                  <span className="match-detail">Prize ₹{item.prizePool}</span>
+                  <button
+                    className="join-btn"
+                    type="button"
+                    disabled={(user?.balance || 0) < item.entryFee}
+                    onClick={() => handleJoin(item)}
+                  >
+                    JOIN MATCH
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

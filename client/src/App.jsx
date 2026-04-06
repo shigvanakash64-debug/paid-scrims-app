@@ -165,7 +165,14 @@ function App() {
       case 'result':
         return <ResultScreen match={currentMatch} user={user} onScreenChange={setCurrentScreen} />;
       case 'pairing':
-        return <PairingScreen match={currentMatch} user={user} onScreenChange={setCurrentScreen} />;
+        return (
+          <PairingScreen
+            match={currentMatch}
+            user={user}
+            onScreenChange={setCurrentScreen}
+            onMatchSelect={setCurrentMatch}
+          />
+        );
       case 'profile':
         return <ProfileScreen user={user} onUserUpdate={handleUserUpdate} onProfileSave={handleProfileSave} />;
       case 'settings':
