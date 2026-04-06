@@ -117,6 +117,7 @@ const userSchema = new mongoose.Schema({
 });
 
 // Virtual for trust score category
+userSchema.virtual('trustCategory').get(function() {
   if (this.trustScore >= 80) return 'high';
   if (this.trustScore >= 40) return 'medium';
   return 'low';
