@@ -121,12 +121,6 @@ userSchema.index({ trustScore: -1 });
 userSchema.index({ isBanned: 1 });
 userSchema.index({ createdAt: -1 });
 
-// Pre-save middleware to update updatedAt
-userSchema.pre('save', function(next) {
-  this.updatedAt = new Date();
-  next();
-});
-
 // Virtual for trust score category
 userSchema.virtual('trustCategory').get(function() {
   if (this.trustScore >= 80) return 'high';
