@@ -1,7 +1,9 @@
 ﻿import { useEffect, useState } from 'react';
 
-export const ProfileScreen = ({ user, onUserUpdate }) => {
+export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
   const [uid, setUid] = useState(user?.ffUid || '');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     setUid(user?.ffUid || '');
@@ -26,9 +28,26 @@ export const ProfileScreen = ({ user, onUserUpdate }) => {
 
   const history = user.history || [];
 
-  const handleSaveUid = () => {
-    if (onUserUpdate) {
-      onUserUpdate({ ...user, ffUid: uid.trim() });
+  const handleSaveUid = async () => {
+    setError('');
+    setMessage('');
+
+    if (!uid.trim()) {
+      setError('Please enter your Free Fire UID');
+      return;
+    }
+
+    if (!onProfileSave) {
+      onUserUpdate?.({ ...user, ffUid: uid.trim() });
+      setMessage('UID saved locally');
+      return;
+    }
+
+    try {
+      await onProfileSave({ ffUid: uid.trim() });
+      setMessage('UID saved successfully');
+    } catch (err) {
+      setError('Unable to save UID');
     }
   };
 
@@ -70,6 +89,8 @@ export const ProfileScreen = ({ user, onUserUpdate }) => {
         <button className="btn-outline" type="button" onClick={handleSaveUid}>
           SAVE UID
         </button>
+        {error && <div className="form-error">{error}</div>}
+        {message && <div className="form-success">{message}</div>}
       </div>
       <div style={{ padding: '0 16px 10px', display: 'flex', justifyContent: 'space-between' }}>
         <span style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: '10px', letterSpacing: '3px', color: 'var(--dim)', textTransform: 'uppercase' }}>Match History</span>

@@ -4,6 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import matchRoutes from "./routes/matchRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 import { initializeCronJobs, stopCronJobs } from "./utils/cronJobs.js";
 
 dotenv.config();
@@ -19,6 +20,7 @@ app.get("/", (req, res) => {
 });
 
 // Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/match", matchRoutes);
 app.use("/api/admin", adminRoutes);
 

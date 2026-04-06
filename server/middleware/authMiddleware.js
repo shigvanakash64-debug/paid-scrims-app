@@ -1,3 +1,5 @@
+import { verifyToken } from "../utils/authUtils.js";
+
 /**
  * Auth middleware - Validates JWT token from Authorization header
  * Expects: Authorization: Bearer <token>
@@ -13,21 +15,17 @@ export const authMiddleware = (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-    // Decode JWT manually (basic decode without verification)
-    // In production, use jwt.verify() with secret key
     try {
-      const base64Payload = token.split(".")[1];
-      const payload = JSON.parse(Buffer.from(base64Payload, "base64"));
-      
+      const payload = verifyToken(token);
       req.userId = payload.userId || payload.sub || payload.id;
-      
+
       if (!req.userId) {
         return res.status(401).json({ error: "Invalid token payload" });
       }
 
       next();
     } catch (error) {
-      return res.status(401).json({ error: "Invalid token format" });
+      return res.status(401).json({ error: error.message || "Invalid token" });
     }
   } catch (error) {
     return res.status(500).json({ error: "Auth middleware error" });

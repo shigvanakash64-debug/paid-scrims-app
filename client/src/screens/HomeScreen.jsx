@@ -34,6 +34,8 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange }) => {
     onScreenChange('match');
   };
 
+  const canJoin = user?.balance >= selectedFee;
+
   return (
     <div id="screen-home" className="screen-home">
       <div className="hero">
@@ -88,11 +90,13 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange }) => {
               type="button"
               className={`fee-btn ${selectedFee === fee ? 'active' : ''}`}
               onClick={() => setSelectedFee(fee)}
-              disabled={!user || user.balance < fee}
             >
               ₹{fee}
             </button>
           ))}
+        </div>
+        <div className="fee-note">
+          Choose any entry fee to preview the prize pool. You can only start the match if your balance covers the selected fee.
         </div>
       </div>
 
@@ -121,8 +125,8 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange }) => {
       </div>
 
       <div className="btn-cta-wrap">
-        <button className="btn-primary" type="button" onClick={handleFindMatch}>
-          FIND MATCH
+        <button className="btn-primary" type="button" onClick={handleFindMatch} disabled={!canJoin}>
+          {canJoin ? 'FIND MATCH' : 'INSUFFICIENT BALANCE'}
         </button>
       </div>
     </div>

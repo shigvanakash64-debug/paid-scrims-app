@@ -31,6 +31,9 @@ export const Header = ({ user, onNavigate, onLogout }) => {
                 <button className="menu-item" type="button" onClick={() => handleNavigate('wallet')}>
                   Wallet
                 </button>
+                <button className="menu-item" type="button" onClick={() => handleNavigate('settings')}>
+                  Settings
+                </button>
                 <div className="menu-divider" />
                 <button className="menu-item" type="button" onClick={() => { setMenuOpen(false); if (onLogout) onLogout(); }}>
                   Logout
