@@ -67,7 +67,12 @@ export const register = async (req, res) => {
   } catch (error) {
     console.error("REGISTER ERROR:", error);
     if (error.code === 11000) {
-      return sendError(res, 409, 'Username already exists', error);
+      const conflictField = error.keyPattern?.username
+        ? 'Username'
+        : error.keyPattern?.email
+        ? 'Email'
+        : 'User';
+      return sendError(res, 409, `${conflictField} already exists`, error);
     }
     return sendError(res, 500, 'Registration failed', error);
   }
