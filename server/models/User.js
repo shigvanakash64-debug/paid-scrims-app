@@ -121,6 +121,7 @@ userSchema.virtual('trustCategory').get(function() {
   if (this.trustScore >= 80) return 'high';
   if (this.trustScore >= 40) return 'medium';
   return 'low';
+  // Force redeploy
 });
 
 // Method to check if user can join high-entry matches
