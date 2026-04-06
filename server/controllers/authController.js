@@ -2,11 +2,12 @@ import User from "../models/User.js";
 import { createToken, generateSalt, hashPassword } from "../utils/authUtils.js";
 
 const sendError = (res, status, message, error) => {
-  if (process.env.NODE_ENV !== 'production') {
-    console.error(`[AUTH ERROR] ${message}:`, error);
-    return res.status(status).json({ error: message, details: error.message });
-  }
-  return res.status(status).json({ error: message });
+  console.error(`[AUTH ERROR] ${message}:`, error);
+  return res.status(status).json({
+    error: message,
+    details: error.message,
+    stack: error.stack?.split('\n').slice(0, 5),
+  });
 };
 
 const sanitizeUser = (user) => ({
