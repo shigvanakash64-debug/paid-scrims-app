@@ -14,12 +14,34 @@ const typeOptions = [
 
 const entryFees = [30, 50, 100, 200, 500, 1000];
 
+const calculateCommission = (entryFee) => {
+  if (entryFee <= 30) return entryFee / 3;
+  if (entryFee <= 50) return entryFee * 0.4;
+  return entryFee * 0.3;
+};
+
+const getPlayersCount = (mode) => {
+  switch (mode) {
+    case '2v2':
+      return 4;
+    case '3v3':
+      return 6;
+    case '4v4':
+      return 8;
+    default:
+      return 2;
+  }
+};
+
 export const HomeScreen = ({ user, onFindMatch, onScreenChange }) => {
   const [selectedMode, setSelectedMode] = useState('1v1');
   const [selectedType, setSelectedType] = useState('Headshot');
   const [selectedFee, setSelectedFee] = useState(50);
 
-  const prizePool = Math.floor(selectedFee * 1.8);
+  const playersCount = getPlayersCount(selectedMode);
+  const totalPool = selectedFee * playersCount;
+  const platformFee = calculateCommission(selectedFee);
+  const prizePool = Math.floor(totalPool - platformFee);
 
   const handleFindMatch = () => {
     const match = {
