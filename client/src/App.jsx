@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { HomeScreen } from './screens/HomeScreen';
 import { MatchScreen } from './screens/MatchScreen';
 import { ResultScreen } from './screens/ResultScreen';
-import { WalletScreen } from './screens/WalletScreen';
+import { PairingScreen } from './screens/PairingScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { LoginScreen } from './screens/LoginScreen';
@@ -164,8 +164,8 @@ function App() {
         return <MatchScreen match={currentMatch} user={user} onScreenChange={setCurrentScreen} />;
       case 'result':
         return <ResultScreen match={currentMatch} user={user} onScreenChange={setCurrentScreen} />;
-      case 'wallet':
-        return <WalletScreen user={user} />;
+      case 'pairing':
+        return <PairingScreen match={currentMatch} user={user} onScreenChange={setCurrentScreen} />;
       case 'profile':
         return <ProfileScreen user={user} onUserUpdate={handleUserUpdate} onProfileSave={handleProfileSave} />;
       case 'settings':

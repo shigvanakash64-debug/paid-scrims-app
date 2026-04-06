@@ -53,7 +53,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange }) => {
     };
 
     onFindMatch(match);
-    onScreenChange('match');
+    onScreenChange('pairing');
   };
 
   const canJoin = user?.balance >= selectedFee;
