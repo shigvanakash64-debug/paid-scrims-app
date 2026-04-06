@@ -9,6 +9,8 @@ import { initializeCronJobs, stopCronJobs } from "./utils/cronJobs.js";
 
 dotenv.config();
 
+console.log("Server starting with updated code - force redeploy");
+
 const app = express();
 
 app.use(cors());
