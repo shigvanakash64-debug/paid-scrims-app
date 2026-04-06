@@ -1,4 +1,14 @@
-export const Header = ({ user }) => {
+import { useState } from 'react';
+
+export const Header = ({ user, onNavigate, onLogout }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const toggleMenu = () => setMenuOpen((open) => !open);
+  const handleNavigate = (screen) => {
+    setMenuOpen(false);
+    if (onNavigate) onNavigate(screen);
+  };
+
   return (
     <header className="topbar">
       <div className="logo">
@@ -6,8 +16,29 @@ export const Header = ({ user }) => {
         <div className="logo-text">CLUTCH <span>ZONE</span></div>
       </div>
       <div className="topbar-right">
-        <div className="wallet-pill"><span className="sym">₹</span><span className="amt">{user?.balance ?? 0}</span></div>
-        <div className="trust-badge">TG: {user?.trustScore ?? 0}</div>
+        {user && (
+          <>
+            <div className="wallet-pill"><span className="sym">₹</span><span className="amt">{user.balance}</span></div>
+            <div className="trust-badge">TG: {user.trustScore}</div>
+            <button className="menu-button" type="button" onClick={toggleMenu}>
+              ☰
+            </button>
+            {menuOpen && (
+              <div className="menu-popup">
+                <button className="menu-item" type="button" onClick={() => handleNavigate('profile')}>
+                  Profile
+                </button>
+                <button className="menu-item" type="button" onClick={() => handleNavigate('wallet')}>
+                  Wallet
+                </button>
+                <div className="menu-divider" />
+                <button className="menu-item" type="button" onClick={() => { setMenuOpen(false); if (onLogout) onLogout(); }}>
+                  Logout
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </header>
   );

@@ -1,4 +1,12 @@
-﻿export const ProfileScreen = ({ user }) => {
+﻿import { useEffect, useState } from 'react';
+
+export const ProfileScreen = ({ user, onUserUpdate }) => {
+  const [uid, setUid] = useState(user?.ffUid || '');
+
+  useEffect(() => {
+    setUid(user?.ffUid || '');
+  }, [user?.ffUid]);
+
   if (!user) {
     return (
       <div id="screen-profile" className="screen-profile">
@@ -24,6 +32,12 @@
     { id: 5, mode: '4v4 · Bodyshot', meta: 'vs SQUAD_7 · ₹200 · Apr 2', result: 'win' }
   ];
 
+  const handleSaveUid = () => {
+    if (onUserUpdate) {
+      onUserUpdate({ ...user, ffUid: uid.trim() });
+    }
+  };
+
   return (
     <div id="screen-profile" className="screen-profile">
       <div className="hero">
@@ -35,7 +49,7 @@
           <div className="avatar">{getInitials(user.username)}</div>
           <div>
             <div className="profile-name">{user.username}</div>
-            <div className="profile-id">#FF-00221847</div>
+            <div className="profile-id">{user.ffUid ? `UID: ${user.ffUid}` : 'UID not added'}</div>
           </div>
         </div>
         <div className="trust-section">
@@ -48,19 +62,20 @@
           </div>
         </div>
       </div>
-      <div className="stats-grid">
-        <div className="stat-cell">
-          <div className="stat-num win">{user.matchesWon}</div>
-          <div className="stat-label">Wins</div>
-        </div>
-        <div className="stat-cell">
-          <div className="stat-num loss">{user.matchesPlayed - user.matchesWon}</div>
-          <div className="stat-label">Losses</div>
-        </div>
-        <div className="stat-cell">
-          <div className="stat-num dispute">4</div>
-          <div className="stat-label">Disputes</div>
-        </div>
+      <div className="profile-form">
+        <label className="form-group">
+          <span className="form-label">Free Fire UID</span>
+          <input
+            className="form-input"
+            type="text"
+            value={uid}
+            onChange={(event) => setUid(event.target.value)}
+            placeholder="Enter your Free Fire UID"
+          />
+        </label>
+        <button className="btn-outline" type="button" onClick={handleSaveUid}>
+          SAVE UID
+        </button>
       </div>
       <div style={{ padding: '0 16px 10px', display: 'flex', justifyContent: 'space-between' }}>
         <span style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: '10px', letterSpacing: '3px', color: 'var(--dim)', textTransform: 'uppercase' }}>Match History</span>

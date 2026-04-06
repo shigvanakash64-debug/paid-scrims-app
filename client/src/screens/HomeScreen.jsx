@@ -114,15 +114,17 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange }) => {
         </div>
         <div className="info-cell">
           <div className="info-val">
-            <span className="accent">#</span>1,204
+            <span className="accent">₹</span>
+            <span>{user?.balance ?? 0}</span>
           </div>
-          <div className="info-key">Online</div>
+          <div className="info-key">Balance</div>
         </div>
         <div className="info-cell">
           <div className="info-val">
-            <span className="accent">~</span>45s
+            <span className="accent">TG</span>
+            <span>{user?.trustScore ?? 0}</span>
           </div>
-          <div className="info-key">Wait</div>
+          <div className="info-key">Trust Score</div>
         </div>
       </div>
 

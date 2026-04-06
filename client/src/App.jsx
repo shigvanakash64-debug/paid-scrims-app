@@ -1,32 +1,66 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { HomeScreen } from './screens/HomeScreen';
 import { MatchScreen } from './screens/MatchScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { WalletScreen } from './screens/WalletScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
+import { LoginScreen } from './screens/LoginScreen';
+import { RegisterScreen } from './screens/RegisterScreen';
 import { BottomNav } from './components/BottomNav';
 import { Header } from './components/Header';
 import './App.css';
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState('home');
+  const [currentScreen, setCurrentScreen] = useState('login');
   const [user, setUser] = useState(null);
   const [currentMatch, setCurrentMatch] = useState(null);
 
-  // Mock user data - in real app, this would come from API
-  useEffect(() => {
+  const handleLogin = ({ username }) => {
     setUser({
       id: '1',
-      username: 'Player123',
+      username: username || 'Player123',
       balance: 250,
       trustScore: 85,
       matchesPlayed: 45,
       matchesWon: 28,
-      disputesRaised: 2
+      disputesRaised: 2,
+      ffUid: ''
     });
-  }, []);
+    setCurrentScreen('home');
+  };
+
+  const handleRegister = ({ username, ffUid }) => {
+    setUser({
+      id: '1',
+      username: username || 'Player123',
+      balance: 250,
+      trustScore: 85,
+      matchesPlayed: 45,
+      matchesWon: 28,
+      disputesRaised: 2,
+      ffUid: ffUid || ''
+    });
+    setCurrentScreen('home');
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setCurrentScreen('login');
+    setCurrentMatch(null);
+  };
+
+  const handleUserUpdate = (updatedUser) => {
+    setUser(updatedUser);
+  };
 
   const renderScreen = () => {
+    if (!user) {
+      if (currentScreen === 'register') {
+        return <RegisterScreen onRegister={handleRegister} onNavigateLogin={() => setCurrentScreen('login')} />;
+      }
+      return <LoginScreen onLogin={handleLogin} onNavigateRegister={() => setCurrentScreen('register')} />;
+    }
+
     switch (currentScreen) {
       case 'home':
         return <HomeScreen user={user} onFindMatch={setCurrentMatch} onScreenChange={setCurrentScreen} />;
@@ -37,7 +71,7 @@ function App() {
       case 'wallet':
         return <WalletScreen user={user} />;
       case 'profile':
-        return <ProfileScreen user={user} />;
+        return <ProfileScreen user={user} onUserUpdate={handleUserUpdate} />;
       default:
         return <HomeScreen user={user} onFindMatch={setCurrentMatch} onScreenChange={setCurrentScreen} />;
     }
@@ -45,11 +79,11 @@ function App() {
 
   return (
     <div className="app">
-      <Header user={user} />
+      <Header user={user} onNavigate={setCurrentScreen} onLogout={handleLogout} />
       <div className="scroll-area">
         {renderScreen()}
       </div>
-      <BottomNav currentScreen={currentScreen} onScreenChange={setCurrentScreen} />
+      {user && <BottomNav currentScreen={currentScreen} onScreenChange={setCurrentScreen} />}
     </div>
   );
 }
