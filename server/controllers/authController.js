@@ -26,17 +26,17 @@ export const register = async (req, res) => {
   try {
     console.log("REGISTER BODY:", req.body);
 
-    const { username, password } = req.body;
+    let { username, password } = req.body;
+    username = username || req.body.name || req.body.userName || req.body.user;
 
     if (!username || !password) {
+      console.log("REGISTER MISSING FIELD:", { username, password });
       return res.status(400).json({ error: "Username and password are required" });
     }
 
     const normalizedUsername = username.trim().toLowerCase();
     console.log("CHECKING EXISTING USER:", normalizedUsername);
-    const existing = await User.findOne({
-      username: normalizedUsername,
-    });
+    const existing = await User.findOne({ username: normalizedUsername });
     if (existing) {
       console.log("USER EXISTS:", existing.username);
       return res.status(409).json({ error: "Username already exists" });
