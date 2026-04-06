@@ -46,9 +46,9 @@ function App() {
   return (
     <div className="app">
       <Header user={user} />
-      <main className="main-content">
+      <div className="scroll-area">
         {renderScreen()}
-      </main>
+      </div>
       <BottomNav currentScreen={currentScreen} onScreenChange={setCurrentScreen} />
     </div>
   );
