@@ -1,151 +1,81 @@
-import { Card } from '../components/Card';
-import { TrustBadge } from '../components/TrustBadge';
-import { User, Trophy, Target, AlertTriangle, TrendingUp } from 'lucide-react';
-
-export const ProfileScreen = ({ user }) => {
+﻿export const ProfileScreen = ({ user }) => {
   if (!user) {
     return (
-      <div className="profile-screen">
-        <Card>
-          <div className="loading-state">
-            <h2>Loading Profile...</h2>
-          </div>
-        </Card>
+      <div id="screen-profile" className="screen-profile">
+        <div className="hero">
+          <div className="screen-title">PROFILE</div>
+          <div className="screen-sub">Loading profile...</div>
+        </div>
       </div>
     );
   }
 
-  const winRate = user.matchesPlayed > 0
-    ? Math.round((user.matchesWon / user.matchesPlayed) * 100)
-    : 0;
+  const getInitials = (username) => {
+    const parts = username.split(/[^A-Za-z0-9]+/).filter(Boolean);
+    const initials = parts.map((part) => part[0].toUpperCase()).slice(0, 2).join('');
+    return initials || username.slice(0, 2).toUpperCase();
+  };
 
-  const trustLevel = user.trustScore >= 80 ? 'high' : user.trustScore >= 40 ? 'medium' : 'low';
+  const history = [
+    { id: 1, mode: '1v1 · Headshot', meta: 'vs GHOST_X99 · ₹50 · Today', result: 'win' },
+    { id: 2, mode: '2v2 · Bodyshot', meta: 'vs DARK_FURY · ₹100 · Yesterday', result: 'loss' },
+    { id: 3, mode: '1v1 · Headshot', meta: 'vs SNIPER_KD · ₹100 · Apr 4', result: 'win' },
+    { id: 4, mode: '1v1 · Headshot', meta: 'vs RAGE_ZX · ₹50 · Apr 3', result: 'dispute' },
+    { id: 5, mode: '4v4 · Bodyshot', meta: 'vs SQUAD_7 · ₹200 · Apr 2', result: 'win' }
+  ];
 
   return (
-    <div className="profile-screen">
-      {/* Profile Header */}
-      <Card className="profile-header">
-        <div className="profile-avatar">
-          <User size={48} />
-        </div>
-        <div className="profile-info">
-          <h2>{user.username}</h2>
-          <TrustBadge score={user.trustScore} size="lg" />
-          <span className={`trust-label trust-${trustLevel}`}>
-            {trustLevel === 'high' ? 'Trusted Player' :
-             trustLevel === 'medium' ? 'Good Standing' : 'Low Trust'}
-          </span>
-        </div>
-      </Card>
-
-      {/* Stats Grid */}
-      <div className="stats-grid">
-        <Card className="stat-card">
-          <Trophy className="stat-icon" />
-          <div className="stat-content">
-            <span className="stat-value">{user.matchesWon}</span>
-            <span className="stat-label">Wins</span>
-          </div>
-        </Card>
-
-        <Card className="stat-card">
-          <Target className="stat-icon" />
-          <div className="stat-content">
-            <span className="stat-value">{user.matchesPlayed - user.matchesWon}</span>
-            <span className="stat-label">Losses</span>
-          </div>
-        </Card>
-
-        <Card className="stat-card">
-          <TrendingUp className="stat-icon" />
-          <div className="stat-content">
-            <span className="stat-value">{winRate}%</span>
-            <span className="stat-label">Win Rate</span>
-          </div>
-        </Card>
-
-        <Card className="stat-card">
-          <AlertTriangle className="stat-icon" />
-          <div className="stat-content">
-            <span className="stat-value">{user.disputesRaised}</span>
-            <span className="stat-label">Disputes</span>
-          </div>
-        </Card>
+    <div id="screen-profile" className="screen-profile">
+      <div className="hero">
+        <div className="screen-title">PROFILE</div>
+        <div className="screen-sub">Your competitive record</div>
       </div>
-
-      {/* Trust Score Breakdown */}
-      <Card className="trust-breakdown">
-        <h3>Trust Score Breakdown</h3>
-        <div className="trust-progress">
-          <div className="progress-bar">
-            <div
-              className="progress-fill"
-              style={{ width: `${user.trustScore}%` }}
-            ></div>
-          </div>
-          <div className="progress-labels">
-            <span>0</span>
-            <span>100</span>
+      <div className="profile-hero">
+        <div className="profile-top">
+          <div className="avatar">{getInitials(user.username)}</div>
+          <div>
+            <div className="profile-name">{user.username}</div>
+            <div className="profile-id">#FF-00221847</div>
           </div>
         </div>
-
-        <div className="trust-factors">
-          <div className="factor-item">
-            <span className="factor-label">Matches Completed</span>
-            <span className="factor-value positive">+{user.matchesPlayed * 5}</span>
+        <div className="trust-section">
+          <div className="trust-label">
+            <span className="label-text">Trust Score</span>
+            <span className="label-score">{user.trustScore} / 100</span>
           </div>
-          <div className="factor-item">
-            <span className="factor-label">Disputes Lost</span>
-            <span className="factor-value negative">-{user.disputesRaised * 15}</span>
-          </div>
-          <div className="factor-item">
-            <span className="factor-label">Valid Submissions</span>
-            <span className="factor-value positive">+{Math.max(0, user.matchesPlayed - user.disputesRaised) * 10}</span>
+          <div className="trust-bar">
+            <div className="trust-fill" style={{ width: `${user.trustScore}%` }}></div>
           </div>
         </div>
-      </Card>
-
-      {/* Account Status */}
-      <Card className="account-status">
-        <h3>Account Status</h3>
-        <div className="status-items">
-          <div className="status-item">
-            <span className="status-label">Account Status</span>
-            <span className="status-value active">Active</span>
-          </div>
-          <div className="status-item">
-            <span className="status-label">Member Since</span>
-            <span className="status-value">January 2024</span>
-          </div>
-          <div className="status-item">
-            <span className="status-label">Last Activity</span>
-            <span className="status-value">2 hours ago</span>
-          </div>
+      </div>
+      <div className="stats-grid">
+        <div className="stat-cell">
+          <div className="stat-num win">{user.matchesWon}</div>
+          <div className="stat-label">Wins</div>
         </div>
-      </Card>
-
-      {/* Trust Score Info */}
-      <Card className="trust-info">
-        <h3>How Trust Score Works</h3>
-        <div className="info-list">
-          <div className="info-item">
-            <span className="info-bullet positive">+</span>
-            <span>Complete matches fairly (+5 points)</span>
-          </div>
-          <div className="info-item">
-            <span className="info-bullet positive">+</span>
-            <span>Both players agree on result (+10 points)</span>
-          </div>
-          <div className="info-item">
-            <span className="info-bullet negative">-</span>
-            <span>Lose a dispute (-15 points)</span>
-          </div>
-          <div className="info-item">
-            <span className="info-bullet negative">-</span>
-            <span>Submit conflicting results (-10 points)</span>
-          </div>
+        <div className="stat-cell">
+          <div className="stat-num loss">{user.matchesPlayed - user.matchesWon}</div>
+          <div className="stat-label">Losses</div>
         </div>
-      </Card>
+        <div className="stat-cell">
+          <div className="stat-num dispute">4</div>
+          <div className="stat-label">Disputes</div>
+        </div>
+      </div>
+      <div style={{ padding: '0 16px 10px', display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: '10px', letterSpacing: '3px', color: 'var(--dim)', textTransform: 'uppercase' }}>Match History</span>
+      </div>
+      <div style={{ borderTop: '1px solid var(--border)' }}>
+        {history.map((item) => (
+          <div key={item.id} className="hist-row">
+            <div>
+              <div className="hist-mode">{item.mode}</div>
+              <div className="hist-meta">{item.meta}</div>
+            </div>
+            <div className={`result-chip ${item.result}`}>{item.result.toUpperCase()}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

@@ -1,160 +1,84 @@
-import { useState } from 'react';
-import { Card } from '../components/Card';
-import { Button } from '../components/Button';
-import { Upload, CheckCircle, XCircle } from 'lucide-react';
+﻿import { useState } from 'react';
 
-export const ResultScreen = ({ match, user, onScreenChange }) => {
-  const [selectedWinner, setSelectedWinner] = useState('');
-  const [screenshot, setScreenshot] = useState(null);
-  const [uploading, setUploading] = useState(false);
+export const ResultScreen = ({ match, onScreenChange }) => {
+  const [winner, setWinner] = useState('');
+  const [uploaded, setUploaded] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setScreenshot(file);
-    }
+  const handleUpload = () => {
+    setUploaded(true);
   };
 
-  const handleSubmit = async () => {
-    if (!selectedWinner || !screenshot) return;
-
-    setUploading(true);
-
-    // Simulate API call
+  const handleSubmit = () => {
+    if (!winner || !uploaded) return;
+    setSubmitted(true);
     setTimeout(() => {
-      setUploading(false);
-      setSubmitted(true);
-
-      // Simulate success/failure
-      setTimeout(() => {
-        onScreenChange('home');
-      }, 2000);
-    }, 2000);
+      onScreenChange('home');
+    }, 1200);
   };
 
   if (!match) {
     return (
-      <div className="result-screen">
-        <Card>
-          <div className="error-state">
-            <h2>No Active Match</h2>
-            <p>Return to home to find a match</p>
-            <Button onClick={() => onScreenChange('home')}>
-              Find Match
-            </Button>
-          </div>
-        </Card>
+      <div id="screen-result" className="screen-result">
+        <div className="hero">
+          <div className="screen-title">SUBMIT RESULT</div>
+          <div className="screen-sub">No active match available</div>
+        </div>
       </div>
     );
   }
 
   if (submitted) {
     return (
-      <div className="result-screen">
-        <Card className="success-state">
-          <CheckCircle size={48} className="success-icon" />
-          <h2>Result Submitted!</h2>
-          <p>Your result has been recorded. Winner will be announced soon.</p>
-          <div className="result-summary">
-            <div className="summary-item">
-              <span>Match:</span>
-              <strong>{match.mode} - {match.type}</strong>
-            </div>
-            <div className="summary-item">
-              <span>Your Claim:</span>
-              <strong>{selectedWinner === user.username ? 'You Won' : 'Opponent Won'}</strong>
-            </div>
-          </div>
-        </Card>
+      <div id="screen-result" className="screen-result">
+        <div className="hero">
+          <div className="screen-title">SUBMITTED</div>
+          <div className="screen-sub">Your result has been recorded.</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="result-screen">
-      <Card className="result-form">
-        <h2>Submit Match Result</h2>
-
-        <div className="match-summary">
-          <div className="summary-item">
-            <span>Mode:</span>
-            <strong>{match.mode}</strong>
-          </div>
-          <div className="summary-item">
-            <span>Type:</span>
-            <strong>{match.type}</strong>
-          </div>
-          <div className="summary-item">
-            <span>Entry Fee:</span>
-            <strong>₹{match.entryFee}</strong>
-          </div>
+    <div id="screen-result" className="screen-result">
+      <div className="hero">
+        <div className="screen-title">SUBMIT RESULT</div>
+        <div className="screen-sub">Upload proof within 15 minutes</div>
+      </div>
+      <div className="upload-zone" role="button" tabIndex={0} onClick={handleUpload}>
+        <div className="upload-icon">📸</div>
+        <div className="upload-label">Upload Screenshot</div>
+        <div className="upload-sub">{uploaded ? '✓ screenshot_match.jpg uploaded' : 'Tap to upload match result'}</div>
+      </div>
+      <div className="section">
+        <div className="section-label">Select Outcome</div>
+        <div className="winner-sel">
+          <button
+            type="button"
+            className={`winner-btn ${winner === 'win' ? 'active' : ''}`}
+            onClick={() => setWinner('win')}
+          >
+            ✓ I WON
+          </button>
+          <button
+            type="button"
+            className={`winner-btn lose ${winner === 'lose' ? 'active' : ''}`}
+            onClick={() => setWinner('lose')}
+          >
+            ✗ I LOST
+          </button>
         </div>
-
-        <div className="winner-selection">
-          <h3>Who won the match?</h3>
-          <div className="winner-options">
-            <button
-              className={`winner-option ${selectedWinner === user.username ? 'selected' : ''}`}
-              onClick={() => setSelectedWinner(user.username)}
-            >
-              <CheckCircle size={20} />
-              <span>I Won</span>
-            </button>
-            <button
-              className={`winner-option ${selectedWinner === match.opponent.username ? 'selected' : ''}`}
-              onClick={() => setSelectedWinner(match.opponent.username)}
-            >
-              <XCircle size={20} />
-              <span>Opponent Won</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="screenshot-upload">
-          <h3>Upload Screenshot</h3>
-          <div className="upload-area">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              id="screenshot-input"
-              className="hidden"
-            />
-            <label htmlFor="screenshot-input" className="upload-label">
-              {screenshot ? (
-                <div className="file-selected">
-                  <CheckCircle size={24} />
-                  <span>{screenshot.name}</span>
-                </div>
-              ) : (
-                <div className="upload-prompt">
-                  <Upload size={24} />
-                  <span>Click to upload screenshot</span>
-                  <small>JPG, PNG, or WebP (max 5MB)</small>
-                </div>
-              )}
-            </label>
-          </div>
-        </div>
-
-        <Button
-          variant="primary"
-          size="lg"
+      </div>
+      <div className="btn-cta-wrap">
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={!winner || !uploaded}
           onClick={handleSubmit}
-          disabled={!selectedWinner || !screenshot || uploading}
-          className="submit-btn"
         >
-          {uploading ? 'Submitting...' : 'Submit Result'}
-        </Button>
-
-        <div className="dispute-notice">
-          <p>
-            If you believe there was an error or dispute, you can raise a dispute
-            after submission. Multiple false disputes may affect your trust score.
-          </p>
-        </div>
-      </Card>
+          SUBMIT
+        </button>
+      </div>
     </div>
   );
 };

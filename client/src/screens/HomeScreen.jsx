@@ -1,25 +1,41 @@
-import { useState } from 'react';
-import { Card } from '../components/Card';
-import { Button } from '../components/Button';
-import { MatchCard } from '../components/MatchCard';
+﻿import { useState } from 'react';
+
+const modeOptions = [
+  { label: '1v1', sub: 'Solo' },
+  { label: '2v2', sub: 'Duo' },
+  { label: '3v3', sub: 'Trio' },
+  { label: '4v4', sub: 'Squad' }
+];
+
+const typeOptions = [
+  { label: 'Headshot', sub: 'Precision' },
+  { label: 'Bodyshot', sub: 'Standard' }
+];
+
+const entryFees = [30, 50, 100, 200, 500, 1000];
 
 export const HomeScreen = ({ user, onFindMatch, onScreenChange }) => {
   const [selectedMode, setSelectedMode] = useState('1v1');
   const [selectedType, setSelectedType] = useState('Headshot');
+  const [selectedFee, setSelectedFee] = useState(50);
 
-  const modes = ['1v1', '2v2', '3v3', '4v4'];
-  const types = ['Headshot', 'Bodyshot'];
-  const entryFees = [30, 50, 100, 200, 500, 1000];
+  const prizePool = Math.floor(selectedFee * 1.8);
 
-  const handleFindMatch = (entryFee) => {
+  const handleFindMatch = () => {
     const match = {
       id: Date.now().toString(),
       mode: selectedMode,
       type: selectedType,
-      entryFee,
-      prizePool: entryFee * 1.8, // 90% house edge
-      status: 'searching',
-      createdAt: new Date()
+      entryFee: selectedFee,
+      prizePool,
+      roomId: 'FF-8847-XK',
+      password: '9921',
+      server: 'IN-Mumbai',
+      opponent: {
+        username: 'GHOST_X99',
+        trustScore: 91,
+        winRate: '78%'
+      }
     };
 
     onFindMatch(match);
@@ -27,83 +43,94 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange }) => {
   };
 
   return (
-    <div className="home-screen">
-      <div className="game-header">
-        <h1>Free Fire</h1>
-        <p>Compete in ranked scrims</p>
+    <div id="screen-home" className="screen-home">
+      <div className="hero">
+        <div className="game-pill">
+          <div className="game-dot"></div>
+          <span>Free Fire</span>
+        </div>
+        <div className="screen-title">RANKED SCRIMS</div>
+        <div className="screen-sub">Compete. Win. Get Paid.</div>
       </div>
 
-      {/* Mode Selection */}
-      <Card className="selection-card">
-        <h3>Mode</h3>
-        <div className="option-grid">
-          {modes.map((mode) => (
+      <div className="section">
+        <div className="section-label">Match Mode</div>
+        <div className="grid2">
+          {modeOptions.map((mode) => (
             <button
-              key={mode}
-              className={`option-btn ${selectedMode === mode ? 'active' : ''}`}
-              onClick={() => setSelectedMode(mode)}
+              key={mode.label}
+              type="button"
+              className={`sel-btn ${selectedMode === mode.label ? 'active' : ''}`}
+              onClick={() => setSelectedMode(mode.label)}
             >
-              {mode}
+              {mode.label}
+              <span className="sub">{mode.sub}</span>
             </button>
           ))}
         </div>
-      </Card>
+      </div>
 
-      {/* Type Selection */}
-      <Card className="selection-card">
-        <h3>Type</h3>
-        <div className="option-grid">
-          {types.map((type) => (
+      <div className="section">
+        <div className="section-label">Kill Type</div>
+        <div className="grid2">
+          {typeOptions.map((type) => (
             <button
-              key={type}
-              className={`option-btn ${selectedType === type ? 'active' : ''}`}
-              onClick={() => setSelectedType(type)}
+              key={type.label}
+              type="button"
+              className={`sel-btn ${selectedType === type.label ? 'active' : ''}`}
+              onClick={() => setSelectedType(type.label)}
             >
-              {type}
+              {type.label}
+              <span className="sub">{type.sub}</span>
             </button>
           ))}
         </div>
-      </Card>
+      </div>
 
-      {/* Entry Fee Selection */}
-      <Card className="selection-card">
-        <h3>Entry Fee</h3>
-        <div className="fee-grid">
+      <div className="section">
+        <div className="section-label">Entry Fee</div>
+        <div className="grid3">
           {entryFees.map((fee) => (
-            <Button
+            <button
               key={fee}
-              variant="primary"
-              className="fee-btn"
-              onClick={() => handleFindMatch(fee)}
+              type="button"
+              className={`fee-btn ${selectedFee === fee ? 'active' : ''}`}
+              onClick={() => setSelectedFee(fee)}
               disabled={!user || user.balance < fee}
             >
               ₹{fee}
-            </Button>
+            </button>
           ))}
         </div>
-      </Card>
+      </div>
 
-      {/* Quick Stats */}
-      {user && (
-        <Card className="stats-card">
-          <div className="stat-item">
-            <span className="stat-label">Balance</span>
-            <span className="stat-value">₹{user.balance}</span>
+      <div className="info-strip">
+        <div className="info-cell">
+          <div className="info-val">
+            <span className="accent">₹</span>
+            <span>{prizePool}</span>
           </div>
-          <div className="stat-item">
-            <span className="stat-label">Trust Score</span>
-            <span className="stat-value trust-score">{user.trustScore}</span>
+          <div className="info-key">Prize Pool</div>
+        </div>
+        <div className="info-cell">
+          <div className="info-val">
+            <span className="accent">#</span>1,204
           </div>
-          <div className="stat-item">
-            <span className="stat-label">Win Rate</span>
-            <span className="stat-value">
-              {user.matchesPlayed > 0
-                ? Math.round((user.matchesWon / user.matchesPlayed) * 100)
-                : 0}%
-            </span>
+          <div className="info-key">Online</div>
+        </div>
+        <div className="info-cell">
+          <div className="info-val">
+            <span className="accent">~</span>45s
           </div>
-        </Card>
-      )}
+          <div className="info-key">Wait</div>
+        </div>
+      </div>
+
+      <div className="btn-cta-wrap">
+        <button className="btn-primary" type="button" onClick={handleFindMatch}>
+          FIND MATCH
+        </button>
+      </div>
     </div>
   );
 };
