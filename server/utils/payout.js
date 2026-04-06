@@ -1,10 +1,21 @@
 import Match from "../models/Match.js";
 
 /**
+ * Calculate platform commission based on entry fee tiers
+ * @param {number} entryFee - The entry fee amount
+ * @returns {number} - The commission amount
+ */
+const calculateCommission = (entryFee) => {
+  if (entryFee <= 30) return entryFee * (1 / 3);
+  if (entryFee <= 50) return entryFee * 0.4;
+  return entryFee * 0.3;
+};
+
+/**
  * Process payout for match winner
  * - Prevents duplicate payouts with atomic update using isPaid flag
  * - Assumes User model has wallet property
- * - Calculates platform fee (10%)
+ * - Calculates platform fee based on tiered commission structure
  * @param {string} matchId - Match ID
  * @param {string} winnerId - Winner user ID
  * @param {object} userModel - Mongoose User model
@@ -40,7 +51,7 @@ export const processPayout = async (matchId, winnerId, userModel) => {
 
     // Calculate payout
     const totalPool = match.entry * match.players.length;
-    const platformFee = totalPool * 0.1; // 10% fee
+    const platformFee = calculateCommission(match.entry);
     const winnerAmount = totalPool - platformFee;
 
     console.log(`[PAYOUT] Processing payout for match ${matchId}. Winner: ${winnerId}, Amount: ${winnerAmount}`);
