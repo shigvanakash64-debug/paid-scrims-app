@@ -89,15 +89,20 @@ function App() {
 
   const handleRegister = async ({ username, password }) => {
     try {
+      const normalizedUsername = username.trim().toLowerCase();
       const response = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password }),
+        body: JSON.stringify({ username: normalizedUsername, password }),
       });
 
       const data = await response.json();
       if (!response.ok) {
-        alert(data.error || 'Registration failed');
+        if (response.status === 409) {
+          alert('Username already exists. Choose a different username.');
+        } else {
+          alert(data.error || 'Registration failed');
+        }
         return;
       }
 
