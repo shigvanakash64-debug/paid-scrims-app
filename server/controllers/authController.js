@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import { createToken, generateSalt, hashPassword } from "../utils/authUtils.js";
+import bcrypt from "bcrypt";
 
 const sendError = (res, status, message, error) => {
   console.error(`[AUTH ERROR] ${message}:`, error);
@@ -23,30 +24,47 @@ const sanitizeUser = (user) => ({
 
 export const register = async (req, res) => {
   try {
+    console.log("REGISTER BODY:", req.body);
+
     const { username, password } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ error: "Username and password are required" });
     }
 
+    console.log("CHECKING EXISTING USER:", username.trim().toLowerCase());
     const existing = await User.findOne({
       username: username.trim().toLowerCase(),
     });
     if (existing) {
+      console.log("USER EXISTS:", existing.username);
       return res.status(409).json({ error: "Username already exists" });
     }
 
+    console.log("GENERATING SALT AND HASH");
     const salt = generateSalt();
-    const passwordHash = hashPassword(password, salt);
+    const passwordHash = await hashPassword(password, salt);
+    console.log("SALT:", salt, "HASH LENGTH:", passwordHash.length);
+
+    console.log("CREATING USER");
     const user = await User.create({
       username: username.trim(),
       password: passwordHash,
       passwordSalt: salt,
     });
+    console.log("USER CREATED:", user._id, user.username);
 
+    console.log("CREATING TOKEN");
     const token = createToken({ userId: user._id.toString() });
-    return res.status(201).json({ user: sanitizeUser(user), token });
+    console.log("TOKEN CREATED, LENGTH:", token.length);
+
+    console.log("SANITIZING USER");
+    const sanitized = sanitizeUser(user);
+    console.log("SANITIZED USER:", sanitized);
+
+    return res.status(201).json({ user: sanitized, token });
   } catch (error) {
+    console.error("REGISTER ERROR:", error);
     if (error.code === 11000) {
       return sendError(res, 409, 'Username already exists', error);
     }
@@ -69,8 +87,8 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const passwordHash = hashPassword(password, user.passwordSalt || "");
-    if (passwordHash !== user.password) {
+    const isValid = await bcrypt.compare(password + user.passwordSalt, user.password);
+    if (!isValid) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
@@ -106,14 +124,39 @@ export const changePassword = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const currentHash = hashPassword(oldPassword, user.passwordSalt || "");
-    if (currentHash !== user.password) {
+    const isValid = await bcrypt.compare(oldPassword + user.passwordSalt, user.password);
+    if (!isValid) {
       return res.status(401).json({ error: "Old password is incorrect" });
     }
 
     const salt = generateSalt();
     user.passwordSalt = salt;
-    user.password = hashPassword(newPassword, salt);
+    user.password = await hashPassword(newPassword, salt);
+    await user.save();
+
+    return res.json({ message: "Password changed successfully" });
+  } catch (error) {
+    return sendError(res, 500, 'Failed to change password', error);
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { ffUid } = req.body;
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    user.ffUid = ffUid?.trim() || "";
+    await user.save();
+
+    return res.json({ user: sanitizeUser(user) });
+  } catch (error) {
+    return sendError(res, 500, 'Failed to update profile', error);
+  }
+};
+
     await user.save();
 
     return res.json({ message: "Password changed successfully" });

@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import crypto from "crypto";
 
 const AUTH_SECRET = process.env.AUTH_SECRET || "clutchzone_secret";
@@ -16,8 +17,9 @@ const base64UrlDecode = (value) => {
 
 export const generateSalt = () => crypto.randomBytes(16).toString("hex");
 
-export const hashPassword = (password, salt) =>
-  crypto.scryptSync(password, salt, 64).toString("hex");
+export const hashPassword = async (password, salt) => {
+  return await bcrypt.hash(password + salt, 10);
+};
 
 export const createToken = (payload) => {
   const header = base64UrlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
