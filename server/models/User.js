@@ -116,12 +116,7 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Pre-save middleware to update updatedAt
-userSchema.pre('save', async function() {
-  this.updatedAt = new Date();
-  // Force redeploy
-});
-userSchema.virtual('trustCategory').get(function() {
+// Virtual for trust score category
   if (this.trustScore >= 80) return 'high';
   if (this.trustScore >= 40) return 'medium';
   return 'low';
