@@ -1,18 +1,42 @@
-# React + Vite
+# Scrim App Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A mobile-first React application for competitive gaming scrims with anti-cheat features.
 
-Currently, two official plugins are available:
+## Deployment on Render
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+This app is configured to deploy on Render.com as a web service.
 
-## React Compiler
+### Local Development
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+```bash
+npm install
+npm run dev
+```
 
-Note: This will impact Vite dev & build performances.
+### Production Build
 
-## Expanding the ESLint configuration
+```bash
+npm run build
+npm start
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Deployment
+
+1. Connect your GitHub repository to Render
+2. Create a new **Web Service**
+3. Set the **Build Command** to: `npm run build`
+4. Set the **Start Command** to: `npm start`
+5. The app will be available at the provided Render URL
+
+### Environment Variables
+
+No environment variables are required for the frontend. All API calls are configured to work with the backend service.
+
+## Features
+
+- Mobile-first responsive design
+- Trust score system
+- Anti-cheat measures
+- Real-time match finding
+- Screenshot validation
+- Dark gaming theme

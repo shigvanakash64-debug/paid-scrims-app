@@ -3,15 +3,18 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "server.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
+    "start": "node server.js",
+    "prod": "npm run build && npm start",
     "preview": "vite preview"
   },
   "dependencies": {
     "autoprefixer": "^10.4.27",
     "axios": "^1.14.0",
+    "express": "^5.2.1",
     "lucide-react": "^1.7.0",
     "postcss": "^8.5.8",
     "postcss-nesting": "^14.0.0",
