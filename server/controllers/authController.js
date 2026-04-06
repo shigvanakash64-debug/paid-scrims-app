@@ -32,9 +32,10 @@ export const register = async (req, res) => {
       return res.status(400).json({ error: "Username and password are required" });
     }
 
-    console.log("CHECKING EXISTING USER:", username.trim().toLowerCase());
+    const normalizedUsername = username.trim().toLowerCase();
+    console.log("CHECKING EXISTING USER:", normalizedUsername);
     const existing = await User.findOne({
-      username: username.trim().toLowerCase(),
+      username: normalizedUsername,
     });
     if (existing) {
       console.log("USER EXISTS:", existing.username);
@@ -48,7 +49,7 @@ export const register = async (req, res) => {
 
     console.log("CREATING USER");
     const user = await User.create({
-      username: username.trim(),
+      username: normalizedUsername,
       password: passwordHash,
       passwordSalt: salt,
     });
