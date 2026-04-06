@@ -3,6 +3,14 @@ import { createToken, generateSalt, hashPassword } from "../utils/authUtils.js";
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+const sendError = (res, status, message, error) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(`[AUTH ERROR] ${message}:`, error);
+    return res.status(status).json({ error: message, details: error.message });
+  }
+  return res.status(status).json({ error: message });
+};
+
 const sanitizeUser = (user) => ({
   id: user._id.toString(),
   username: user.username,
@@ -44,7 +52,10 @@ export const register = async (req, res) => {
     const token = createToken({ userId: user._id.toString() });
     return res.status(201).json({ user: sanitizeUser(user), token });
   } catch (error) {
-    return res.status(500).json({ error: "Registration failed" });
+    if (error.code === 11000) {
+      return sendError(res, 409, 'Username or email already exists', error);
+    }
+    return sendError(res, 500, 'Registration failed', error);
   }
 };
 
@@ -71,7 +82,7 @@ export const login = async (req, res) => {
     const token = createToken({ userId: user._id.toString() });
     return res.json({ user: sanitizeUser(user), token });
   } catch (error) {
-    return res.status(500).json({ error: "Login failed" });
+    return sendError(res, 500, 'Login failed', error);
   }
 };
 
@@ -83,7 +94,7 @@ export const getMe = async (req, res) => {
     }
     return res.json({ user: sanitizeUser(user) });
   } catch (error) {
-    return res.status(500).json({ error: "Could not load user" });
+    return sendError(res, 500, 'Could not load user', error);
   }
 };
 
@@ -112,7 +123,7 @@ export const changePassword = async (req, res) => {
 
     return res.json({ message: "Password changed successfully" });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to change password" });
+    return sendError(res, 500, 'Failed to change password', error);
   }
 };
 
@@ -129,6 +140,6 @@ export const updateProfile = async (req, res) => {
 
     return res.json({ user: sanitizeUser(user) });
   } catch (error) {
-    return res.status(500).json({ error: "Failed to update profile" });
+    return sendError(res, 500, 'Failed to update profile', error);
   }
 };
