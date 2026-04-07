@@ -336,7 +336,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] px-4 pb-28 pt-6 text-white sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#0B0B0B] px-4 pb-40 pt-6 text-white sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-6xl gap-6 xl:grid-cols-[1fr_320px]">
         <div className="space-y-6">
           <MatchHeader match={currentMatch} statusLabel={currentStatusLabel} />
@@ -431,7 +431,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
         </aside>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#1F1F1F] bg-[#0B0B0B]/95 p-4 backdrop-blur-sm sm:hidden">
+      <div className="fixed bottom-20 left-0 right-0 z-30 border-t border-[#1F1F1F] bg-[#0B0B0B]/95 p-4 backdrop-blur-sm sm:hidden">
         <div className="flex gap-3">
           <button
             type="button"

@@ -3,9 +3,9 @@ import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 const TOKEN_KEY = 'clutchzone_token';
-const modeOptions = ['1v1', '2v2', '3v3', '4v4'];
-const typeOptions = ['Headshot', 'Bodyshot'];
-const entryOptions = [30, 50, 100, 200, 500, 1000];
+const modeOptions = ['All', '1v1', '2v2', '3v3', '4v4'];
+const typeOptions = ['All', 'Headshot', 'Bodyshot'];
+const entryOptions = [0, 30, 50, 100, 200, 500, 1000];
 
 const sampleMatches = [
   {
@@ -67,9 +67,9 @@ const getTrustClass = (score) => {
 };
 
 export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) => {
-  const [mode, setMode] = useState(match?.mode || '1v1');
-  const [type, setType] = useState(match?.type || 'Headshot');
-  const [entry, setEntry] = useState(match?.entryFee || 50);
+  const [mode, setMode] = useState(match?.mode || 'All');
+  const [type, setType] = useState(match?.type || 'All');
+  const [entry, setEntry] = useState(match?.entryFee || 0);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -77,7 +77,10 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
 
   const filteredSamples = useMemo(
     () => sampleMatches.filter(
-      (item) => item.mode === mode && item.type === type && item.entryFee === entry
+      (item) =>
+        (mode === 'All' || item.mode === mode) &&
+        (type === 'All' || item.type === type) &&
+        (entry === 0 || item.entryFee === entry)
     ),
     [mode, type, entry]
   );
@@ -87,9 +90,13 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
       setLoading(true);
       setError('');
       try {
-        const response = await axios.get(
-          `${API_BASE}/match/list?mode=${encodeURIComponent(mode)}&type=${encodeURIComponent(type)}&entry=${entry}`
-        );
+        const params = new URLSearchParams();
+        if (mode !== 'All') params.append('mode', mode);
+        if (type !== 'All') params.append('type', type);
+        if (entry !== 0) params.append('entry', String(entry));
+
+        const url = `${API_BASE}/match/list${params.toString() ? `?${params.toString()}` : ''}`;
+        const response = await axios.get(url);
         setMatches(response.data.matches || []);
       } catch (err) {
         setError('Live marketplace offline. Showing active lobby.');
@@ -125,10 +132,24 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const activeMatch = match
     ? {
         ...match,
-        id: match.id || 'my-match',
-        status: 'Waiting for opponent',
+        id: match.id || match._id || 'my-match',
+        entryFee: match.entryFee || match.entry || 0,
+        creator: match.creator || user || { username: 'You' },
       }
     : null;
+
+  const isLiveMatch = (status) => {
+    const value = String(status || '').toLowerCase();
+    return !['ongoing', 'completed', 'cancelled'].includes(value);
+  };
+
+  const liveMatches = useMemo(() => {
+    const current = [...matches];
+    if (activeMatch && isLiveMatch(activeMatch.status) && !current.some((item) => item.id === activeMatch.id)) {
+      current.unshift(activeMatch);
+    }
+    return current;
+  }, [matches, activeMatch]);
 
   return (
     <div id="screen-pairing" className="screen-pairing">
@@ -163,7 +184,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
           <select className="pairing-select" value={entry} onChange={(e) => setEntry(Number(e.target.value))}>
             {entryOptions.map((option) => (
               <option key={option} value={option}>
-                ₹{option}
+                {option === 0 ? 'All' : `₹${option}`}
               </option>
             ))}
           </select>
@@ -187,7 +208,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
 
       <div className="section" style={{ paddingBottom: 12 }}>
         <div className="section-announce">
-          {error || `Live feed · ${matches.length} matches available`}
+          {error || `Live feed · ${liveMatches.length} matches available`}
         </div>
       </div>
 
@@ -235,12 +256,12 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
           <div className="section">
             <div className="section-header">
               <span>LIVE MATCHES</span>
-              <span>{matches.length} results</span>
+              <span>{liveMatches.length} results</span>
             </div>
 
             {loading ? (
               <div className="loading-state">Loading live matches…</div>
-            ) : matches.length === 0 ? (
+            ) : liveMatches.length === 0 ? (
               <div className="empty-state">
                 <h3>No active matches found</h3>
                 <p>Try changing your filters or create a new match from Home.</p>
@@ -250,7 +271,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
               </div>
             ) : (
               <div className="match-list">
-                {matches.map((item) => (
+                {liveMatches.map((item) => (
                   <div key={item.id} className="match-card">
                     <div className="match-card-header">
                       <div>
@@ -262,7 +283,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                       </div>
                     </div>
                     <div className="match-meta-row">
-                      <span>Player: {item.creator}</span>
+                      <span>Player: {item.creator?.username || item.creator || 'Unknown'}</span>
                       <span>Status: {item.status}</span>
                     </div>
                     <div className="match-card-footer">
@@ -270,10 +291,10 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                       <button
                         className="join-btn"
                         type="button"
-                        disabled={!user}
+                        disabled={!user || item.id === activeMatch?.id}
                         onClick={() => handleJoin(item)}
                       >
-                        JOIN MATCH
+                        {item.id === activeMatch?.id ? 'YOUR MATCH' : 'JOIN MATCH'}
                       </button>
                     </div>
                   </div>
