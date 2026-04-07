@@ -173,95 +173,413 @@ export const submitResult = async (req, res) => {
 /**
  * Get match details with result
  */
+const serializeMatch = (match) => {
+  const record = match.toObject ? match.toObject() : match;
+  return {
+    id: record._id.toString(),
+    creator: record.creator ? {
+      id: record.creator._id?.toString() || record.creator.toString(),
+      username: record.creator.username || record.creator
+    } : null,
+    players: (record.players || []).map((player) => {
+      if (typeof player === 'string' || player instanceof String) {
+        return { id: player.toString(), username: player.toString() };
+      }
+      return {
+        id: player._id.toString(),
+        username: player.username,
+      };
+    }),
+    mode: record.mode,
+    type: record.type,
+    entry: record.entry,
+    prizePool: record.prizePool,
+    status: record.status,
+    paidUsers: (record.paidUsers || []).map((u) => u.toString()),
+    verifiedUsers: (record.verifiedUsers || []).map((u) => u.toString()),
+    paymentDueAt: record.paymentDueAt,
+    roomDetails: record.roomDetails || {},
+    paymentScreenshots: (record.paymentScreenshots || []).map((item) => ({
+      user: item.user?.toString(),
+      image: item.image,
+      uploadedAt: item.uploadedAt,
+    })),
+    adminMessages: (record.adminMessages || []).map((item) => ({
+      id: item._id?.toString() || `${item.sender}-${item.createdAt}`,
+      sender: item.sender,
+      text: item.text,
+      createdAt: item.createdAt,
+    })),
+    canceledBy: record.canceledBy ? record.canceledBy.toString() : null,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  };
+};
+
+const cancelExpiredPayments = async () => {
+  const now = new Date();
+  const expiredMatches = await Match.find({
+    status: { $in: ['matched', 'payment_pending'] },
+    paymentDueAt: { $lte: now },
+  });
+
+  for (const expired of expiredMatches) {
+    if ((expired.paidUsers || []).length >= (expired.players || []).length) {
+      continue;
+    }
+    expired.status = 'cancelled';
+    expired.adminMessages.push({
+      sender: 'system',
+      text: 'Match auto-cancelled because payment was not completed in time.',
+    });
+    await expired.save();
+  }
+};
+
 export const getMatch = async (req, res) => {
   try {
     const { matchId } = req.params;
 
+    await cancelExpiredPayments();
+
     const match = await Match.findById(matchId)
-      .populate("players", "username email")
-      .populate("result.winner", "username")
-      .populate("result.screenshots.user", "username");
+      .populate('creator', 'username')
+      .populate('players', 'username')
+      .populate('paymentScreenshots.user', 'username');
 
     if (!match) {
-      return res.status(404).json({ error: "Match not found" });
+      return res.status(404).json({ error: 'Match not found' });
     }
 
-    res.status(200).json(match);
+    res.status(200).json({ match: serializeMatch(match) });
   } catch (error) {
-    console.error("getMatch error:", error);
+    console.error('getMatch error:', error);
     res.status(500).json({ error: `Server error: ${error.message}` });
   }
 };
 
-/**
- * List available open matches for the pairing lobby
- */
+export const createMatch = async (req, res) => {
+  try {
+    const { mode, type, entry } = req.body;
+    const userId = req.userId;
+
+    if (!mode || !type || !entry) {
+      return res.status(400).json({ error: 'mode, type and entry are required' });
+    }
+
+    const parsedEntry = Number(entry);
+    if (!parsedEntry || parsedEntry <= 0) {
+      return res.status(400).json({ error: 'Invalid entry fee' });
+    }
+
+    const playerCount = mode === '2v2' ? 4 : mode === '3v3' ? 6 : mode === '4v4' ? 8 : 2;
+    const totalPool = parsedEntry * playerCount;
+    const platformFee = parsedEntry <= 30 ? parsedEntry / 3 : parsedEntry <= 50 ? parsedEntry * 0.4 : parsedEntry * 0.3;
+    const prizePool = Math.max(0, Math.floor(totalPool - platformFee));
+
+    const match = await Match.create({
+      creator: userId,
+      players: [userId],
+      mode,
+      type,
+      entry: parsedEntry,
+      prizePool,
+      status: 'waiting',
+      paymentDueAt: null,
+      adminMessages: [
+        {
+          sender: 'system',
+          text: 'Match request created. Waiting for an opponent to accept.',
+        },
+      ],
+    });
+
+    res.status(201).json({ match: serializeMatch(match) });
+  } catch (error) {
+    console.error('createMatch error:', error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
+
+export const acceptMatch = async (req, res) => {
+  try {
+    const { matchId } = req.body;
+    const userId = req.userId;
+
+    if (!matchId) {
+      return res.status(400).json({ error: 'matchId is required' });
+    }
+
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+
+    if (match.status !== 'waiting') {
+      return res.status(400).json({ error: 'Match is not available for acceptance' });
+    }
+
+    if (match.players.includes(userId)) {
+      return res.status(400).json({ error: 'You already joined this match' });
+    }
+
+    match.players.push(userId);
+    match.status = 'payment_pending';
+    match.paymentDueAt = new Date(Date.now() + 5 * 60 * 1000);
+    match.adminMessages.push({
+      sender: 'system',
+      text: 'Opponent accepted the match. Both players must upload payment proof within 5 minutes.',
+    });
+
+    await match.save();
+
+    res.status(200).json({ match: serializeMatch(match) });
+  } catch (error) {
+    console.error('acceptMatch error:', error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
+
+export const uploadPaymentProof = async (req, res) => {
+  try {
+    const { matchId } = req.body;
+    const userId = req.userId;
+
+    if (!matchId) {
+      return res.status(400).json({ error: 'matchId is required' });
+    }
+
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+
+    const userIsParticipant = match.players.some((playerId) => playerId.toString() === userId.toString());
+    if (!userIsParticipant) {
+      return res.status(403).json({ error: 'Only match participants can upload payment proof' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Payment screenshot is required' });
+    }
+
+    if (match.status === 'cancelled' || match.status === 'completed') {
+      return res.status(400).json({ error: 'Cannot upload payment proof for this match' });
+    }
+
+    let screenshotUrl;
+    try {
+      screenshotUrl = await uploadToCloudinary(req.file.buffer, req.file.originalname);
+    } catch (uploadError) {
+      return res.status(500).json({ error: `Upload failed: ${uploadError.message}` });
+    }
+
+    if (!match.paidUsers.some((p) => p.toString() === userId.toString())) {
+      match.paidUsers.push(userId);
+    }
+
+    match.paymentScreenshots.push({
+      user: userId,
+      image: screenshotUrl,
+      uploadedAt: new Date(),
+    });
+
+    match.status = 'payment_pending';
+    match.adminMessages.push({
+      sender: 'user',
+      text: 'Paid',
+    });
+
+    await match.save();
+
+    res.status(200).json({ match: serializeMatch(match) });
+  } catch (error) {
+    console.error('uploadPaymentProof error:', error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
+
+export const verifyPlayer = async (req, res) => {
+  try {
+    const { matchId, playerId } = req.body;
+    const adminId = req.userId;
+
+    if (!matchId || !playerId) {
+      return res.status(400).json({ error: 'matchId and playerId are required' });
+    }
+
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+
+    if (!match.players.some((player) => player.toString() === playerId.toString())) {
+      return res.status(400).json({ error: 'Player is not part of this match' });
+    }
+
+    if (match.verifiedUsers.some((player) => player.toString() === playerId.toString())) {
+      return res.status(400).json({ error: 'Player is already verified' });
+    }
+
+    match.verifiedUsers.push(playerId);
+    match.adminMessages.push({
+      sender: 'admin',
+      text: `Verified player ${playerId}`,
+    });
+
+    if (match.verifiedUsers.length === match.players.length) {
+      match.status = 'verified';
+      match.adminMessages.push({
+        sender: 'system',
+        text: 'Both players are verified. Admin can now start the match.',
+      });
+    }
+
+    await match.save();
+
+    res.status(200).json({ match: serializeMatch(match) });
+  } catch (error) {
+    console.error('verifyPlayer error:', error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
+
+export const startMatch = async (req, res) => {
+  try {
+    const { matchId, roomId, password } = req.body;
+    const adminId = req.userId;
+
+    if (!matchId || !roomId || !password) {
+      return res.status(400).json({ error: 'matchId, roomId, and password are required' });
+    }
+
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+
+    if (match.status !== 'verified') {
+      return res.status(400).json({ error: 'Match must be verified before starting' });
+    }
+
+    match.roomDetails = {
+      roomId,
+      password,
+      createdAt: new Date(),
+    };
+    match.status = 'ongoing';
+    match.startedAt = new Date();
+    match.adminMessages.push({
+      sender: 'admin',
+      text: 'Room created',
+    });
+
+    await match.save();
+
+    res.status(200).json({ match: serializeMatch(match) });
+  } catch (error) {
+    console.error('startMatch error:', error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
+
+export const cancelMatch = async (req, res) => {
+  try {
+    const { matchId } = req.body;
+    const userId = req.userId;
+
+    if (!matchId) {
+      return res.status(400).json({ error: 'matchId is required' });
+    }
+
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+
+    if (match.status === 'completed' || match.status === 'cancelled') {
+      return res.status(400).json({ error: 'This match cannot be cancelled' });
+    }
+
+    const isParticipant = match.players.some((player) => player.toString() === userId.toString());
+    if (!isParticipant && !req.isAdmin) {
+      return res.status(403).json({ error: 'Only participants or admin can cancel the match' });
+    }
+
+    match.status = 'cancelled';
+    match.canceledBy = userId;
+    match.adminMessages.push({
+      sender: 'system',
+      text: req.isAdmin ? 'Admin cancelled the match.' : 'Match cancelled by a player before start.',
+    });
+
+    await match.save();
+
+    res.status(200).json({ match: serializeMatch(match) });
+  } catch (error) {
+    console.error('cancelMatch error:', error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
+
+export const addChatMessage = async (req, res) => {
+  try {
+    const { matchId, text, sender } = req.body;
+    const userId = req.userId;
+
+    if (!matchId || !text || !sender) {
+      return res.status(400).json({ error: 'matchId, text, and sender are required' });
+    }
+
+    const allowedUserMessages = ['Paid', 'Issue', 'Not received room'];
+    const allowedAdminMessages = ['Payment received', 'Room created', 'Match cancelled'];
+
+    if (sender === 'user' && !allowedUserMessages.includes(text)) {
+      return res.status(400).json({ error: 'Invalid user message' });
+    }
+
+    if (sender === 'admin' && !req.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    if (sender === 'admin' && !allowedAdminMessages.includes(text)) {
+      return res.status(400).json({ error: 'Invalid admin message' });
+    }
+
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+
+    match.adminMessages.push({ sender, text });
+    await match.save();
+
+    res.status(200).json({ match: serializeMatch(match) });
+  } catch (error) {
+    console.error('addChatMessage error:', error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
+
 export const listMatches = async (req, res) => {
   try {
     const { mode, type, entry } = req.query;
-    const availableMatches = [
-      {
-        id: 'match-001',
-        mode: '1v1',
-        type: 'Headshot',
-        entryFee: 50,
-        prizePool: 80,
-        creator: 'Akash_77',
-        trustScore: 82,
-        status: 'Waiting for opponent',
-      },
-      {
-        id: 'match-002',
-        mode: '1v1',
-        type: 'Bodyshot',
-        entryFee: 100,
-        prizePool: 160,
-        creator: 'Riya_09',
-        trustScore: 74,
-        status: 'Waiting for opponent',
-      },
-      {
-        id: 'match-003',
-        mode: '2v2',
-        type: 'Headshot',
-        entryFee: 200,
-        prizePool: 320,
-        creator: 'ShadowKing',
-        trustScore: 88,
-        status: 'Waiting for opponents',
-      },
-      {
-        id: 'match-004',
-        mode: '1v1',
-        type: 'Headshot',
-        entryFee: 30,
-        prizePool: 48,
-        creator: 'Nova_X',
-        trustScore: 65,
-        status: 'Waiting for opponent',
-      },
-      {
-        id: 'match-005',
-        mode: '3v3',
-        type: 'Bodyshot',
-        entryFee: 500,
-        prizePool: 800,
-        creator: 'AlphaRider',
-        trustScore: 91,
-        status: 'Waiting for teammates',
-      },
-    ];
+    await cancelExpiredPayments();
 
-    const filtered = availableMatches.filter((match) => {
-      if (mode && match.mode !== mode) return false;
-      if (type && match.type !== type) return false;
-      if (entry && Number(match.entryFee) !== Number(entry)) return false;
-      return true;
-    });
+    const query = { status: 'waiting' };
+    if (mode) query.mode = mode;
+    if (type) query.type = type;
+    if (entry) query.entry = Number(entry);
 
-    res.status(200).json({ matches: filtered });
+    const matches = await Match.find(query)
+      .populate('creator', 'username trustScore')
+      .populate('players', 'username')
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    res.status(200).json({ matches: matches.map(serializeMatch) });
   } catch (error) {
-    console.error("listMatches error:", error);
+    console.error('listMatches error:', error);
     res.status(500).json({ error: `Server error: ${error.message}` });
   }
 };

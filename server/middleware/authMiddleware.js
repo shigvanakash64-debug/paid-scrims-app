@@ -1,11 +1,12 @@
 import { verifyToken } from "../utils/authUtils.js";
+import User from "../models/User.js";
 
 /**
  * Auth middleware - Validates JWT token from Authorization header
  * Expects: Authorization: Bearer <token>
- * Sets req.userId from token payload
+ * Sets req.userId and req.user from token payload
  */
-export const authMiddleware = (req, res, next) => {
+export const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -17,11 +18,20 @@ export const authMiddleware = (req, res, next) => {
 
     try {
       const payload = verifyToken(token);
-      req.userId = payload.userId || payload.sub || payload.id;
+      const userId = payload.userId || payload.sub || payload.id;
 
-      if (!req.userId) {
+      if (!userId) {
         return res.status(401).json({ error: "Invalid token payload" });
       }
+
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      req.userId = userId;
+      req.user = user;
+      req.isAdmin = user.role === 'admin';
 
       next();
     } catch (error) {
@@ -30,4 +40,11 @@ export const authMiddleware = (req, res, next) => {
   } catch (error) {
     return res.status(500).json({ error: "Auth middleware error" });
   }
+};
+
+export const adminMiddleware = (req, res, next) => {
+  if (!req.isAdmin) {
+    return res.status(403).json({ error: "Admin access required" });
+  }
+  next();
 };

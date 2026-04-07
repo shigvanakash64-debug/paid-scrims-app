@@ -80,6 +80,12 @@ const userSchema = new mongoose.Schema({
   },
   banReason: String,
   banExpiresAt: Date,
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user',
+  },
+  // To make a user an admin in MongoDB, set role: 'admin' on the user document.
 
   // Anti-cheat tracking
   lastActivity: {

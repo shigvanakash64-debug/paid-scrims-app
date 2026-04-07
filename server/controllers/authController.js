@@ -14,6 +14,8 @@ const sendError = (res, status, message, error) => {
 const sanitizeUser = (user) => ({
   id: user._id.toString(),
   username: user.username,
+  role: user.role || 'user',
+  isAdmin: user.role === 'admin',
   ffUid: user.ffUid || "",
   balance: user.wallet?.balance || 0,
   trustScore: user.trustScore,

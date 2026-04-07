@@ -1,5 +1,5 @@
 import express from "express";
-import { authMiddleware } from "../middleware/authMiddleware.js";
+import { authMiddleware, adminMiddleware } from "../middleware/authMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
 import {
   submitResult,
@@ -10,9 +10,63 @@ import {
   getMatchDisputes,
   flagScreenshotAsFake,
   canJoinMatch,
+  createMatch,
+  acceptMatch,
+  uploadPaymentProof,
+  verifyPlayer,
+  startMatch,
+  cancelMatch,
+  addChatMessage,
 } from "../controllers/matchController.js";
 
 const router = express.Router();
+
+/**
+ * POST /api/match/create
+ * Create a new match request
+ */
+router.post("/create", authMiddleware, createMatch);
+
+/**
+ * POST /api/match/accept
+ * Accept a waiting match request
+ */
+router.post("/accept", authMiddleware, acceptMatch);
+
+/**
+ * POST /api/match/upload-payment
+ * Upload payment screenshot and mark the user as paid
+ */
+router.post(
+  "/upload-payment",
+  authMiddleware,
+  upload.single("screenshot"),
+  uploadPaymentProof
+);
+
+/**
+ * POST /api/match/verify-player
+ * Admin verifies a player's payment proof
+ */
+router.post("/verify-player", authMiddleware, adminMiddleware, verifyPlayer);
+
+/**
+ * POST /api/match/start
+ * Admin starts the verified match and publishes room details
+ */
+router.post("/start", authMiddleware, adminMiddleware, startMatch);
+
+/**
+ * POST /api/match/cancel
+ * Cancel a match before it starts
+ */
+router.post("/cancel", authMiddleware, cancelMatch);
+
+/**
+ * POST /api/match/chat
+ * Add a controlled chat message for admin or user actions
+ */
+router.post("/chat", authMiddleware, addChatMessage);
 
 /**
  * POST /api/match/submit-result
@@ -27,8 +81,8 @@ router.post(
 );
 
 /**
- * GET /api/match/:matchId
- * Get match details with results
+ * GET /api/match/list
+ * List waiting matches
  */
 router.get("/list", listMatches);
 

@@ -1,4 +1,8 @@
 ﻿import { useState } from 'react';
+import axios from 'axios';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const TOKEN_KEY = 'clutchzone_token';
 
 const modeOptions = [
   { label: '1v1', sub: 'Solo' },
@@ -43,7 +47,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
   const platformFee = calculateCommission(selectedFee);
   const prizePool = Math.floor(totalPool - platformFee);
 
-  const handleFindMatch = () => {
+  const handleFindMatch = async () => {
     if (user.balance < selectedFee) {
       alert('Insufficient balance to create this match.');
       return;
@@ -52,16 +56,28 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
       alert('You already have an active match. Complete it first before creating a new one.');
       return;
     }
-    const match = {
-      id: Date.now().toString(),
-      mode: selectedMode,
-      type: selectedType,
-      entryFee: selectedFee,
-      prizePool
-    };
 
-    onFindMatch(match);
-    onScreenChange('pairing');
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const response = await axios.post(
+        `${API_BASE}/match/create`,
+        {
+          mode: selectedMode,
+          type: selectedType,
+          entry: selectedFee,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      onFindMatch(response.data.match);
+      onScreenChange('pairing');
+    } catch (error) {
+      alert(error.response?.data?.error || 'API error while creating match');
+    }
   };
 
   const canJoin = user?.balance >= selectedFee;

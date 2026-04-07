@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 
 const matchSchema = new mongoose.Schema(
   {
+    creator: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     players: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -9,14 +14,77 @@ const matchSchema = new mongoose.Schema(
         required: true,
       },
     ],
+    mode: {
+      type: String,
+      enum: ["1v1", "2v2", "3v3", "4v4"],
+      required: true,
+    },
+    type: {
+      type: String,
+      enum: ["Headshot", "Bodyshot"],
+      required: true,
+    },
+    prizePool: {
+      type: Number,
+      required: true,
+    },
     entry: {
       type: Number,
       required: true, // Entry fee per player
     },
     status: {
       type: String,
-      enum: ["pending", "in-progress", "completed", "disputed", "cancelled"],
-      default: "pending",
+      enum: ["waiting", "matched", "payment_pending", "verified", "ongoing", "completed", "cancelled", "pending", "in-progress", "disputed"],
+      default: "waiting",
+    },
+    paidUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    verifiedUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    paymentScreenshots: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        image: String,
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    paymentDueAt: Date,
+    roomDetails: {
+      roomId: String,
+      password: String,
+      createdAt: Date,
+    },
+    adminMessages: [
+      {
+        sender: {
+          type: String,
+          enum: ["admin", "user", "system"],
+          default: "admin",
+        },
+        text: String,
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    canceledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
     result: {
       submittedBy: [

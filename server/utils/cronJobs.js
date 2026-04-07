@@ -4,6 +4,31 @@ import { batchAutoResolveMatches } from "./autoResolveMatch.js";
 
 let cronJobInstance = null;
 
+const cancelPaymentTimeouts = async () => {
+  const now = new Date();
+  const matches = await Match.find({
+    status: { $in: ['matched', 'payment_pending'] },
+    paymentDueAt: { $exists: true, $lte: now },
+  });
+
+  const results = [];
+  for (const match of matches) {
+    if ((match.paidUsers || []).length >= (match.players || []).length) {
+      continue;
+    }
+    match.status = 'cancelled';
+    match.adminMessages = match.adminMessages || [];
+    match.adminMessages.push({
+      sender: 'system',
+      text: 'Match auto-cancelled because payment was not completed in time.',
+      createdAt: new Date(),
+    });
+    await match.save();
+    results.push({ matchId: match._id.toString(), action: 'cancelled', reason: 'payment timeout' });
+  }
+  return results;
+};
+
 /**
  * Initialize cron job for match timeout resolution
  * Runs every 1 minute
@@ -24,14 +49,12 @@ export const initializeCronJobs = (userModel, options = {}) => {
       const now = new Date();
       console.log(`\n[CRON] Starting match timeout resolution at ${now.toISOString()}`);
 
-      // Fetch matches that need processing
-      // Status: result_pending (first player submitted, waiting for second)
-      // OR: ongoing (match started but no results yet)
-      // AND: resultDeadline has passed OR is about to pass
-      const matchesToProcess = await Match.find({
-        status: { $in: ["result_pending", "ongoing", "pending"] },
-        resultDeadline: { $exists: true, $lte: now },
-        isPaid: false,
+          // Handle payment timeouts for matches awaiting proof
+          const paymentTimeouts = await cancelPaymentTimeouts();
+          if (paymentTimeouts.length > 0) {
+            console.log(`[CRON] Cancelled ${paymentTimeouts.length} matches due to payment timeout`);
+          }
+
       })
         .limit(batchSize)
         .lean();
@@ -106,18 +129,19 @@ export const manualTriggerResolution = async (userModel) => {
 
     const now = new Date();
 
-    // Fetch all matches that need processing
+    const paymentTimeouts = await cancelPaymentTimeouts();
     const matchesToProcess = await Match.find({
       status: { $in: ["result_pending", "ongoing", "pending"] },
       resultDeadline: { $exists: true, $lte: now },
       isPaid: false,
     }).lean();
 
-    if (matchesToProcess.length === 0) {
+    if (matchesToProcess.length === 0 && paymentTimeouts.length === 0) {
       console.log(`[MANUAL TRIGGER] No matches to process`);
       return {
         success: true,
         processed: 0,
+        cancelled: paymentTimeouts.length,
         results: [],
       };
     }
@@ -132,9 +156,11 @@ export const manualTriggerResolution = async (userModel) => {
     return {
       success: true,
       processed: matchesToProcess.length,
+      cancelled: paymentTimeouts.length,
       resolved,
       failed,
       results,
+      paymentTimeouts,
     };
   } catch (error) {
     console.error("[MANUAL TRIGGER ERROR]:", error);

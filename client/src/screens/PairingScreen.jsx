@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const TOKEN_KEY = 'clutchzone_token';
 const modeOptions = ['1v1', '2v2', '3v3', '4v4'];
 const typeOptions = ['Headshot', 'Bodyshot'];
 const entryOptions = [30, 50, 100, 200, 500, 1000];
@@ -89,7 +90,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         const response = await axios.get(
           `${API_BASE}/match/list?mode=${encodeURIComponent(mode)}&type=${encodeURIComponent(type)}&entry=${entry}`
         );
-        setMatches(response.data.matches || filteredSamples);
+        setMatches(response.data.matches || []);
       } catch (err) {
         setError('Live marketplace offline. Showing active lobby.');
         setMatches(filteredSamples);
@@ -101,17 +102,28 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     fetchMatches();
   }, [mode, type, entry, filteredSamples]);
 
-  const handleJoin = (matchItem) => {
+  const handleJoin = async (matchItem) => {
     if (!user) {
       alert('Please login to join a match.');
       return;
     }
-    if ((user.balance || 0) < matchItem.entryFee) {
+    if ((user.balance || 0) < (matchItem.entry || matchItem.entryFee)) {
       alert('Insufficient balance to join this match.');
       return;
     }
-    onMatchSelect?.(matchItem);
-    onScreenChange('match');
+
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const response = await axios.post(
+        `${API_BASE}/match/accept`,
+        { matchId: matchItem.id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      onMatchSelect?.(response.data.match);
+      onScreenChange('match');
+    } catch (error) {
+      alert(error.response?.data?.error || 'Could not accept match');
+    }
   };
 
   const activeMatch = match
