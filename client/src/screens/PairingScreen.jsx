@@ -107,10 +107,6 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
       alert('Please login to join a match.');
       return;
     }
-    if ((user.balance || 0) < (matchItem.entry || matchItem.entryFee)) {
-      alert('Insufficient balance to join this match.');
-      return;
-    }
 
     try {
       const token = localStorage.getItem(TOKEN_KEY);
@@ -274,7 +270,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                       <button
                         className="join-btn"
                         type="button"
-                        disabled={(user?.balance || 0) < item.entryFee}
+                        disabled={!user}
                         onClick={() => handleJoin(item)}
                       >
                         JOIN MATCH

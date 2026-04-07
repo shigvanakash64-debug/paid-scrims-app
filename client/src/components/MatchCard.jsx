@@ -53,7 +53,7 @@ export const MatchCard = ({ match, onJoin, user }) => {
         <button
           className="btn btn-primary"
           onClick={() => onJoin(match)}
-          disabled={!user || user.balance < match.entryFee}
+          disabled={!user}
         >
           {match.opponent ? 'Accept Match' : 'Find Match'}
         </button>

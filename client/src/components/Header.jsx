@@ -18,7 +18,6 @@ export const Header = ({ user, onNavigate, onLogout }) => {
       <div className="topbar-right">
         {user && (
           <>
-            <div className="wallet-pill"><span className="sym">₹</span><span className="amt">{user.balance}</span></div>
             <div className="trust-badge">TG: {user.trustScore}</div>
             <button className="menu-button" type="button" onClick={toggleMenu}>
               ☰
@@ -27,9 +26,6 @@ export const Header = ({ user, onNavigate, onLogout }) => {
               <div className="menu-popup">
                 <button className="menu-item" type="button" onClick={() => handleNavigate('profile')}>
                   Profile
-                </button>
-                <button className="menu-item" type="button" onClick={() => handleNavigate('wallet')}>
-                  Wallet
                 </button>
                 <button className="menu-item" type="button" onClick={() => handleNavigate('settings')}>
                   Settings

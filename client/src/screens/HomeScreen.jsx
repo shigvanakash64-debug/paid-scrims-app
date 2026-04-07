@@ -48,10 +48,6 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
   const prizePool = Math.floor(totalPool - platformFee);
 
   const handleFindMatch = async () => {
-    if (user.balance < selectedFee) {
-      alert('Insufficient balance to create this match.');
-      return;
-    }
     if (currentMatch) {
       alert('You already have an active match. Complete it first before creating a new one.');
       return;
@@ -80,7 +76,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
     }
   };
 
-  const canJoin = user?.balance >= selectedFee;
+  const canJoin = true;
 
   return (
     <div id="screen-home" className="screen-home">
@@ -142,7 +138,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
           ))}
         </div>
         <div className="fee-note">
-          Choose any entry fee to preview the prize pool. You can only start the match if your balance covers the selected fee.
+          Choose any entry fee to preview the prize pool. Players pay manually in the match lobby.
         </div>
       </div>
 
@@ -156,13 +152,6 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
         </div>
         <div className="info-cell">
           <div className="info-val">
-            <span className="accent">₹</span>
-            <span>{user?.balance ?? 0}</span>
-          </div>
-          <div className="info-key">Balance</div>
-        </div>
-        <div className="info-cell">
-          <div className="info-val">
             <span className="accent">TG</span>
             <span>{user?.trustScore ?? 0}</span>
           </div>
@@ -171,8 +160,8 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
       </div>
 
       <div className="btn-cta-wrap">
-        <button className="btn-primary" type="button" onClick={handleFindMatch} disabled={!canJoin}>
-          {canJoin ? 'FIND MATCH' : 'INSUFFICIENT BALANCE'}
+        <button className="btn-primary" type="button" onClick={handleFindMatch}>
+          FIND MATCH
         </button>
       </div>
     </div>
