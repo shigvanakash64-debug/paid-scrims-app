@@ -49,12 +49,16 @@ export const initializeCronJobs = (userModel, options = {}) => {
       const now = new Date();
       console.log(`\n[CRON] Starting match timeout resolution at ${now.toISOString()}`);
 
-          // Handle payment timeouts for matches awaiting proof
-          const paymentTimeouts = await cancelPaymentTimeouts();
-          if (paymentTimeouts.length > 0) {
-            console.log(`[CRON] Cancelled ${paymentTimeouts.length} matches due to payment timeout`);
-          }
+      // Handle payment timeouts for matches awaiting proof
+      const paymentTimeouts = await cancelPaymentTimeouts();
+      if (paymentTimeouts.length > 0) {
+        console.log(`[CRON] Cancelled ${paymentTimeouts.length} matches due to payment timeout`);
+      }
 
+      const matchesToProcess = await Match.find({
+        status: { $in: ['result_pending', 'ongoing', 'pending'] },
+        resultDeadline: { $exists: true, $lte: now },
+        isPaid: false,
       })
         .limit(batchSize)
         .lean();
@@ -66,10 +70,8 @@ export const initializeCronJobs = (userModel, options = {}) => {
 
       console.log(`[CRON] Found ${matchesToProcess.length} matches to process`);
 
-      // Batch process matches
       const results = await batchAutoResolveMatches(matchesToProcess, userModel);
 
-      // Summary statistics
       const resolved = results.filter((r) => r.resolved).length;
       const failed = results.filter((r) => r.error).length;
       const skipped = results.filter((r) => !r.resolved && !r.error).length;
@@ -78,12 +80,9 @@ export const initializeCronJobs = (userModel, options = {}) => {
         `[CRON] Complete - Resolved: ${resolved}, Failed: ${failed}, Skipped: ${skipped}`
       );
 
-      // Log detailed results
       results.forEach((result) => {
         if (result.resolved) {
-          console.log(
-            `  ✓ Match ${result.matchId} - ${result.action} (${result.reason})`
-          );
+          console.log(`  ✓ Match ${result.matchId} - ${result.action} (${result.reason})`);
         } else if (result.error) {
           console.log(`  ✗ Match ${result.matchId} - ERROR: ${result.error}`);
         }
