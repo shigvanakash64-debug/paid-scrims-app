@@ -1,4 +1,7 @@
-export const AdminPanel = ({ players, verifiedUsers, onVerify, roomData, onRoomChange, onStartMatch, canStart, status, onAdminAction, onCancel, isMatchActive }) => {
+import { AdminLayout } from './admin/AdminLayout';
+
+// Basic match control component (for use within a match)
+const MatchAdminControls = ({ players, verifiedUsers, onVerify, roomData, onRoomChange, onStartMatch, canStart, status, onAdminAction, onCancel, isMatchActive }) => {
   const readyToStart = canStart && status !== 'ongoing' && status !== 'cancelled';
   const allVerified = verifiedUsers.length === players.length;
 
@@ -101,4 +104,15 @@ export const AdminPanel = ({ players, verifiedUsers, onVerify, roomData, onRoomC
       </div>
     </section>
   );
+};
+
+// Main AdminPanel - handles both match control and admin dashboard
+export const AdminPanel = (props) => {
+  // If no props passed, render full admin dashboard
+  if (!props || Object.keys(props).length === 0) {
+    return <AdminLayout />;
+  }
+
+  // Otherwise render match-specific admin controls
+  return <MatchAdminControls {...props} />;
 };
