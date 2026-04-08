@@ -16,7 +16,8 @@ const app = express();
 // CORS configuration for production
 app.use(cors({
   origin: [
-    "https://paid-scrims-9xctpb1bl-shigvanakash64-debugs-projects.vercel.app",
+    "https://paid-scrims-phoj44i5a-shigvanakash64-debugs-projects.vercel.app",
+    "https://paid-scrims-app.vercel.app",
     "http://localhost:5173"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
