@@ -325,40 +325,192 @@ export const getAllMatches = async (req, res) => {
 };
 
 /**
+ * Get all pending payments requiring admin verification
+ */
+export const getAllPayments = async (req, res) => {
+  try {
+    const { status = 'payment_pending', limit = 50, page = 1 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const filter = status === 'all' ? { status: { $in: ['matched', 'payment_pending', 'verified'] } } : { status };
+
+    const matches = await Match.find(filter)
+      .populate('players', 'username')
+      .sort({ updatedAt: -1 })
+      .skip(parseInt(skip))
+      .limit(parseInt(limit));
+
+    const total = await Match.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      payments: matches.map((match) => ({
+        id: match._id,
+        matchId: match._id,
+        players: match.players.map((player) => player.username),
+        paymentScreenshots: (match.paymentScreenshots || []).map((s) => ({
+          user: s.user?.toString(),
+          image: s.image,
+          uploadedAt: s.uploadedAt,
+        })),
+        screenshotUrl: match.paymentScreenshots?.[0]?.image || '',
+        status: match.status,
+        isPaid: match.status === 'verified',
+        updatedAt: match.updatedAt,
+      })),
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error("getAllPayments error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Get admin activity logs derived from match and withdrawal updates
+ */
+export const getAdminLogs = async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+
+    const matches = await Match.find()
+      .populate('players', 'username')
+      .populate('result.winner', 'username')
+      .sort({ updatedAt: -1 })
+      .limit(parseInt(limit));
+
+    const matchEvents = matches.map((match) => {
+      const players = (match.players || []).map((player) => player.username).join(' vs ');
+      const winnerName = match.result?.winner?.username || null;
+      let action = `Match #${match._id}`;
+      let details = `Status changed to ${match.status}`;
+      let level = 'info';
+      let type = 'match';
+
+      if (match.status === 'completed') {
+        action = 'Match Completed';
+        details = winnerName ? `Match #${match._id} completed. Winner: ${winnerName}` : `Match #${match._id} completed.`;
+        level = 'success';
+      } else if (match.status === 'disputed') {
+        action = 'Dispute Opened';
+        details = `Dispute opened for Match #${match._id} (${players})`;
+        level = 'warning';
+      } else if (match.status === 'payment_pending') {
+        action = 'Payment Pending';
+        details = `Match #${match._id} awaiting payment verification`;
+        level = 'info';
+      } else if (match.status === 'verified') {
+        action = 'Payment Verified';
+        details = `Match #${match._id} payments verified`;
+        level = 'success';
+      }
+
+      return {
+        id: match._id.toString(),
+        timestamp: match.updatedAt,
+        level,
+        action,
+        details,
+        user: 'system',
+        type,
+      };
+    });
+
+    const withdrawals = await User.aggregate([
+      { $unwind: '$wallet.pendingWithdrawals' },
+      { $sort: { 'wallet.pendingWithdrawals.processedAt': -1 } },
+      { $limit: parseInt(limit) },
+      {
+        $project: {
+          username: '$username',
+          amount: '$wallet.pendingWithdrawals.amount',
+          status: '$wallet.pendingWithdrawals.status',
+          processedAt: '$wallet.pendingWithdrawals.processedAt'
+        }
+      }
+    ]);
+
+    const withdrawalEvents = withdrawals.map((withdrawal) => ({
+      id: `${withdrawal.username}-${withdrawal.processedAt?.toISOString() || new Date().toISOString()}`,
+      timestamp: withdrawal.processedAt || new Date(),
+      level: withdrawal.status === 'approved' ? 'success' : withdrawal.status === 'rejected' ? 'error' : 'info',
+      action: withdrawal.status === 'approved' ? 'Withdrawal Approved' : withdrawal.status === 'rejected' ? 'Withdrawal Rejected' : 'Withdrawal Requested',
+      details: `₹${withdrawal.amount} ${withdrawal.status} for ${withdrawal.username}`,
+      user: 'system',
+      type: 'withdrawal',
+    }));
+
+    const logs = [...matchEvents, ...withdrawalEvents]
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, parseInt(limit));
+
+    res.status(200).json({ success: true, logs });
+  } catch (error) {
+    console.error('getAdminLogs error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
  * Verify payment for a match
  */
 export const verifyPayment = async (req, res) => {
   try {
     const { matchId } = req.params;
-    const { player, screenshotUrl } = req.body;
 
     const match = await Match.findById(matchId);
     if (!match) {
       return res.status(404).json({ error: "Match not found" });
     }
 
-    // Update payment status
-    if (player === 'A') {
-      match.paymentA = true;
-      match.paymentAScreenshot = screenshotUrl;
-    } else {
-      match.paymentB = true;
-      match.paymentBScreenshot = screenshotUrl;
-    }
-
-    if (match.paymentA && match.paymentB) {
-      match.status = 'verified';
-    }
+    match.status = 'verified';
+    match.paymentA = true;
+    match.paymentB = true;
+    match.paymentVerifiedAt = new Date();
 
     await match.save();
 
     res.status(200).json({
       success: true,
-      message: `Payment verified for Player ${player}`,
+      message: 'Payment verified for match',
       match
     });
   } catch (error) {
     console.error("verifyPayment error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Reject payment for a match
+ */
+export const rejectPayment = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({ error: "Match not found" });
+    }
+
+    match.status = 'payment_failed';
+    match.paymentA = false;
+    match.paymentB = false;
+    match.paymentRejectedAt = new Date();
+
+    await match.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment rejected for match',
+      match
+    });
+  } catch (error) {
+    console.error("rejectPayment error:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -452,8 +604,7 @@ export const getAllDisputes = async (req, res) => {
     const filter = status && status !== 'all' ? { status } : {};
 
     const disputes = await Match.find({ status: 'disputed' })
-      .populate('playerA', 'username trustScore')
-      .populate('playerB', 'username trustScore')
+      .populate('players', 'username trustScore')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -568,7 +719,7 @@ export const getAllUsers = async (req, res) => {
     const filter = search ? { username: { $regex: search, $options: 'i' } } : {};
 
     const users = await User.find(filter)
-      .select('username email trustScore isBanned matchesPlayed matchesWon createdAt')
+      .select('username email trustScore isBanned matchesPlayed matchesWon createdAt wallet.balance')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));

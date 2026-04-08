@@ -1,115 +1,73 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { LogCard } from '../components/admin/AdminComponents';
 
-export const LogsPanel = () => {
-  const [logs, setLogs] = useState([
-    {
-      id: 1,
-      timestamp: '2:45 PM',
-      level: 'success',
-      action: 'Payment Verified',
-      details: 'Player john_doe payment verified for Match #1025',
-      user: 'admin',
-      type: 'payment',
-    },
-    {
-      id: 2,
-      timestamp: '2:40 PM',
-      level: 'info',
-      action: 'Match Updated',
-      details: 'Match #1025 status changed to ongoing',
-      user: 'system',
-      type: 'match',
-    },
-    {
-      id: 3,
-      timestamp: '2:30 PM',
-      level: 'success',
-      action: 'Match Completed',
-      details: 'Match #1024 completed successfully. Winner: pro_player',
-      user: 'system',
-      type: 'match',
-    },
-    {
-      id: 4,
-      timestamp: '2:15 PM',
-      level: 'warning',
-      action: 'Low Payment',
-      details: 'Match #1024 waiting for incomplete payment verification',
-      user: 'system',
-      type: 'payment',
-    },
-    {
-      id: 5,
-      timestamp: '2:00 PM',
-      level: 'success',
-      action: 'Withdrawal Approved',
-      details: 'Withdrawal of ₹5000 approved for user ninja_gamer',
-      user: 'admin',
-      type: 'withdrawal',
-    },
-    {
-      id: 6,
-      timestamp: '1:45 PM',
-      level: 'warning',
-      action: 'Dispute Opened',
-      details: 'Match #1022 dispute opened. Players disagree on match result.',
-      user: 'system',
-      type: 'dispute',
-    },
-    {
-      id: 7,
-      timestamp: '1:30 PM',
-      level: 'success',
-      action: 'Dispute Resolved',
-      details: 'Match #1017 dispute resolved in favor of swift_ninja',
-      user: 'admin',
-      type: 'dispute',
-    },
-    {
-      id: 8,
-      timestamp: '1:15 PM',
-      level: 'info',
-      action: 'Match Created',
-      details: 'New match created: gamer_x vs pro_player (1v1 Entry)',
-      user: 'system',
-      type: 'match',
-    },
-    {
-      id: 9,
-      timestamp: '1:00 PM',
-      level: 'error',
-      action: 'Payment Failed',
-      details: 'Payment submission failed for Match #1020. User retrying.',
-      user: 'system',
-      type: 'payment',
-    },
-    {
-      id: 10,
-      timestamp: '12:45 PM',
-      level: 'success',
-      action: 'User Banned',
-      details: 'User banned_user has been suspended for rule violation',
-      user: 'admin',
-      type: 'user',
-    },
-  ]);
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 
+export const LogsPanel = () => {
+  const [logs, setLogs] = useState([]);
   const [filterType, setFilterType] = useState('all');
   const [filterLevel, setFilterLevel] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const token = localStorage.getItem('clutchzone_token');
+      const response = await axios.get(`${API_BASE}/admin/logs`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setLogs(response.data.logs || []);
+    } catch (err) {
+      console.error('fetchLogs error', err);
+      setError('Unable to load logs');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredLogs = logs.filter((log) => {
     const matchesType = filterType === 'all' || log.type === filterType;
     const matchesLevel = filterLevel === 'all' || log.level === filterLevel;
-    const matchesSearch = log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.details.toLowerCase().includes(searchQuery.toLowerCase());
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch =
+      log.action?.toLowerCase().includes(searchLower) ||
+      log.details?.toLowerCase().includes(searchLower) ||
+      log.user?.toLowerCase().includes(searchLower);
     return matchesType && matchesLevel && matchesSearch;
   });
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white">System Logs</h1>
+          <p className="text-sm text-[#A1A1A1] mt-2">Loading logs...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white">System Logs</h1>
+          <p className="text-sm text-[#EF4444] mt-2">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white">System Logs</h1>
         <p className="text-sm text-[#A1A1A1] mt-2">
@@ -117,7 +75,6 @@ export const LogsPanel = () => {
         </p>
       </div>
 
-      {/* Search */}
       <input
         type="text"
         placeholder="Search logs..."
@@ -126,7 +83,6 @@ export const LogsPanel = () => {
         className="w-full bg-[#111111] border border-[#1F1F1F] rounded-lg px-4 py-3 text-white placeholder-[#666666] focus:border-[#FF6A00] outline-none"
       />
 
-      {/* Filters */}
       <div className="space-y-3">
         <div>
           <p className="text-xs text-[#A1A1A1] font-semibold mb-2">EVENT TYPE</p>
@@ -167,13 +123,12 @@ export const LogsPanel = () => {
         </div>
       </div>
 
-      {/* Logs */}
       {filteredLogs.length > 0 ? (
         <div className="space-y-2">
           {filteredLogs.map((log) => (
             <LogCard
-              key={log.id}
-              timestamp={log.timestamp}
+              key={log._id || log.id}
+              timestamp={new Date(log.timestamp || log.createdAt).toLocaleString()}
               level={log.level}
               action={log.action}
               details={log.details}
@@ -187,7 +142,6 @@ export const LogsPanel = () => {
         </div>
       )}
 
-      {/* Stats Summary */}
       <div className="pt-4 border-t border-[#1F1F1F]">
         <p className="text-xs text-[#A1A1A1] font-semibold mb-3">LOG SUMMARY</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">

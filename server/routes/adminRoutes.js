@@ -11,7 +11,10 @@ import {
   getUserProfile,
   getDashboardStats,
   getAllMatches,
+  getAllPayments,
+  getAdminLogs,
   verifyPayment,
+  rejectPayment,
   startMatch,
   cancelMatch,
   getAllDisputes,
@@ -91,10 +94,28 @@ router.get("/stats", authMiddleware, getDashboardStats);
 router.get("/matches", authMiddleware, getAllMatches);
 
 /**
+ * GET /api/admin/payments
+ * Get all payment requests and pending verifications
+ */
+router.get("/payments", authMiddleware, getAllPayments);
+
+/**
+ * GET /api/admin/logs
+ * Get recent admin activity logs
+ */
+router.get("/logs", authMiddleware, getAdminLogs);
+
+/**
  * POST /api/admin/matches/:matchId/verify-payment
  * Verify payment for a match
  */
 router.post("/matches/:matchId/verify-payment", authMiddleware, verifyPayment);
+
+/**
+ * POST /api/admin/matches/:matchId/reject-payment
+ * Reject a payment submission
+ */
+router.post("/matches/:matchId/reject-payment", authMiddleware, rejectPayment);
 
 /**
  * POST /api/admin/matches/:matchId/start

@@ -1,36 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { UserCard } from '../components/admin/AdminComponents';
 
-export const UsersPanel = () => {
-  const [users, setUsers] = useState([
-    { id: 1, username: 'john_doe', walletBalance: 2500, trustScore: 4.8, status: 'Active', matchCount: 23 },
-    { id: 2, username: 'alpha_pro', walletBalance: 5200, trustScore: 4.9, status: 'Active', matchCount: 45 },
-    { id: 3, username: 'gamer_x', walletBalance: 1800, trustScore: 3.2, status: 'Active', matchCount: 12 },
-    { id: 4, username: 'ninja_gamer', walletBalance: 8500, trustScore: 4.7, status: 'Active', matchCount: 67 },
-    { id: 5, username: 'banned_user', walletBalance: 0, trustScore: 1.0, status: 'Banned', matchCount: 3 },
-    { id: 6, username: 'lucky_strike', walletBalance: 3200, trustScore: 3.8, status: 'Active', matchCount: 19 },
-  ]);
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 
+export const UsersPanel = () => {
+  const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch = user.username.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || user.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    fetchUsers();
+  }, [searchQuery, page]);
 
-  const handleBanUnban = async (userId) => {
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const token = localStorage.getItem('clutchzone_token');
+      const response = await axios.get(`${API_BASE}/admin/users?search=${encodeURIComponent(searchQuery)}&page=${page}&limit=20`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUsers(response.data.users || []);
+      setPagination(response.data.pagination || { page: 1, pages: 1, total: 0 });
+    } catch (err) {
+      console.error('fetchUsers error', err);
+      setError('Unable to load users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBanUnban = async (userId, isBanned) => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === userId ? { ...u, status: u.status === 'Active' ? 'Banned' : 'Active' } : u
-        )
-      );
+      const token = localStorage.getItem('clutchzone_token');
+      await axios.post(`${API_BASE}/admin/toggle-ban`, { userId, ban: !isBanned }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchUsers();
+    } catch (err) {
+      console.error('toggleBan error', err);
+      alert('Failed to update user status');
     } finally {
       setIsLoading(false);
     }
@@ -39,17 +56,25 @@ export const UsersPanel = () => {
   const handleAdjustBalance = async (userId) => {
     const amount = prompt('Enter amount to add/subtract (negative for subtract):');
     if (amount === null) return;
+    const parsedAmount = parseFloat(amount);
+    if (Number.isNaN(parsedAmount)) {
+      alert('Please enter a valid number');
+      return;
+    }
 
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === userId
-            ? { ...u, walletBalance: Math.max(0, u.walletBalance + parseInt(amount)) }
-            : u
-        )
-      );
+      const token = localStorage.getItem('clutchzone_token');
+      await axios.post(`${API_BASE}/admin/users/${userId}/adjust-wallet`, {
+        amount: parsedAmount,
+        reason: 'Admin balance adjustment'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchUsers();
+    } catch (err) {
+      console.error('adjustUserWallet error', err);
+      alert('Failed to adjust wallet balance');
     } finally {
       setIsLoading(false);
     }
@@ -59,10 +84,41 @@ export const UsersPanel = () => {
     setSelectedUser(user);
   };
 
+  const visibleUsers = users.map((user) => ({
+    id: user._id,
+    username: user.username,
+    walletBalance: user.wallet?.balance ?? 0,
+    trustScore: user.trustScore ?? 0,
+    status: user.isBanned ? 'Banned' : 'Active',
+    matchCount: user.matchesPlayed ?? 0,
+    isBanned: user.isBanned,
+  }));
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Users</h1>
+          <p className="text-sm text-[#A1A1A1] mt-2">Loading users...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Users</h1>
+          <p className="text-sm text-[#EF4444] mt-2">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (selectedUser) {
     return (
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSelectedUser(null)}
@@ -72,11 +128,10 @@ export const UsersPanel = () => {
           </button>
           <div>
             <h1 className="text-3xl font-bold text-white">{selectedUser.username}</h1>
-            <p className="text-sm text-[#A1A1A1] mt-1">Match History</p>
+            <p className="text-sm text-[#A1A1A1] mt-1">User details</p>
           </div>
         </div>
 
-        {/* User Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
             <p className="text-xs text-[#A1A1A1]">WALLET</p>
@@ -97,62 +152,38 @@ export const UsersPanel = () => {
             <p className="text-2xl font-bold text-white mt-2">{selectedUser.matchCount}</p>
           </div>
         </div>
-
-        {/* Match History */}
-        <div className="space-y-3">
-          <h2 className="text-lg font-bold text-white">Recent Matches</h2>
-          <div className="space-y-2">
-            {[
-              { id: 1025, opponent: 'alpha_pro', result: 'Won', status: 'Ongoing', time: '2 mins ago' },
-              { id: 1023, opponent: 'beast_mode', result: 'Won', status: 'Completed', time: '1 hour ago' },
-              { id: 1020, opponent: 'swift_ninja', result: 'Lost', status: 'Completed', time: '3 hours ago' },
-              { id: 1015, opponent: 'cosmic_force', result: 'Draw', status: 'Disputed', time: '5 hours ago' },
-            ].map((match) => (
-              <div key={match.id} className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-white">Match #{match.id}</p>
-                  <p className="text-xs text-[#A1A1A1] mt-1">vs {match.opponent}</p>
-                </div>
-                <div className="text-right">
-                  <p className={`text-sm font-semibold ${
-                    match.result === 'Won' ? 'text-[#22C55E]' : match.result === 'Lost' ? 'text-[#EF4444]' : 'text-[#F59E0B]'
-                  }`}>
-                    {match.result}
-                  </p>
-                  <p className="text-xs text-[#A1A1A1] mt-1">{match.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white">Users</h1>
         <p className="text-sm text-[#A1A1A1] mt-2">
-          {users.length} total users • {users.filter((u) => u.status === 'Active').length} active
+          {visibleUsers.length} total users • {visibleUsers.filter((u) => u.status === 'Active').length} active
         </p>
       </div>
 
-      {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row gap-3">
         <input
           type="text"
           placeholder="Search username..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setPage(1);
+          }}
           className="flex-1 bg-[#111111] border border-[#1F1F1F] rounded-lg px-4 py-3 text-white placeholder-[#666666] focus:border-[#FF6A00] outline-none"
         />
         <div className="flex gap-2">
           {['all', 'Active', 'Banned'].map((status) => (
             <button
               key={status}
-              onClick={() => setFilterStatus(status)}
+              onClick={() => {
+                setFilterStatus(status);
+                setPage(1);
+              }}
               className={`px-4 py-3 rounded-lg font-semibold text-sm transition ${
                 filterStatus === status
                   ? 'bg-[#FF6A00] text-black'
@@ -165,22 +196,23 @@ export const UsersPanel = () => {
         </div>
       </div>
 
-      {/* Users Grid */}
-      {filteredUsers.length > 0 ? (
+      {visibleUsers.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {filteredUsers.map((user) => (
-            <UserCard
-              key={user.id}
-              username={user.username}
-              walletBalance={user.walletBalance}
-              trustScore={user.trustScore}
-              status={user.status}
-              matchCount={user.matchCount}
-              onBan={() => handleBanUnban(user.id)}
-              onAdjustBalance={() => handleAdjustBalance(user.id)}
-              onViewHistory={() => handleViewHistory(user)}
-            />
-          ))}
+          {visibleUsers
+            .filter((user) => filterStatus === 'all' || user.status === filterStatus)
+            .map((user) => (
+              <UserCard
+                key={user.id}
+                username={user.username}
+                walletBalance={user.walletBalance}
+                trustScore={user.trustScore}
+                status={user.status}
+                matchCount={user.matchCount}
+                onBan={() => handleBanUnban(user.id, user.isBanned)}
+                onAdjustBalance={() => handleAdjustBalance(user.id)}
+                onViewHistory={() => handleViewHistory(user)}
+              />
+            ))}
         </div>
       ) : (
         <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-12 text-center">

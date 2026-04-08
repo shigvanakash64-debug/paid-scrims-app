@@ -1,64 +1,95 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { PaymentStatusCard } from '../components/admin/AdminComponents';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+
 export const PaymentsPanel = () => {
-  const [payments, setPayments] = useState([
-    {
-      id: 1,
-      matchId: 1024,
-      player: 'gamer_x',
-      isPaid: false,
-      amount: 500,
-      screenshot: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23111111%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2220%22 fill=%22%23A1A1A1%22%3EPayment Proof%3C/text%3E%3C/svg%3E',
-      requestedAt: '2:15 PM',
-    },
-    {
-      id: 2,
-      matchId: 1022,
-      player: 'lucky_strike',
-      isPaid: false,
-      amount: 500,
-      screenshot: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23111111%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2220%22 fill=%22%23A1A1A1%22%3EPayment Proof%3C/text%3E%3C/svg%3E',
-      requestedAt: '1:45 PM',
-    },
-    {
-      id: 3,
-      matchId: 1022,
-      player: 'king_of_games',
-      isPaid: false,
-      amount: 500,
-      screenshot: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23111111%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2220%22 fill=%22%23A1A1A1%22%3EPayment Proof%3C/text%3E%3C/svg%3E',
-      requestedAt: '1:45 PM',
-    },
-  ]);
-
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleApprove = async (id) => {
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const token = localStorage.getItem('clutchzone_token');
+      const response = await axios.get(`${API_BASE}/admin/payments`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPayments(response.data.payments || []);
+    } catch (err) {
+      console.error('fetchPayments error', err);
+      setError('Unable to load payments');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (matchId) => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setPayments((prev) => prev.filter((p) => p.id !== id));
+      const token = localStorage.getItem('clutchzone_token');
+      await axios.post(`${API_BASE}/admin/matches/${matchId}/verify-payment`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchPayments();
+    } catch (err) {
+      console.error('verifyPayment error', err);
+      alert('Failed to verify payment');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleReject = async (id) => {
-    if (window.confirm('Reject this payment? Player will need to resubmit.')) {
-      setIsLoading(true);
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        setPayments((prev) => prev.filter((p) => p.id !== id));
-      } finally {
-        setIsLoading(false);
-      }
+  const handleReject = async (matchId) => {
+    if (!window.confirm('Reject this payment? Player will need to resubmit.')) {
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('clutchzone_token');
+      await axios.post(`${API_BASE}/admin/matches/${matchId}/reject-payment`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchPayments();
+    } catch (err) {
+      console.error('rejectPayment error', err);
+      alert('Failed to reject payment');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Payments</h1>
+          <p className="text-sm text-[#A1A1A1] mt-2">Loading pending payment verifications...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Payments</h1>
+          <p className="text-sm text-[#EF4444] mt-2">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white">Payments</h1>
         <p className="text-sm text-[#A1A1A1] mt-2">
@@ -66,20 +97,26 @@ export const PaymentsPanel = () => {
         </p>
       </div>
 
-      {/* Pending Payments */}
       {payments.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {payments.map((payment) => (
-            <PaymentStatusCard
-              key={payment.id}
-              player={payment.player}
-              isPaid={payment.isPaid}
-              screenshotUrl={payment.screenshot}
-              onApprove={() => handleApprove(payment.id)}
-              onReject={() => handleReject(payment.id)}
-              isLoading={isLoading}
-            />
-          ))}
+          {payments.map((payment) => {
+            const player = Array.isArray(payment.players)
+              ? payment.players.join(' vs ')
+              : payment.player?.username || payment.player || 'Unknown Player';
+            const screenshotUrl = payment.paymentScreenshots?.[0]?.image || payment.screenshotUrl || payment.paymentScreenshot || payment.screenshot || '';
+            const matchId = payment.matchId || payment.match?._id || payment._id;
+            return (
+              <PaymentStatusCard
+                key={matchId}
+                player={player}
+                isPaid={payment.isPaid ?? payment.paid ?? false}
+                screenshotUrl={screenshotUrl}
+                onApprove={() => handleApprove(matchId)}
+                onReject={() => handleReject(matchId)}
+                isLoading={isLoading}
+              />
+            );
+          })}
         </div>
       ) : (
         <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-12 text-center space-y-3">
@@ -88,29 +125,6 @@ export const PaymentsPanel = () => {
           <p className="text-sm text-[#A1A1A1]">No pending payment verifications</p>
         </div>
       )}
-
-      {/* Verified Payments History */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-bold text-white">Verified Today</h2>
-        <div className="space-y-2">
-          {[
-            { player: 'john_doe', match: 1025, amount: 500, time: '12:30 PM' },
-            { player: 'alpha_pro', match: 1025, amount: 500, time: '12:30 PM' },
-            { player: 'ninja_gamer', match: 1023, amount: 500, time: '11:15 AM' },
-          ].map((item, idx) => (
-            <div key={idx} className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white">{item.player}</p>
-                <p className="text-xs text-[#A1A1A1]">Match #{item.match}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold text-[#22C55E]">₹{item.amount}</p>
-                <p className="text-xs text-[#A1A1A1]">{item.time}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };

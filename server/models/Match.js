@@ -68,6 +68,16 @@ const matchSchema = new mongoose.Schema(
       password: String,
       createdAt: Date,
     },
+    paymentA: {
+      type: Boolean,
+      default: false,
+    },
+    paymentAScreenshot: String,
+    paymentB: {
+      type: Boolean,
+      default: false,
+    },
+    paymentBScreenshot: String,
     adminMessages: [
       {
         sender: {
