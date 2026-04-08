@@ -14,14 +14,17 @@ console.log("Server starting with updated code - force redeploy");
 const app = express();
 
 // CORS configuration for production
-const corsOptions = {
-  origin: true, // Allow all origins for now
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-};
+app.use(cors({
+  origin: [
+    "https://paid-scrims-9xctpb1bl-shigvanakash64-debugs-projects.vercel.app",
+    "http://localhost:5173"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
 
-app.use(cors(corsOptions));
+// Handle preflight requests
+app.options("*", cors());
 app.use(express.json());
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
