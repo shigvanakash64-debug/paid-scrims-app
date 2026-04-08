@@ -1,15 +1,17 @@
 ﻿import { useEffect, useState } from 'react';
+import { useUser } from '../contexts/UserContext';
 
 export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
-  const [uid, setUid] = useState(user?.ffUid || '');
+  const { user: currentUser } = useUser();
+  const [uid, setUid] = useState(currentUser?.ffUid || '');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    setUid(user?.ffUid || '');
-  }, [user?.ffUid]);
+    setUid(currentUser?.ffUid || '');
+  }, [currentUser?.ffUid]);
 
-  if (!user) {
+  if (!currentUser) {
     return (
       <div id="screen-profile" className="screen-profile">
         <div className="hero">
@@ -26,7 +28,7 @@ export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
     return initials || username.slice(0, 2).toUpperCase();
   };
 
-  const history = user.history || [];
+  const history = currentUser?.history || [];
 
   const handleSaveUid = async () => {
     setError('');
@@ -38,7 +40,7 @@ export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
     }
 
     if (!onProfileSave) {
-      onUserUpdate?.({ ...user, ffUid: uid.trim() });
+      onUserUpdate?.({ ...currentUser, ffUid: uid.trim() });
       setMessage('UID saved locally');
       return;
     }
@@ -59,19 +61,20 @@ export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
       </div>
       <div className="profile-hero">
         <div className="profile-top">
-          <div className="avatar">{getInitials(user.username)}</div>
+          <div className="avatar">{getInitials(currentUser.username)}</div>
           <div>
-            <div className="profile-name">{user.username}</div>
-            <div className="profile-id">{user.ffUid ? `UID: ${user.ffUid}` : 'UID not added'}</div>
+            <div className="profile-name">{currentUser.username}</div>
+            <div className="profile-id">{currentUser.ffUid ? `UID: ${currentUser.ffUid}` : 'UID not added'}</div>
+            <div className="profile-role">Role: {currentUser.role || 'user'}</div>
           </div>
         </div>
         <div className="trust-section">
           <div className="trust-label">
             <span className="label-text">Trust Score</span>
-            <span className="label-score">{user.trustScore} / 100</span>
+            <span className="label-score">{currentUser.trustScore} / 100</span>
           </div>
           <div className="trust-bar">
-            <div className="trust-fill" style={{ width: `${user.trustScore}%` }}></div>
+            <div className="trust-fill" style={{ width: `${currentUser.trustScore}%` }}></div>
           </div>
         </div>
       </div>

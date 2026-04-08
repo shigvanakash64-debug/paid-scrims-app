@@ -7,6 +7,8 @@ import { PaymentCard } from '../components/PaymentCard';
 import { PlayerStatusList } from '../components/PlayerStatusList';
 import { RoomDetailsCard } from '../components/RoomDetailsCard';
 import { Timer } from '../components/Timer';
+import { useMatch } from '../contexts/MatchContext';
+import { useUser } from '../contexts/UserContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 const TOKEN_KEY = 'clutchzone_token';
@@ -32,7 +34,8 @@ const formatTime = (seconds) => {
 
 export const MatchScreen = ({ match, user, onScreenChange }) => {
   const matchId = match?.id || match?._id;
-  const [currentMatch, setCurrentMatch] = useState(match || null);
+  const { currentMatch, refreshMatch, updateMatchState } = useMatch();
+  const { user: currentUser } = useUser();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showUpload, setShowUpload] = useState(false);
@@ -41,12 +44,15 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isAdmin = user?.role === 'admin';
-  const isMatchActive = currentMatch?.status === 'ongoing' || currentMatch?.status === 'completed';
-  const isCancelled = currentMatch?.status === 'cancelled';
+  // Use currentMatch from context, fallback to prop
+  const activeMatch = currentMatch || match;
+
+  const isAdmin = currentUser?.role === 'admin';
+  const isMatchActive = activeMatch?.status === 'ongoing' || activeMatch?.status === 'completed';
+  const isCancelled = activeMatch?.status === 'cancelled';
 
   const players = useMemo(() => {
-    return (currentMatch?.players || []).map((player, index) => {
+    return (activeMatch?.players || []).map((player, index) => {
       const id = player?.id || player?._id || player;
       const name = player?.username || `Player ${index + 1}`;
       return {
@@ -55,11 +61,11 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
         role: index === 0 ? 'Player A' : 'Player B',
       };
     });
-  }, [currentMatch]);
+  }, [activeMatch]);
 
   const playerStatuses = players.map((player) => {
-    const paid = currentMatch?.paidUsers?.includes(player.id);
-    const verified = currentMatch?.verifiedUsers?.includes(player.id);
+    const paid = activeMatch?.paidUsers?.includes(player.id);
+    const verified = activeMatch?.verifiedUsers?.includes(player.id);
     return {
       ...player,
       status: verified ? 'Verified' : paid ? 'Paid' : 'Pending',
@@ -67,9 +73,9 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   });
 
   const deadlineLabel = isCancelled ? '00:00' : formatTime(timeLeft);
-  const currentStatusLabel = statusLabels[currentMatch?.status] || 'Unknown';
-  const roomDetails = currentMatch?.roomDetails || { roomId: '', password: '' };
-  const showRoomDetails = currentMatch?.status === 'ongoing' || currentMatch?.status === 'completed';
+  const currentStatusLabel = statusLabels[activeMatch?.status] || 'Unknown';
+  const roomDetails = activeMatch?.roomDetails || { roomId: '', password: '' };
+  const showRoomDetails = activeMatch?.status === 'ongoing' || activeMatch?.status === 'completed';
 
   useEffect(() => {
     const fetchMatch = async () => {
@@ -79,11 +85,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
       }
 
       try {
-        const token = localStorage.getItem(TOKEN_KEY);
-        const response = await axios.get(`${API_BASE}/match/${matchId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setCurrentMatch(response.data.match);
+        await refreshMatch(matchId);
       } catch (err) {
         setError(err.response?.data?.error || 'Could not load match details');
       } finally {
@@ -92,10 +94,10 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     };
 
     fetchMatch();
-  }, [matchId]);
+  }, [matchId, refreshMatch]);
 
   useEffect(() => {
-    if (!currentMatch?.paymentDueAt || isMatchActive || isCancelled) {
+    if (!activeMatch?.paymentDueAt || isMatchActive || isCancelled) {
       setTimeLeft(0);
       return undefined;
     }
@@ -108,48 +110,19 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [currentMatch, isMatchActive, isCancelled]);
-
-  const refreshMatch = async () => {
-    if (!matchId) return;
-    try {
-      const token = localStorage.getItem(TOKEN_KEY);
-      const response = await axios.get(`${API_BASE}/match/${matchId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setCurrentMatch(response.data.match);
-    } catch (err) {
-      console.error('Refresh failed', err);
-    }
-  };
-
-  useEffect(() => {
-    if (!matchId || !currentMatch) return undefined;
-    const active = !['ongoing', 'completed', 'cancelled'].includes(currentMatch.status);
-    if (!active) return undefined;
-
-    const interval = setInterval(() => {
-      refreshMatch();
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [matchId, currentMatch?.status]);
+  }, [activeMatch, isMatchActive, isCancelled]);
 
   const addLocalMessage = (sender, text) => {
-    setCurrentMatch((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev };
-      const nextMessages = [
-        ...(next.adminMessages || []),
+    updateMatchState({
+      adminMessages: [
+        ...(activeMatch?.adminMessages || []),
         {
           id: `local-${sender}-${Date.now()}`,
           sender,
           text,
           createdAt: new Date().toISOString(),
         },
-      ];
-      next.adminMessages = nextMessages;
-      return next;
+      ],
     });
   };
 
@@ -191,7 +164,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
           'Content-Type': 'multipart/form-data',
         },
       });
-      setCurrentMatch(response.data.match);
       setShowUpload(false);
     } catch (err) {
       setScreenshotError(err.response?.data?.error || 'Upload failed.');
@@ -208,7 +180,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
         { matchId, playerId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setCurrentMatch(response.data.match);
     } catch (err) {
       alert(err.response?.data?.error || 'Could not verify player');
     }
@@ -227,7 +198,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
         { matchId, roomId: roomDetails.roomId, password: roomDetails.password },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setCurrentMatch(response.data.match);
     } catch (err) {
       alert(err.response?.data?.error || 'Could not start match');
     }
@@ -242,7 +212,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
         { matchId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setCurrentMatch(response.data.match);
     } catch (err) {
       alert(err.response?.data?.error || 'Could not cancel match');
     }
@@ -257,7 +226,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
         { matchId, sender, text },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setCurrentMatch(response.data.match);
     } catch (err) {
       console.error('Chat send failed', err);
     }
@@ -280,13 +248,12 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   };
 
   const handleRoomChange = (key, value) => {
-    setCurrentMatch((prev) => ({
-      ...prev,
+    updateMatchState({
       roomDetails: {
-        ...prev.roomDetails,
+        ...activeMatch?.roomDetails,
         [key]: value,
       },
-    }));
+    });
   };
 
   if (!match) {

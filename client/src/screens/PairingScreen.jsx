@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { useMatch } from '../contexts/MatchContext';
+import { useUser } from '../contexts/UserContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 const TOKEN_KEY = 'clutchzone_token';
@@ -67,6 +69,8 @@ const getTrustClass = (score) => {
 };
 
 export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) => {
+  const { currentMatch, clearMatch } = useMatch();
+  const { user: currentUser } = useUser();
   const [mode, setMode] = useState(match?.mode || 'All');
   const [type, setType] = useState(match?.type || 'All');
   const [entry, setEntry] = useState(match?.entryFee || 0);
@@ -109,8 +113,25 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     fetchMatches();
   }, [mode, type, entry, filteredSamples]);
 
+  const handleCancelMatch = async () => {
+    if (!activeMatch?.id) return;
+
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+      await axios.post(
+        `${API_BASE}/match/cancel`,
+        { matchId: activeMatch.id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      clearMatch();
+      onScreenChange('home');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Could not cancel match');
+    }
+  };
+
   const handleJoin = async (matchItem) => {
-    if (!user) {
+    if (!currentUser) {
       alert('Please login to join a match.');
       return;
     }
@@ -129,12 +150,12 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     }
   };
 
-  const activeMatch = match
+  const activeMatch = currentMatch
     ? {
-        ...match,
-        id: match.id || match._id || 'my-match',
-        entryFee: match.entryFee || match.entry || 0,
-        creator: match.creator || user || { username: 'You' },
+        ...currentMatch,
+        id: currentMatch.id || currentMatch._id || 'my-match',
+        entryFee: currentMatch.entryFee || currentMatch.entry || 0,
+        creator: currentMatch.creator || currentUser || { username: 'You' },
       }
     : null;
 
@@ -224,8 +245,8 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                     {activeMatch.mode} · {activeMatch.type} · ₹{activeMatch.entryFee}
                   </div>
                 </div>
-                <div className={`trust-pill ${getTrustClass(user?.trustScore || 0)}`}>
-                  TG{user?.trustScore ?? 0}
+                <div className={`trust-pill ${getTrustClass(currentUser?.trustScore || 0)}`}>
+                  TG{currentUser?.trustScore ?? 0}
                 </div>
               </div>
               <div className="match-meta-row">
@@ -236,7 +257,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                 <button className="btn-outline" type="button" onClick={() => onScreenChange('match')}>
                   View Match
                 </button>
-                <button className="btn-outline" type="button" onClick={() => onScreenChange('home')}>
+                <button className="btn-outline" type="button" onClick={handleCancelMatch}>
                   Cancel Match
                 </button>
               </div>

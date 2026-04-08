@@ -10,6 +10,8 @@ import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
 import { BottomNav } from './components/BottomNav';
 import { Header } from './components/Header';
+import { useMatch } from './contexts/MatchContext';
+import { useUser } from './contexts/UserContext';
 import './App.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
@@ -17,9 +19,9 @@ const TOKEN_KEY = 'clutchzone_token';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState('login');
-  const [user, setUser] = useState(null);
-  const [currentMatch, setCurrentMatch] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
+  const { currentMatch, setMatch, clearMatch } = useMatch();
+  const { user, updateUser, clearUser } = useUser();
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -35,7 +37,7 @@ function App() {
             Authorization: `Bearer ${token}`,
           },
         });
-        setUser(response.data.user);
+        updateUser(response.data.user);
         setCurrentScreen('home');
       } catch (error) {
         localStorage.removeItem(TOKEN_KEY);
@@ -48,15 +50,15 @@ function App() {
   }, []);
 
   const setSession = (userData, token) => {
-    setUser(userData);
+    updateUser(userData);
     localStorage.setItem(TOKEN_KEY, token);
     setCurrentScreen('home');
   };
 
   const clearSession = () => {
-    setUser(null);
+    clearUser();
     localStorage.removeItem(TOKEN_KEY);
-    setCurrentMatch(null);
+    clearMatch();
     setCurrentScreen('login');
   };
 
@@ -90,7 +92,7 @@ function App() {
   };
 
   const handleUserUpdate = (updatedUser) => {
-    setUser(updatedUser);
+    updateUser(updatedUser);
   };
 
   const handleProfileSave = async (updates) => {
@@ -102,7 +104,7 @@ function App() {
           Authorization: `Bearer ${token}`,
         },
       });
-      setUser(response.data.user);
+      updateUser(response.data.user);
       alert('Profile updated successfully');
     } catch (error) {
       alert(error.response?.data?.error || 'Could not save profile changes');
@@ -127,7 +129,7 @@ function App() {
 
     switch (currentScreen) {
       case 'home':
-        return <HomeScreen user={user} onFindMatch={setCurrentMatch} onScreenChange={setCurrentScreen} currentMatch={currentMatch} />;
+        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={setCurrentScreen} currentMatch={currentMatch} />;
       case 'match':
         return <MatchScreen match={currentMatch} user={user} onScreenChange={setCurrentScreen} />;
       case 'result':
@@ -138,7 +140,7 @@ function App() {
             match={currentMatch}
             user={user}
             onScreenChange={setCurrentScreen}
-            onMatchSelect={setCurrentMatch}
+            onMatchSelect={setMatch}
           />
         );
       case 'profile':
@@ -146,7 +148,7 @@ function App() {
       case 'settings':
         return <SettingsScreen user={user} />;
       default:
-        return <HomeScreen user={user} onFindMatch={setCurrentMatch} onScreenChange={setCurrentScreen} />;
+        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={setCurrentScreen} />;
     }
   };
 

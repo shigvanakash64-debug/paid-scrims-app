@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useUser } from '../contexts/UserContext';
 
 export const Header = ({ user, onNavigate, onLogout }) => {
+  const { user: currentUser } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const toggleMenu = () => setMenuOpen((open) => !open);
@@ -16,9 +18,10 @@ export const Header = ({ user, onNavigate, onLogout }) => {
         <div className="logo-text">CLUTCH <span>ZONE</span></div>
       </div>
       <div className="topbar-right">
-        {user && (
+        {currentUser && (
           <>
-            <div className="trust-badge">TG: {user.trustScore}</div>
+            <div className="trust-badge">TG: {currentUser.trustScore}</div>
+            {currentUser.role === 'admin' && <div className="admin-badge">ADMIN</div>}
             <button className="menu-button" type="button" onClick={toggleMenu}>
               ☰
             </button>

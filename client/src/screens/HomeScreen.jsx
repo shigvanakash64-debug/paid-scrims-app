@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react';
 import axios from 'axios';
+import { useUser } from '../contexts/UserContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 const TOKEN_KEY = 'clutchzone_token';
@@ -38,6 +39,7 @@ const getPlayersCount = (mode) => {
 };
 
 export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) => {
+  const { user: currentUser } = useUser();
   const [selectedMode, setSelectedMode] = useState('1v1');
   const [selectedType, setSelectedType] = useState('Headshot');
   const [selectedFee, setSelectedFee] = useState(50);
@@ -162,7 +164,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
         <div className="info-cell">
           <div className="info-val">
             <span className="accent">TG</span>
-            <span>{user?.trustScore ?? 0}</span>
+            <span>{currentUser?.trustScore ?? 0}</span>
           </div>
           <div className="info-key">Trust Score</div>
         </div>
