@@ -1,7 +1,22 @@
-import { AdminLayout } from './admin/AdminLayout';
+import { lazy, Suspense } from 'react';
+
+// Lazy load the admin dashboard to reduce bundle size
+const AdminLayout = lazy(() => import('./admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
 
 // Basic match control component (for use within a match)
-const MatchAdminControls = ({ players, verifiedUsers, onVerify, roomData, onRoomChange, onStartMatch, canStart, status, onAdminAction, onCancel, isMatchActive }) => {
+const MatchAdminControls = ({
+  players = [],
+  verifiedUsers = [],
+  onVerify,
+  roomData = {},
+  onRoomChange,
+  onStartMatch,
+  canStart,
+  status,
+  onAdminAction,
+  onCancel,
+  isMatchActive
+}) => {
   const readyToStart = canStart && status !== 'ongoing' && status !== 'cancelled';
   const allVerified = verifiedUsers.length === players.length;
 
@@ -27,7 +42,7 @@ const MatchAdminControls = ({ players, verifiedUsers, onVerify, roomData, onRoom
                 </span>
                 <button
                   type="button"
-                  onClick={() => onVerify(player.id)}
+                  onClick={() => onVerify?.(player.id)}
                   disabled={verified || status === 'cancelled' || isMatchActive}
                   className="rounded-2xl border border-[#2A2A2A] px-3 py-2 text-sm font-semibold text-[#FF6A00] transition disabled:cursor-not-allowed disabled:opacity-40"
                 >
@@ -44,17 +59,17 @@ const MatchAdminControls = ({ players, verifiedUsers, onVerify, roomData, onRoom
         <div className="grid gap-3 sm:grid-cols-2">
           <input
             type="text"
-            value={roomData.roomId}
+            value={roomData.roomId || ''}
             placeholder="Room ID"
-            onChange={(e) => onRoomChange('roomId', e.target.value)}
+            onChange={(e) => onRoomChange?.('roomId', e.target.value)}
             disabled={!allVerified || status === 'cancelled' || isMatchActive}
             className="w-full rounded-2xl border border-[#2A2A2A] bg-[#111111] px-4 py-3 text-sm text-white outline-none focus:border-[#FF6A00]"
           />
           <input
             type="text"
-            value={roomData.password}
+            value={roomData.password || ''}
             placeholder="Password"
-            onChange={(e) => onRoomChange('password', e.target.value)}
+            onChange={(e) => onRoomChange?.('password', e.target.value)}
             disabled={!allVerified || status === 'cancelled' || isMatchActive}
             className="w-full rounded-2xl border border-[#2A2A2A] bg-[#111111] px-4 py-3 text-sm text-white outline-none focus:border-[#FF6A00]"
           />
@@ -71,7 +86,7 @@ const MatchAdminControls = ({ players, verifiedUsers, onVerify, roomData, onRoom
           </button>
           <button
             type="button"
-            onClick={() => onCancel('admin')}
+            onClick={() => onCancel?.('admin')}
             className="w-full rounded-3xl border border-[#EF4444] bg-[#0B0B0B] px-5 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-[#EF4444] transition sm:w-auto"
           >
             Cancel Match
@@ -82,21 +97,21 @@ const MatchAdminControls = ({ players, verifiedUsers, onVerify, roomData, onRoom
       <div className="grid gap-3 sm:grid-cols-3">
         <button
           type="button"
-          onClick={() => onAdminAction('Payment received')}
+          onClick={() => onAdminAction?.('Payment received')}
           className="rounded-3xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-4 text-sm font-semibold text-[#FF6A00]"
         >
           Payment received
         </button>
         <button
           type="button"
-          onClick={() => onAdminAction('Room created')}
+          onClick={() => onAdminAction?.('Room created')}
           className="rounded-3xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-4 text-sm font-semibold text-[#FF6A00]"
         >
           Room created
         </button>
         <button
           type="button"
-          onClick={() => onAdminAction('Match cancelled')}
+          onClick={() => onAdminAction?.('Match cancelled')}
           className="rounded-3xl border border-[#EF4444] bg-[#0B0B0B] px-4 py-4 text-sm font-semibold text-[#EF4444]"
         >
           Match cancelled
@@ -108,9 +123,13 @@ const MatchAdminControls = ({ players, verifiedUsers, onVerify, roomData, onRoom
 
 // Main AdminPanel - handles both match control and admin dashboard
 export const AdminPanel = (props) => {
-  // If no props passed, render full admin dashboard
+  // If no props passed or empty object, render full admin dashboard
   if (!props || Object.keys(props).length === 0) {
-    return <AdminLayout />;
+    return (
+      <Suspense fallback={<div className="text-white p-8">Loading...</div>}>
+        <AdminLayout />
+      </Suspense>
+    );
   }
 
   // Otherwise render match-specific admin controls

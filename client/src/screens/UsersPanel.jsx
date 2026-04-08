@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserCard } from '../admin/AdminComponents';
+import { UserCard } from '../components/admin/AdminComponents';
 
 export const UsersPanel = () => {
   const [users, setUsers] = useState([

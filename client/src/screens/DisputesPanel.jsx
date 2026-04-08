@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DisputeCard } from '../admin/AdminComponents';
+import { DisputeCard } from '../components/admin/AdminComponents';
 
 export const DisputesPanel = () => {
   const [disputes, setDisputes] = useState([

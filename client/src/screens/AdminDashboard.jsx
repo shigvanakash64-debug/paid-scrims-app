@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { StatCard, LogCard } from '../admin/AdminComponents';
+import { useState } from 'react';
+import { StatCard, LogCard } from '../components/admin/AdminComponents';
 
 export const AdminDashboard = () => {
   const [stats, setStats] = useState({

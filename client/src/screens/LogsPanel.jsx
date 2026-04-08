@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogCard } from '../admin/AdminComponents';
+import { LogCard } from '../components/admin/AdminComponents';
 
 export const LogsPanel = () => {
   const [logs, setLogs] = useState([

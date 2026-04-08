@@ -9,6 +9,15 @@ import {
   toggleUserBan,
   getSuspiciousUsers,
   getUserProfile,
+  getDashboardStats,
+  getAllMatches,
+  verifyPayment,
+  startMatch,
+  cancelMatch,
+  getAllDisputes,
+  resolveDispute,
+  adjustUserWallet,
+  getAllUsers
 } from "../controllers/adminController.js";
 
 const router = express.Router();
@@ -61,5 +70,63 @@ router.get("/suspicious-users", authMiddleware, getSuspiciousUsers);
  * Get detailed user profile for admin review
  */
 router.get("/user/:userId", authMiddleware, getUserProfile);
+
+// ============================================================================
+// DASHBOARD ENDPOINTS
+// ============================================================================
+
+/**
+ * GET /api/admin/stats
+ * Get dashboard stats (counts, revenue, etc.)
+ */
+router.get("/stats", authMiddleware, getDashboardStats);
+
+/**
+ * GET /api/admin/matches
+ * Get all matches with optional filtering by status
+ */
+router.get("/matches", authMiddleware, getAllMatches);
+
+/**
+ * POST /api/admin/matches/:matchId/verify-payment
+ * Verify payment for a match
+ */
+router.post("/matches/:matchId/verify-payment", authMiddleware, verifyPayment);
+
+/**
+ * POST /api/admin/matches/:matchId/start
+ * Start a match with room details
+ */
+router.post("/matches/:matchId/start", authMiddleware, startMatch);
+
+/**
+ * POST /api/admin/matches/:matchId/cancel
+ * Cancel a match and refund both players
+ */
+router.post("/matches/:matchId/cancel", authMiddleware, cancelMatch);
+
+/**
+ * GET /api/admin/disputes
+ * Get all disputes
+ */
+router.get("/disputes", authMiddleware, getAllDisputes);
+
+/**
+ * POST /api/admin/matches/:matchId/resolve-dispute
+ * Resolve a dispute
+ */
+router.post("/matches/:matchId/resolve-dispute", authMiddleware, resolveDispute);
+
+/**
+ * POST /api/admin/users/:userId/adjust-wallet
+ * Adjust a user's wallet balance
+ */
+router.post("/users/:userId/adjust-wallet", authMiddleware, adjustUserWallet);
+
+/**
+ * GET /api/admin/users
+ * Get all users with search and pagination
+ */
+router.get("/users", authMiddleware, getAllUsers);
 
 export default router;

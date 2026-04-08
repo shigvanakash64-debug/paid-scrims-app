@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PaymentStatusCard } from '../admin/AdminComponents';
+import { PaymentStatusCard } from '../components/admin/AdminComponents';
 
 export const PaymentsPanel = () => {
   const [payments, setPayments] = useState([

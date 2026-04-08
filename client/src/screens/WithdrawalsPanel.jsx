@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { WithdrawalCard } from '../admin/AdminComponents';
+import { WithdrawalCard } from '../components/admin/AdminComponents';
 
 export const WithdrawalsPanel = () => {
   const [withdrawals, setWithdrawals] = useState([

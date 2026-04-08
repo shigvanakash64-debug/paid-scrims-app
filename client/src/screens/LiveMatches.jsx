@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MatchCard } from '../admin/AdminComponents';
+import { MatchCard } from '../components/admin/AdminComponents';
 import { MatchRoomDetail } from './MatchRoomDetail';
 
 export const LiveMatches = () => {

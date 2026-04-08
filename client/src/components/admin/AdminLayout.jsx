@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { AdminSidebar } from './AdminSidebar';
-import { AdminDashboard } from '../screens/AdminDashboard';
-import { LiveMatches } from '../screens/LiveMatches';
-import { PaymentsPanel } from '../screens/PaymentsPanel';
-import { DisputesPanel } from '../screens/DisputesPanel';
-import { UsersPanel } from '../screens/UsersPanel';
-import { WithdrawalsPanel } from '../screens/WithdrawalsPanel';
-import { LogsPanel } from '../screens/LogsPanel';
+import { AdminDashboard } from '../../screens/AdminDashboard';
+import { LiveMatches } from '../../screens/LiveMatches';
+import { PaymentsPanel } from '../../screens/PaymentsPanel';
+import { DisputesPanel } from '../../screens/DisputesPanel';
+import { UsersPanel } from '../../screens/UsersPanel';
+import { WithdrawalsPanel } from '../../screens/WithdrawalsPanel';
+import { LogsPanel } from '../../screens/LogsPanel';
 
 const SCREENS = {
   DASHBOARD: 'dashboard',

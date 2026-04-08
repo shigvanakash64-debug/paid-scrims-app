@@ -248,3 +248,345 @@ export const getUserProfile = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+/**
+ * Get dashboard stats - counts, revenue, etc.
+ */
+export const getDashboardStats = async (req, res) => {
+  try {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const [activeMatches, totalUsers, pendingPayments, disputes] = await Promise.all([
+      Match.countDocuments({ status: { $in: ['ongoing', 'matched', 'verified'] } }),
+      User.countDocuments({ isBanned: false }),
+      Match.countDocuments({ status: 'payment_pending' }),
+      Match.countDocuments({ status: 'disputed' })
+    ]);
+
+    // Get today's revenue (assume 10% platform fee)
+    const todayMatches = await Match.find({
+      status: 'completed',
+      completedAt: { $gte: todayStart }
+    }).select('entry');
+
+    const todayRevenue = todayMatches.reduce((sum, match) => sum + (match.entry * 0.1), 0);
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        activeMatches,
+        totalUsers,
+        pendingPayments,
+        disputes,
+        todayRevenue,
+        timestamp: now
+      }
+    });
+  } catch (error) {
+    console.error("getDashboardStats error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Get all matches for dashboard
+ */
+export const getAllMatches = async (req, res) => {
+  try {
+    const { status = null, limit = 50, page = 1 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const filter = status ? { status } : {};
+
+    const matches = await Match.find(filter)
+      .populate('playerA', 'username trustScore')
+      .populate('playerB', 'username trustScore')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Match.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      matches,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error("getAllMatches error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Verify payment for a match
+ */
+export const verifyPayment = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const { player, screenshotUrl } = req.body;
+
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({ error: "Match not found" });
+    }
+
+    // Update payment status
+    if (player === 'A') {
+      match.paymentA = true;
+      match.paymentAScreenshot = screenshotUrl;
+    } else {
+      match.paymentB = true;
+      match.paymentBScreenshot = screenshotUrl;
+    }
+
+    if (match.paymentA && match.paymentB) {
+      match.status = 'verified';
+    }
+
+    await match.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Payment verified for Player ${player}`,
+      match
+    });
+  } catch (error) {
+    console.error("verifyPayment error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Start a match
+ */
+export const startMatch = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const { roomId, password } = req.body;
+
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({ error: "Match not found" });
+    }
+
+    match.status = 'ongoing';
+    match.roomId = roomId;
+    match.roomPassword = password;
+    match.startedAt = new Date();
+
+    await match.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Match started",
+      match
+    });
+  } catch (error) {
+    console.error("startMatch error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Cancel a match
+ */
+export const cancelMatch = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const { reason } = req.body;
+
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({ error: "Match not found" });
+    }
+
+    // Refund both players
+    if (match.paymentA) {
+      const playerA = await User.findById(match.playerA);
+      if (playerA) {
+        playerA.wallet.balance += match.entry;
+        await playerA.save();
+      }
+    }
+
+    if (match.paymentB) {
+      const playerB = await User.findById(match.playerB);
+      if (playerB) {
+        playerB.wallet.balance += match.entry;
+        await playerB.save();
+      }
+    }
+
+    match.status = 'cancelled';
+    match.cancelReason = reason || 'Admin cancelled';
+    match.cancelledAt = new Date();
+
+    await match.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Match cancelled and both players refunded",
+      match
+    });
+  } catch (error) {
+    console.error("cancelMatch error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Get all disputes
+ */
+export const getAllDisputes = async (req, res) => {
+  try {
+    const { status = 'open', limit = 50, page = 1 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const filter = status && status !== 'all' ? { status } : {};
+
+    const disputes = await Match.find({ status: 'disputed' })
+      .populate('playerA', 'username trustScore')
+      .populate('playerB', 'username trustScore')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Match.countDocuments({ status: 'disputed' });
+
+    res.status(200).json({
+      success: true,
+      disputes,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error("getAllDisputes error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Resolve a dispute
+ */
+export const resolveDispute = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const { winner } = req.body; // 'A' or 'B'
+
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({ error: "Match not found" });
+    }
+
+    const winnerId = winner === 'A' ? match.playerA : match.playerB;
+    const prize = match.entry * 2;
+
+    // Pay winner
+    const winnerUser = await User.findById(winnerId);
+    if (winnerUser) {
+      winnerUser.wallet.balance += prize;
+      winnerUser.matchesWon = (winnerUser.matchesWon || 0) + 1;
+      await winnerUser.save();
+    }
+
+    // Update match
+    match.status = 'completed';
+    match.result.winner = winnerId;
+    match.result.resolvedBy = 'admin';
+    match.completedAt = new Date();
+
+    await match.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Dispute resolved in favor of Player ${winner}`,
+      match
+    });
+  } catch (error) {
+    console.error("resolveDispute error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Adjust user wallet
+ */
+export const adjustUserWallet = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { amount, reason } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    user.wallet.balance += amount;
+    user.wallet.transactions.push({
+      type: 'admin_adjustment',
+      amount,
+      reason,
+      date: new Date()
+    });
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: `User wallet adjusted by ${amount > 0 ? '+' : ''}${amount}`,
+      user: {
+        id: user._id,
+        username: user.username,
+        wallet: user.wallet.balance
+      }
+    });
+  } catch (error) {
+    console.error("adjustUserWallet error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Get all users with search
+ */
+export const getAllUsers = async (req, res) => {
+  try {
+    const { search = '', limit = 25, page = 1 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const filter = search ? { username: { $regex: search, $options: 'i' } } : {};
+
+    const users = await User.find(filter)
+      .select('username email trustScore isBanned matchesPlayed matchesWon createdAt')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await User.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      users,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error("getAllUsers error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};

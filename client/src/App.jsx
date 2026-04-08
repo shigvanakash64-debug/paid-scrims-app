@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import axios from 'axios';
 import { HomeScreen } from './screens/HomeScreen';
 import { MatchScreen } from './screens/MatchScreen';
@@ -13,6 +13,9 @@ import { Header } from './components/Header';
 import { useMatch } from './contexts/MatchContext';
 import { useUser } from './contexts/UserContext';
 import './App.css';
+
+// Lazy load admin dashboard
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 const TOKEN_KEY = 'clutchzone_token';
@@ -120,11 +123,28 @@ function App() {
       return <div className="loading-screen">Loading...</div>;
     }
 
+    // Check if user is admin for admin routes
+    const isAdmin = user?.role === 'admin' || user?.isAdmin === true;
+
     if (!user) {
       if (currentScreen === 'register') {
         return <RegisterScreen onRegister={handleRegister} onNavigateLogin={() => setCurrentScreen('login')} />;
       }
       return <LoginScreen onLogin={handleLogin} onNavigateRegister={() => setCurrentScreen('register')} />;
+    }
+
+    // Admin route protection
+    if (currentScreen === 'admin') {
+      if (!isAdmin) {
+        alert('Admin access required');
+        setCurrentScreen('home');
+        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={setCurrentScreen} currentMatch={currentMatch} />;
+      }
+      return (
+        <Suspense fallback={<div className="loading-screen">Loading Admin Dashboard...</div>}>
+          <AdminLayout />
+        </Suspense>
+      );
     }
 
     switch (currentScreen) {
