@@ -19,12 +19,9 @@ app.use(cors({
     "https://paid-scrims-9xctpb1bl-shigvanakash64-debugs-projects.vercel.app",
     "http://localhost:5173"
   ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
 }));
-
-// Handle preflight requests
-app.options("*", cors());
 app.use(express.json());
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
