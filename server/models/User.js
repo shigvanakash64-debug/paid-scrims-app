@@ -21,6 +21,28 @@ const userSchema = new mongoose.Schema({
       default: 0,
       min: 0
     },
+    pendingWithdrawals: [{
+      _id: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: () => new mongoose.Types.ObjectId()
+      },
+      amount: {
+        type: Number,
+        required: true,
+        min: 1
+      },
+      status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
+      },
+      requestedAt: {
+        type: Date,
+        default: Date.now
+      },
+      processedAt: Date,
+      adminNote: String
+    }],
     transactions: [{
       type: {
         type: String,

@@ -770,3 +770,51 @@ export const canJoinMatch = async (req, res) => {
     res.status(500).json({ error: `Server error: ${error.message}` });
   }
 };
+
+/**
+ * Request a withdrawal from user's wallet
+ * Creates a pending withdrawal that requires admin approval
+ */
+export const requestWithdrawal = async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const userId = req.userId;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: "Valid amount is required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (user.wallet.balance < amount) {
+      return res.status(400).json({ error: "Insufficient balance" });
+    }
+
+    // Create pending withdrawal
+    const withdrawal = {
+      amount: parseFloat(amount),
+      status: 'pending',
+      requestedAt: new Date()
+    };
+
+    user.wallet.pendingWithdrawals.push(withdrawal);
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Withdrawal request submitted successfully. Admin approval required.",
+      withdrawal: {
+        id: withdrawal._id,
+        amount: withdrawal.amount,
+        status: withdrawal.status,
+        requestedAt: withdrawal.requestedAt
+      }
+    });
+  } catch (error) {
+    console.error("requestWithdrawal error:", error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};

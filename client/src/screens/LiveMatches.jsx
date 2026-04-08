@@ -1,94 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { MatchCard } from '../components/admin/AdminComponents';
 import { MatchRoomDetail } from './MatchRoomDetail';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 
 export const LiveMatches = () => {
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
-  const [matches, setMatches] = useState([
-    {
-      id: 1025,
-      playerA: 'john_doe',
-      playerB: 'alpha_pro',
-      mode: 'Valorant',
-      entry: '5v5 Tournament',
-      status: 'ongoing',
-      paymentA: true,
-      paymentB: true,
-    },
-    {
-      id: 1024,
-      playerA: 'gamer_x',
-      playerB: 'pro_player',
-      mode: 'CSGO',
-      entry: '1v1 Entry',
-      status: 'payment_pending',
-      paymentA: true,
-      paymentB: false,
-    },
-    {
-      id: 1023,
-      playerA: 'ninja_gamer',
-      playerB: 'beast_mode',
-      mode: 'Valorant',
-      entry: '5v5 Tournament',
-      status: 'verified',
-      paymentA: true,
-      paymentB: true,
-    },
-    {
-      id: 1022,
-      playerA: 'lucky_strike',
-      playerB: 'king_of_games',
-      mode: 'Apex',
-      entry: '2v2 Entry',
-      status: 'payment_pending',
-      paymentA: false,
-      paymentB: false,
-    },
-    {
-      id: 1021,
-      playerA: 'phoenix_rise',
-      playerB: 'shadow_legend',
-      mode: 'Valorant',
-      entry: '1v1 Challenge',
-      status: 'waiting',
-      paymentA: false,
-      paymentB: false,
-    },
-    {
-      id: 1020,
-      playerA: 'storm_breaker',
-      playerB: 'ice_cold',
-      mode: 'CSGO',
-      entry: '5v5 Tournament',
-      status: 'completed',
-      paymentA: true,
-      paymentB: true,
-    },
-    {
-      id: 1019,
-      playerA: 'error_404',
-      playerB: 'code_master',
-      mode: 'Valorant',
-      entry: '1v1 Entry',
-      status: 'cancelled',
-      paymentA: true,
-      paymentB: false,
-    },
-  ]);
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMatches = async () => {
+      try {
+        const token = localStorage.getItem('clutchzone_token');
+        const response = await axios.get(`${API_BASE}/admin/matches`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setMatches(response.data.matches || []);
+      } catch (error) {
+        console.error('Failed to fetch matches:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMatches();
+  }, []);
 
   const filteredMatches =
     filterStatus === 'all'
       ? matches
       : matches.filter((m) => m.status === filterStatus);
 
-  const handleCancel = (matchId) => {
-    setMatches((prev) =>
-      prev.map((m) =>
-        m.id === matchId ? { ...m, status: 'cancelled' } : m
-      )
-    );
+  const handleCancel = async (matchId) => {
+    try {
+      const token = localStorage.getItem('clutchzone_token');
+      await axios.post(`${API_BASE}/admin/matches/${matchId}/cancel`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Refresh matches
+      const response = await axios.get(`${API_BASE}/admin/matches`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMatches(response.data.matches || []);
+    } catch (error) {
+      console.error('Failed to cancel match:', error);
+    }
   };
 
   if (selectedMatch) {
@@ -98,7 +57,7 @@ export const LiveMatches = () => {
         onBack={() => setSelectedMatch(null)}
         onUpdate={(updated) => {
           setMatches((prev) =>
-            prev.map((m) => (m.id === updated.id ? updated : m))
+            prev.map((m) => (m._id === updated._id ? updated : m))
           );
           setSelectedMatch(updated);
         }}
@@ -112,7 +71,7 @@ export const LiveMatches = () => {
       <div>
         <h1 className="text-3xl font-bold text-white">Live Matches</h1>
         <p className="text-sm text-[#A1A1A1] mt-2">
-          {matches.length} total • {matches.filter((m) => m.status === 'ongoing').length} active
+          {loading ? 'Loading...' : `${matches.length} total • ${matches.filter((m) => m.status === 'ongoing').length} active`}
         </p>
       </div>
 
@@ -141,21 +100,23 @@ export const LiveMatches = () => {
       </div>
 
       {/* Matches Grid */}
-      {filteredMatches.length > 0 ? (
+      {loading ? (
+        <div className="text-[#A1A1A1] text-center py-8">Loading matches...</div>
+      ) : filteredMatches.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filteredMatches.map((match) => (
             <MatchCard
-              key={match.id}
-              matchId={match.id}
-              playerA={match.playerA}
-              playerB={match.playerB}
-              mode={match.mode}
-              entry={match.entry}
+              key={match._id}
+              matchId={match._id}
+              playerA={match.playerA?.username || match.playerA}
+              playerB={match.playerB?.username || match.playerB}
+              mode={match.mode || 'Unknown'}
+              entry={`₹${match.entry}`}
               status={match.status}
               paymentA={match.paymentA}
               paymentB={match.paymentB}
               onOpen={() => setSelectedMatch(match)}
-              onCancel={() => handleCancel(match.id)}
+              onCancel={() => handleCancel(match._id)}
             />
           ))}
         </div>

@@ -1,64 +1,66 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { WithdrawalCard } from '../components/admin/AdminComponents';
 
-export const WithdrawalsPanel = () => {
-  const [withdrawals, setWithdrawals] = useState([
-    {
-      id: 1,
-      username: 'ninja_gamer',
-      amount: 5000,
-      method: 'UPI',
-      details: 'ninja.gamer@upi',
-      requestedAt: '2:30 PM today',
-      status: 'pending',
-    },
-    {
-      id: 2,
-      username: 'alpha_pro',
-      amount: 10000,
-      method: 'Bank Transfer',
-      details: 'ICIC0000123 | 1234567890',
-      requestedAt: '1:15 PM today',
-      status: 'pending',
-    },
-    {
-      id: 3,
-      username: 'lucky_strike',
-      amount: 2500,
-      method: 'UPI',
-      details: 'lucky.strike@paytm',
-      requestedAt: '11:45 AM today',
-      status: 'pending',
-    },
-  ]);
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 
+export const WithdrawalsPanel = () => {
+  const [withdrawals, setWithdrawals] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState('pending');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const handleApprove = async (id) => {
+  useEffect(() => {
+    fetchWithdrawals();
+  }, [filterStatus]);
+
+  const fetchWithdrawals = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('clutchzone_token');
+      const response = await axios.get(`${API_BASE}/admin/withdrawals?status=${filterStatus}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setWithdrawals(response.data.withdrawals);
+    } catch (error) {
+      setError('Failed to fetch withdrawals');
+      console.error('Failed to fetch withdrawals:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (withdrawalId) => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setWithdrawals((prev) =>
-        prev.map((w) =>
-          w.id === id ? { ...w, status: 'approved' } : w
-        )
-      );
+      const token = localStorage.getItem('clutchzone_token');
+      await axios.post(`${API_BASE}/admin/withdrawals/${withdrawalId}/approve`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Refresh the list
+      fetchWithdrawals();
+    } catch (error) {
+      alert('Failed to approve withdrawal');
+      console.error('Failed to approve withdrawal:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = async (withdrawalId) => {
     if (window.confirm('Reject this withdrawal? User will be notified and funds returned.')) {
       setIsLoading(true);
       try {
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        setWithdrawals((prev) =>
-          prev.map((w) =>
-            w.id === id ? { ...w, status: 'rejected' } : w
-          )
-        );
+        const token = localStorage.getItem('clutchzone_token');
+        await axios.post(`${API_BASE}/admin/withdrawals/${withdrawalId}/reject`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        // Refresh the list
+        fetchWithdrawals();
+      } catch (error) {
+        alert('Failed to reject withdrawal');
+        console.error('Failed to reject withdrawal:', error);
       } finally {
         setIsLoading(false);
       }
@@ -68,6 +70,28 @@ export const WithdrawalsPanel = () => {
   const filteredWithdrawals = withdrawals.filter(
     (w) => filterStatus === 'all' || w.status === filterStatus
   );
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Withdrawals</h1>
+          <p className="text-sm text-[#A1A1A1] mt-2">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Withdrawals</h1>
+          <p className="text-sm text-red-400 mt-2">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -102,15 +126,15 @@ export const WithdrawalsPanel = () => {
         <div className="space-y-4">
           {filteredWithdrawals.map((withdrawal) => (
             <WithdrawalCard
-              key={withdrawal.id}
-              id={withdrawal.id}
+              key={withdrawal.withdrawalId}
+              id={withdrawal.withdrawalId}
               username={withdrawal.username}
               amount={withdrawal.amount}
-              method={withdrawal.method}
-              details={withdrawal.details}
-              requestedAt={withdrawal.requestedAt}
-              onApprove={() => handleApprove(withdrawal.id)}
-              onReject={() => handleReject(withdrawal.id)}
+              method="UPI" // Default method, could be expanded later
+              details={`User ID: ${withdrawal.userId}`}
+              requestedAt={new Date(withdrawal.requestedAt).toLocaleString()}
+              onApprove={() => handleApprove(withdrawal.withdrawalId)}
+              onReject={() => handleReject(withdrawal.withdrawalId)}
               isLoading={isLoading}
             />
           ))}

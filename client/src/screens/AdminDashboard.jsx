@@ -1,57 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { StatCard, LogCard } from '../components/admin/AdminComponents';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 
 export const AdminDashboard = () => {
   const [stats, setStats] = useState({
-    activeMatches: 12,
-    pendingPayments: 5,
-    disputes: 2,
-    systemBalance: 125000,
-    todayRevenue: 45000,
+    activeMatches: 0,
+    pendingPayments: 0,
+    disputes: 0,
+    systemBalance: 0,
+    todayRevenue: 0,
   });
 
-  const [logs, setLogs] = useState([
-    {
-      id: 1,
-      timestamp: '2:34 PM',
-      level: 'success',
-      action: 'Match Completed',
-      details: 'Match #1024 completed successfully',
-      user: 'system',
-    },
-    {
-      id: 2,
-      timestamp: '2:12 PM',
-      level: 'success',
-      action: 'Payment Verified',
-      details: 'Player john_doe payment approved',
-      user: 'admin',
-    },
-    {
-      id: 3,
-      timestamp: '1:58 PM',
-      level: 'warning',
-      action: 'Dispute Opened',
-      details: 'Match #1022 disputed by player_a',
-      user: 'system',
-    },
-    {
-      id: 4,
-      timestamp: '1:22 PM',
-      level: 'info',
-      action: 'Match Created',
-      details: 'New match created: 1v1 Tournament Entry',
-      user: 'system',
-    },
-    {
-      id: 5,
-      timestamp: '12:45 PM',
-      level: 'success',
-      action: 'Withdrawal Approved',
-      details: 'Withdrawal of ₹5000 approved for user_123',
-      user: 'admin',
-    },
-  ]);
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const token = localStorage.getItem('clutchzone_token');
+        const [statsResponse, logsResponse] = await Promise.all([
+          axios.get(`${API_BASE}/admin/stats`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get(`${API_BASE}/admin/logs?limit=10`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+
+        setStats(statsResponse.data.stats);
+        setLogs(logsResponse.data.logs);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+        // Keep default values on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -115,16 +104,22 @@ export const AdminDashboard = () => {
       <div className="space-y-3">
         <h2 className="text-lg font-bold text-white">Recent Activity</h2>
         <div className="space-y-2">
-          {logs.map((log) => (
-            <LogCard
-              key={log.id}
-              timestamp={log.timestamp}
-              level={log.level}
-              action={log.action}
-              details={log.details}
-              user={log.user}
-            />
-          ))}
+          {loading ? (
+            <div className="text-[#A1A1A1] text-center py-8">Loading activity...</div>
+          ) : logs.length === 0 ? (
+            <div className="text-[#A1A1A1] text-center py-8">No recent activity</div>
+          ) : (
+            logs.map((log) => (
+              <LogCard
+                key={log._id || log.id}
+                timestamp={new Date(log.createdAt).toLocaleTimeString()}
+                level={log.level}
+                action={log.action}
+                details={log.details}
+                user={log.user}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>

@@ -17,6 +17,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .wallet-pill .amt{font-family:'JetBrains Mono',monospace;font-size:13px;color:#fff}
 .wallet-pill .sym{color:var(--orange);font-size:13px}
 .trust-badge{background:var(--orange);padding:4px 8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;color:#fff}
+.wallet-balance{background:#0B0B0B;border:1px solid #1F1F1F;padding:4px 8px;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:12px;color:#FF6A00}
 .menu-button{width:36px;height:36px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .12s,color .12s}
 .menu-button:hover{border-color:var(--orange);color:var(--orange)}
 .menu-popup{position:absolute;top:calc(100% + 6px);right:0;background:var(--card);border:1px solid var(--border);box-shadow:0 18px 40px rgba(0,0,0,.4);padding:6px 0;min-width:160px;z-index:20}

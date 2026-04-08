@@ -17,7 +17,10 @@ import {
   getAllDisputes,
   resolveDispute,
   adjustUserWallet,
-  getAllUsers
+  getAllUsers,
+  getAllWithdrawals,
+  approveWithdrawal,
+  rejectWithdrawal
 } from "../controllers/adminController.js";
 
 const router = express.Router();
@@ -128,5 +131,23 @@ router.post("/users/:userId/adjust-wallet", authMiddleware, adjustUserWallet);
  * Get all users with search and pagination
  */
 router.get("/users", authMiddleware, getAllUsers);
+
+/**
+ * GET /api/admin/withdrawals
+ * Get all withdrawal requests
+ */
+router.get("/withdrawals", authMiddleware, getAllWithdrawals);
+
+/**
+ * POST /api/admin/withdrawals/:withdrawalId/approve
+ * Approve a withdrawal request
+ */
+router.post("/withdrawals/:withdrawalId/approve", authMiddleware, approveWithdrawal);
+
+/**
+ * POST /api/admin/withdrawals/:withdrawalId/reject
+ * Reject a withdrawal request
+ */
+router.post("/withdrawals/:withdrawalId/reject", authMiddleware, rejectWithdrawal);
 
 export default router;

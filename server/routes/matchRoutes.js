@@ -17,6 +17,7 @@ import {
   startMatch,
   cancelMatch,
   addChatMessage,
+  requestWithdrawal,
 } from "../controllers/matchController.js";
 
 const router = express.Router();
@@ -67,6 +68,12 @@ router.post("/cancel", authMiddleware, cancelMatch);
  * Add a controlled chat message for admin or user actions
  */
 router.post("/chat", authMiddleware, addChatMessage);
+
+/**
+ * POST /api/match/withdraw
+ * Request a withdrawal from user's wallet (requires admin approval)
+ */
+router.post("/withdraw", authMiddleware, requestWithdrawal);
 
 /**
  * POST /api/match/submit-result

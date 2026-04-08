@@ -6,6 +6,7 @@ import { ResultScreen } from './screens/ResultScreen';
 import { PairingScreen } from './screens/PairingScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { WalletScreen } from './screens/WalletScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
 import { BottomNav } from './components/BottomNav';
@@ -165,6 +166,8 @@ function App() {
         );
       case 'profile':
         return <ProfileScreen user={user} onUserUpdate={handleUserUpdate} onProfileSave={handleProfileSave} />;
+      case 'wallet':
+        return <WalletScreen user={user} onUserUpdate={handleUserUpdate} />;
       case 'settings':
         return <SettingsScreen user={user} />;
       default:

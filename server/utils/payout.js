@@ -82,11 +82,11 @@ export const processPayout = async (matchId, winnerId, userModel) => {
         $inc: { "wallet.balance": winnerAmount },
         $push: {
           transactions: {
-            type: "payout",
+            type: "match_win",
             amount: winnerAmount,
+            description: `Match win - ${matchId}`,
             matchId,
-            status: "completed",
-            createdAt: new Date(),
+            timestamp: new Date(),
           },
         },
       },

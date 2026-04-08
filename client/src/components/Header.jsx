@@ -22,6 +22,7 @@ export const Header = ({ user, onNavigate, onLogout }) => {
       <div className="topbar-right">
         {currentUser && (
           <>
+            <div className="wallet-balance">₹{currentUser.wallet?.balance?.toLocaleString() || '0'}</div>
             <div className="trust-badge">TG: {currentUser.trustScore}</div>
             {isAdmin && <div className="admin-badge">ADMIN</div>}
             <button className="menu-button" type="button" onClick={toggleMenu}>

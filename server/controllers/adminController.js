@@ -590,3 +590,190 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+/**
+ * Get all pending withdrawals
+ */
+export const getAllWithdrawals = async (req, res) => {
+  try {
+    const { status = 'pending', page = 1, limit = 20 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Aggregate to get users with pending withdrawals
+    const withdrawals = await User.aggregate([
+      {
+        $match: {
+          'wallet.pendingWithdrawals.status': status
+        }
+      },
+      {
+        $unwind: '$wallet.pendingWithdrawals'
+      },
+      {
+        $match: {
+          'wallet.pendingWithdrawals.status': status
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          withdrawalId: '$wallet.pendingWithdrawals._id',
+          userId: '$_id',
+          username: '$username',
+          amount: '$wallet.pendingWithdrawals.amount',
+          status: '$wallet.pendingWithdrawals.status',
+          requestedAt: '$wallet.pendingWithdrawals.requestedAt',
+          processedAt: '$wallet.pendingWithdrawals.processedAt',
+          adminNote: '$wallet.pendingWithdrawals.adminNote'
+        }
+      },
+      {
+        $sort: { requestedAt: -1 }
+      },
+      {
+        $skip: skip
+      },
+      {
+        $limit: parseInt(limit)
+      }
+    ]);
+
+    const total = await User.aggregate([
+      {
+        $match: {
+          'wallet.pendingWithdrawals.status': status
+        }
+      },
+      {
+        $unwind: '$wallet.pendingWithdrawals'
+      },
+      {
+        $match: {
+          'wallet.pendingWithdrawals.status': status
+        }
+      },
+      {
+        $count: 'total'
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      withdrawals,
+      pagination: {
+        total: total[0]?.total || 0,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil((total[0]?.total || 0) / limit)
+      }
+    });
+  } catch (error) {
+    console.error("getAllWithdrawals error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Approve a withdrawal request
+ */
+export const approveWithdrawal = async (req, res) => {
+  try {
+    const { withdrawalId } = req.params;
+    const { adminNote } = req.body;
+
+    const user = await User.findOne({
+      'wallet.pendingWithdrawals._id': withdrawalId,
+      'wallet.pendingWithdrawals.status': 'pending'
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "Withdrawal request not found" });
+    }
+
+    const withdrawal = user.wallet.pendingWithdrawals.id(withdrawalId);
+    if (!withdrawal) {
+      return res.status(404).json({ error: "Withdrawal not found" });
+    }
+
+    if (user.wallet.balance < withdrawal.amount) {
+      return res.status(400).json({ error: "Insufficient balance for withdrawal" });
+    }
+
+    // Update withdrawal status
+    withdrawal.status = 'approved';
+    withdrawal.processedAt = new Date();
+    withdrawal.adminNote = adminNote;
+
+    // Deduct from balance
+    user.wallet.balance -= withdrawal.amount;
+
+    // Add transaction record
+    user.wallet.transactions.push({
+      type: 'withdrawal',
+      amount: -withdrawal.amount,
+      description: `Withdrawal approved - ${adminNote || ''}`,
+      timestamp: new Date()
+    });
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Withdrawal approved successfully",
+      withdrawal: {
+        id: withdrawal._id,
+        amount: withdrawal.amount,
+        status: withdrawal.status,
+        processedAt: withdrawal.processedAt
+      }
+    });
+  } catch (error) {
+    console.error("approveWithdrawal error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Reject a withdrawal request
+ */
+export const rejectWithdrawal = async (req, res) => {
+  try {
+    const { withdrawalId } = req.params;
+    const { adminNote } = req.body;
+
+    const user = await User.findOne({
+      'wallet.pendingWithdrawals._id': withdrawalId,
+      'wallet.pendingWithdrawals.status': 'pending'
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "Withdrawal request not found" });
+    }
+
+    const withdrawal = user.wallet.pendingWithdrawals.id(withdrawalId);
+    if (!withdrawal) {
+      return res.status(404).json({ error: "Withdrawal not found" });
+    }
+
+    // Update withdrawal status
+    withdrawal.status = 'rejected';
+    withdrawal.processedAt = new Date();
+    withdrawal.adminNote = adminNote;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Withdrawal rejected successfully",
+      withdrawal: {
+        id: withdrawal._id,
+        amount: withdrawal.amount,
+        status: withdrawal.status,
+        processedAt: withdrawal.processedAt
+      }
+    });
+  } catch (error) {
+    console.error("rejectWithdrawal error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
