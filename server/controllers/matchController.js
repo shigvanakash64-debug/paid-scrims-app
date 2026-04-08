@@ -272,10 +272,19 @@ export const createMatch = async (req, res) => {
       return res.status(400).json({ error: 'Invalid entry fee' });
     }
 
-    const playerCount = mode === '2v2' ? 4 : mode === '3v3' ? 6 : mode === '4v4' ? 8 : 2;
-    const totalPool = parsedEntry * playerCount;
-    const platformFee = parsedEntry <= 30 ? parsedEntry / 3 : parsedEntry <= 50 ? parsedEntry * 0.4 : parsedEntry * 0.3;
-    const prizePool = Math.max(0, Math.floor(totalPool - platformFee));
+    // Prize pool is fixed per entry amount, not multiplied by player count
+    let prizePool;
+    if (parsedEntry <= 30) {
+      prizePool = 50;
+    } else if (parsedEntry <= 50) {
+      prizePool = Math.floor(parsedEntry * 1.5);
+    } else if (parsedEntry <= 100) {
+      prizePool = Math.floor(parsedEntry * 1.6);
+    } else if (parsedEntry <= 200) {
+      prizePool = Math.floor(parsedEntry * 1.7);
+    } else {
+      prizePool = Math.floor(parsedEntry * 1.7);
+    }
 
     const match = await Match.create({
       creator: userId,

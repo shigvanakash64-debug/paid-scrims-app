@@ -31,7 +31,7 @@ export const MatchCard = ({ match, onJoin, user }) => {
 
       <div className="match-details">
         <div className="entry-fee">
-          <span className="fee-amount">₹{match.entryFee}</span>
+          <span className="fee-amount">₹{match.entry}</span>
           <span className="fee-label">Entry</span>
         </div>
 
