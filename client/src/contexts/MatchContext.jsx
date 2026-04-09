@@ -28,9 +28,15 @@ export const MatchProvider = ({ children }) => {
     if (storedMatch) {
       try {
         const parsedMatch = JSON.parse(storedMatch);
+        const inactiveStatuses = ['completed', 'cancelled', 'disputed'];
+        if (parsedMatch && inactiveStatuses.includes(parsedMatch.status)) {
+          localStorage.removeItem('clutchzone_currentMatch');
+          localStorage.removeItem('clutchzone_currentMatchId');
+          return;
+        }
         setCurrentMatch(parsedMatch);
         setPreviousPlayerCount(parsedMatch?.players?.length || 0);
-        if (parsedMatch && !['completed', 'cancelled', 'disputed'].includes(parsedMatch.status)) {
+        if (parsedMatch) {
           setMatchPolling(true);
         }
       } catch (error) {

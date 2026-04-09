@@ -59,7 +59,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
   }
 
   const handleFindMatch = async () => {
-    if (currentMatch) {
+    if (currentMatch && !['completed', 'cancelled', 'disputed'].includes(currentMatch.status)) {
       alert('You already have an active match. Complete it first before creating a new one.');
       return;
     }

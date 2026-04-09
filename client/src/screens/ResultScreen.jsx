@@ -5,7 +5,7 @@ import { useMatch } from '../contexts/MatchContext';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 
 export const ResultScreen = ({ match, onScreenChange }) => {
-  const { refreshMatch } = useMatch();
+  const { refreshMatch, clearMatch } = useMatch();
   const fileInputRef = useRef(null);
   const [winner, setWinner] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
@@ -69,8 +69,16 @@ export const ResultScreen = ({ match, onScreenChange }) => {
       });
 
       if (response.data?.success) {
-        setSubmitted(true);
         await refreshMatch(matchId);
+        if (response.data.matchStatus === 'completed') {
+          clearMatch();
+          setSubmitted(true);
+          setTimeout(() => {
+            onScreenChange('home');
+          }, 1200);
+        } else {
+          setSubmitted(true);
+        }
       } else {
         setError(response.data?.error || 'Unable to submit result.');
       }
