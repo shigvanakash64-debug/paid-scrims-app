@@ -515,12 +515,36 @@ export const cancelMatch = async (req, res) => {
       return res.status(403).json({ error: 'Only participants or admin can cancel the match' });
     }
 
-    match.status = 'cancelled';
-    match.canceledBy = userId;
-    match.adminMessages.push({
-      sender: 'system',
-      text: req.isAdmin ? 'Admin cancelled the match.' : 'Match cancelled by a player before start.',
-    });
+    const isCreator = match.creator.toString() === userId.toString();
+
+    if (req.isAdmin) {
+      // Admin cancellation - fully cancel
+      match.status = 'cancelled';
+      match.canceledBy = userId;
+      match.adminMessages.push({
+        sender: 'system',
+        text: 'Admin cancelled the match.',
+      });
+    } else if (isCreator) {
+      // Creator cancellation - fully cancel the match request
+      match.status = 'cancelled';
+      match.canceledBy = userId;
+      match.adminMessages.push({
+        sender: 'system',
+        text: 'Match cancelled by creator.',
+      });
+    } else {
+      // Opponent cancellation - remove opponent, reset match to waiting
+      match.players = match.players.filter((player) => player.toString() !== userId.toString());
+      match.status = 'waiting';
+      match.paymentDueAt = null;
+      match.paidUsers = match.paidUsers.filter((user) => user.toString() !== userId.toString());
+      match.verifiedUsers = match.verifiedUsers.filter((user) => user.toString() !== userId.toString());
+      match.adminMessages.push({
+        sender: 'system',
+        text: 'Opponent left the match. Looking for new opponent...',
+      });
+    }
 
     await match.save();
 
