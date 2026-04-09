@@ -18,9 +18,27 @@ export const MatchProvider = ({ children }) => {
   const [currentMatch, setCurrentMatch] = useState(null);
   const [matchPolling, setMatchPolling] = useState(false);
   const [lastMatchUpdate, setLastMatchUpdate] = useState(null);
+  const [previousPlayerCount, setPreviousPlayerCount] = useState(0);
 
   // Polling interval for active matches (every 3 seconds)
   const POLLING_INTERVAL = 3000;
+
+  // Send desktop notification
+  const sendNotification = useCallback((title, options = {}) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, {
+        badge: '🎮',
+        ...options,
+      });
+    }
+  }, []);
+
+  // Request notification permission
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
 
   // Force refresh match data
   const refreshMatch = useCallback(async (matchId = null) => {
@@ -36,6 +54,18 @@ export const MatchProvider = ({ children }) => {
       });
 
       const updatedMatch = response.data.match;
+      const currentPlayerCount = updatedMatch.players?.length || 0;
+
+      // Check if opponent just joined (player count increased)
+      if (previousPlayerCount > 0 && currentPlayerCount > previousPlayerCount) {
+        sendNotification('🔔 You got an opponent!', {
+          body: 'An opponent has joined your match! Start uploading payment proof.',
+          tag: 'opponent-joined',
+          requireInteraction: true,
+        });
+      }
+
+      setPreviousPlayerCount(currentPlayerCount);
       setCurrentMatch(updatedMatch);
       setLastMatchUpdate(new Date());
 
@@ -49,7 +79,7 @@ export const MatchProvider = ({ children }) => {
       console.error('Failed to refresh match:', error);
       return null;
     }
-  }, [currentMatch]);
+  }, [currentMatch, previousPlayerCount, sendNotification]);
 
   // Start polling for match updates
   const startMatchPolling = useCallback(() => {
@@ -70,6 +100,7 @@ export const MatchProvider = ({ children }) => {
   // Set a new match
   const setMatch = useCallback((match) => {
     setCurrentMatch(match);
+    setPreviousPlayerCount(match?.players?.length || 0);
     setLastMatchUpdate(new Date());
 
     // Start polling if match is active

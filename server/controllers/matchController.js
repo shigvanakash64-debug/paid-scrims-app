@@ -319,7 +319,9 @@ export const acceptMatch = async (req, res) => {
       return res.status(400).json({ error: 'matchId is required' });
     }
 
-    const match = await Match.findById(matchId);
+    const match = await Match.findById(matchId)
+      .populate('creator', 'username')
+      .populate('players', 'username');
     if (!match) {
       return res.status(404).json({ error: 'Match not found' });
     }
@@ -328,16 +330,23 @@ export const acceptMatch = async (req, res) => {
       return res.status(400).json({ error: 'Match is not available for acceptance' });
     }
 
-    if (match.players.includes(userId)) {
+    if (match.players.some(p => p._id?.toString() === userId.toString())) {
       return res.status(400).json({ error: 'You already joined this match' });
     }
+
+    // Get opponent's username
+    const User = req.app?.locals?.User;
+    const opponent = User ? await User.findById(userId).select('username') : null;
+    const opponentUsername = opponent?.username || 'Opponent';
 
     match.players.push(userId);
     match.status = 'payment_pending';
     match.paymentDueAt = new Date(Date.now() + 5 * 60 * 1000);
+    
+    // Add notification for match creator
     match.adminMessages.push({
       sender: 'system',
-      text: 'Opponent accepted the match. Both players must upload payment proof within 5 minutes.',
+      text: `🔔 You got an opponent! ${opponentUsername} has joined. Both players must upload payment proof within 5 minutes.`,
     });
 
     await match.save();
