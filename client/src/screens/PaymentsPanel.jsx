@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { PaymentStatusCard, ResultSubmissionCard } from '../components/admin/AdminComponents';
+import { PaymentStatusCard } from '../components/admin/AdminComponents';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 
 export const PaymentsPanel = () => {
   const [payments, setPayments] = useState([]);
-  const [resultSubmissions, setResultSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,7 +23,6 @@ export const PaymentsPanel = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPayments(response.data.payments || []);
-      setResultSubmissions(response.data.resultSubmissions || []);
     } catch (err) {
       console.error('fetchPayments error', err);
       setError('Unable to load payments');
@@ -124,30 +122,6 @@ export const PaymentsPanel = () => {
           <p className="text-2xl">✓</p>
           <p className="text-lg font-semibold text-white">All payments verified!</p>
           <p className="text-sm text-[#A1A1A1]">No pending payment verifications</p>
-        </div>
-      )}
-
-      {resultSubmissions.length > 0 && (
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Result Submissions</h2>
-            <p className="text-sm text-[#A1A1A1] mt-2">Review screenshots uploaded by players for pending result verification.</p>
-          </div>
-          <div className="grid grid-cols-1 gap-4">
-            {resultSubmissions.map((submission) => (
-              <ResultSubmissionCard
-                key={submission.matchId}
-                matchId={submission.matchId}
-                players={submission.players}
-                mode={submission.mode}
-                type={submission.type}
-                entry={submission.entry}
-                status={submission.status}
-                resultDeadline={submission.resultDeadline}
-                resultScreenshots={submission.resultScreenshots || []}
-              />
-            ))}
-          </div>
         </div>
       )}
     </div>

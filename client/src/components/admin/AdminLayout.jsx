@@ -3,6 +3,7 @@ import { AdminSidebar } from './AdminSidebar';
 import { AdminDashboard } from '../../screens/AdminDashboard';
 import { LiveMatches } from '../../screens/LiveMatches';
 import { PaymentsPanel } from '../../screens/PaymentsPanel';
+import { ResultReviewPanel } from '../../screens/ResultReviewPanel';
 import { DisputesPanel } from '../../screens/DisputesPanel';
 import { UsersPanel } from '../../screens/UsersPanel';
 import { WithdrawalsPanel } from '../../screens/WithdrawalsPanel';
@@ -12,6 +13,7 @@ const SCREENS = {
   DASHBOARD: 'dashboard',
   LIVE_MATCHES: 'live_matches',
   PAYMENTS: 'payments',
+  RESULT_REVIEW: 'result_review',
   DISPUTES: 'disputes',
   USERS: 'users',
   WITHDRAWALS: 'withdrawals',
@@ -30,6 +32,8 @@ export const AdminLayout = () => {
         return <LiveMatches />;
       case SCREENS.PAYMENTS:
         return <PaymentsPanel />;
+      case SCREENS.RESULT_REVIEW:
+        return <ResultReviewPanel />;
       case SCREENS.DISPUTES:
         return <DisputesPanel />;
       case SCREENS.USERS:
