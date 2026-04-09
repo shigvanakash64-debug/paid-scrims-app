@@ -34,7 +34,7 @@ const matchSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["waiting", "matched", "payment_pending", "verified", "ongoing", "completed", "cancelled", "pending", "in-progress", "disputed"],
+      enum: ["waiting", "matched", "payment_pending", "result_pending", "verified", "ongoing", "completed", "cancelled", "pending", "in-progress", "disputed"],
       default: "waiting",
     },
     paidUsers: [

@@ -102,55 +102,43 @@ export const submitResult = async (req, res) => {
       match.resultDeadline = new Date(Date.now() + DEADLINE_MS);
     }
 
-    // RESULT LOGIC ENGINE WITH TRUST SCORE INTEGRATION
+    const opponentId = match.players.find((p) => p.toString() !== userId.toString());
+    if (winner !== 'win' && winner !== 'lose') {
+      return res.status(400).json({ error: 'Winner must be "win" or "lose"' });
+    }
+
+    const selectedWinner = winner === 'win' ? userId : opponentId || userId;
+
     const submittedCount = match.result.submittedBy.length;
     const totalPlayers = match.players.length;
 
     if (submittedCount === totalPlayers) {
-      // All players submitted - check if winner is same
-      const allWinnersMatch = match.result.submittedBy.every((_, idx) => {
-        // In this implementation, we're storing one winner per submission
-        // Check if all submissions agree on same winner
-        return true; // This assumes same winner - adjust based on actual data structure
-      });
-
-      if (winner === match.result.winner || !match.result.winner) {
-        // Same winner declared - process payout
-        match.result.winner = winner;
+      if (!match.result.winner || selectedWinner.toString() === match.result.winner.toString()) {
+        match.result.winner = selectedWinner;
         match.result.decidedAt = new Date();
-        match.status = "completed";
-        match.result.paidOut = true; // Mark for processPayout
+        match.status = 'completed';
+        match.result.paidOut = true;
 
-        // Update trust scores for both players
         await TrustScoreEngine.onValidMatchCompletion(userId);
-        const opponentId = match.players.find(p => p.toString() !== userId.toString());
         if (opponentId) {
           await TrustScoreEngine.onValidMatchCompletion(opponentId);
         }
 
-        // Both agree bonus
         await TrustScoreEngine.onBothAgreeResult(userId);
         if (opponentId) {
           await TrustScoreEngine.onBothAgreeResult(opponentId);
         }
-
-        // Attempt payout (User model import would be needed)
-        // For now, we'll flag it and let payout service handle it
       } else {
-        // Different winners - dispute
-        match.status = "disputed";
+        match.status = 'disputed';
         match.result.decidedAt = new Date();
 
-        // Penalize both players for conflict submission
         await TrustScoreEngine.onConflictSubmission(userId);
-        const opponentId = match.players.find(p => p.toString() !== userId.toString());
         if (opponentId) {
           await TrustScoreEngine.onConflictSubmission(opponentId);
         }
       }
     } else if (submittedCount === 1) {
-      // First submission - deadline already set above
-      match.status = "result_pending"; // Waiting for opponent
+      match.status = 'result_pending';
     }
 
     await match.save();

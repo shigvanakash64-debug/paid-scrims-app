@@ -332,38 +332,66 @@ export const getAllPayments = async (req, res) => {
     const { status = 'payment_pending', limit = 50, page = 1 } = req.query;
     const skip = (page - 1) * limit;
 
-    const filter = status === 'all' ? { status: { $in: ['matched', 'payment_pending', 'verified'] } } : { status };
+    const paymentFilter = status === 'all'
+      ? { status: { $in: ['matched', 'payment_pending', 'verified'] } }
+      : { status };
 
-    const matches = await Match.find(filter)
-      .populate('players', 'username')
-      .sort({ updatedAt: -1 })
-      .skip(parseInt(skip))
-      .limit(parseInt(limit));
+    const [paymentMatches, resultMatches, paymentTotal] = await Promise.all([
+      Match.find(paymentFilter)
+        .populate('players', 'username')
+        .sort({ updatedAt: -1 })
+        .skip(parseInt(skip))
+        .limit(parseInt(limit)),
+      Match.find({ status: 'result_pending' })
+        .populate('players', 'username')
+        .populate('result.screenshots.user', 'username')
+        .sort({ updatedAt: -1 }),
+      Match.countDocuments(paymentFilter),
+    ]);
 
-    const total = await Match.countDocuments(filter);
+    const payments = paymentMatches.map((match) => ({
+      id: match._id,
+      matchId: match._id,
+      players: match.players.map((player) => player.username),
+      paymentScreenshots: (match.paymentScreenshots || []).map((s) => ({
+        user: s.user?.toString(),
+        image: s.image,
+        uploadedAt: s.uploadedAt,
+      })),
+      screenshotUrl: match.paymentScreenshots?.[0]?.image || '',
+      status: match.status,
+      isPaid: match.status === 'verified',
+      updatedAt: match.updatedAt,
+    }));
+
+    const resultSubmissions = resultMatches.map((match) => ({
+      id: match._id,
+      matchId: match._id,
+      players: match.players.map((player) => player.username),
+      mode: match.mode,
+      type: match.type,
+      entry: match.entry,
+      status: match.status,
+      resultDeadline: match.resultDeadline,
+      submittedWinner: match.result.winner ? match.result.winner.toString() : null,
+      resultScreenshots: (match.result.screenshots || []).map((s) => ({
+        user: s.user ? { id: s.user._id?.toString(), username: s.user.username } : { id: s.user?.toString(), username: 'Unknown' },
+        image: s.image,
+        uploadedAt: s.uploadedAt,
+      })),
+      updatedAt: match.updatedAt,
+    }));
 
     res.status(200).json({
       success: true,
-      payments: matches.map((match) => ({
-        id: match._id,
-        matchId: match._id,
-        players: match.players.map((player) => player.username),
-        paymentScreenshots: (match.paymentScreenshots || []).map((s) => ({
-          user: s.user?.toString(),
-          image: s.image,
-          uploadedAt: s.uploadedAt,
-        })),
-        screenshotUrl: match.paymentScreenshots?.[0]?.image || '',
-        status: match.status,
-        isPaid: match.status === 'verified',
-        updatedAt: match.updatedAt,
-      })),
+      payments,
+      resultSubmissions,
       pagination: {
-        total,
+        total: paymentTotal,
         page: parseInt(page),
         limit: parseInt(limit),
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(paymentTotal / limit),
+      },
     });
   } catch (error) {
     console.error("getAllPayments error:", error);

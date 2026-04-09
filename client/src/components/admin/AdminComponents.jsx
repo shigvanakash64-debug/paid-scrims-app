@@ -159,6 +159,42 @@ export const PaymentStatusCard = ({ player, isPaid, paymentScreenshots, onApprov
   </div>
 );
 
+export const ResultSubmissionCard = ({ matchId, players, mode, type, entry, status, resultDeadline, resultScreenshots }) => (
+  <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4 space-y-4">
+    <div className="flex items-center justify-between gap-3">
+      <div>
+        <p className="text-xs text-[#A1A1A1]">RESULT SUBMISSION</p>
+        <p className="text-lg font-semibold text-white mt-1">Match #{matchId}</p>
+      </div>
+      <span className="text-xs font-semibold rounded-full bg-[#1F1F1F] px-3 py-1 text-[#A1A1A1]">
+        {status.replace('_', ' ').toUpperCase()}
+      </span>
+    </div>
+
+    <div className="space-y-2 text-sm text-[#E5E7EB]">
+      <div><span className="font-semibold text-white">Match:</span> {mode} • {type}</div>
+      <div><span className="font-semibold text-white">Entry fee:</span> ₹{entry}</div>
+      <div><span className="font-semibold text-white">Players:</span> {players.join(' vs ')}</div>
+      {resultDeadline && (
+        <div><span className="font-semibold text-white">Deadline:</span> {new Date(resultDeadline).toLocaleString()}</div>
+      )}
+    </div>
+
+    {resultScreenshots && resultScreenshots.length > 0 && (
+      <div className="grid gap-3 sm:grid-cols-2">
+        {resultScreenshots.map((screenshot, idx) => (
+          <div key={idx} className="space-y-2">
+            <div className="text-xs text-[#A1A1A1]">{screenshot.user?.username || `Player ${idx + 1}`}</div>
+            <div className="relative overflow-hidden rounded-lg bg-[#0B0B0B] border border-[#1F1F1F] aspect-video">
+              <img src={screenshot.image} alt={`Result proof ${idx + 1}`} className="w-full h-full object-cover" />
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+);
+
 // DisputeCard - Dispute display
 export const DisputeCard = ({
   matchId,
