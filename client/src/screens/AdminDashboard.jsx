@@ -73,14 +73,14 @@ export const AdminDashboard = () => {
         />
         <StatCard
           label="System Balance"
-          value={`₹${stats.systemBalance.toLocaleString()}`}
+          value={`₹${Number(stats.systemBalance || 0).toLocaleString()}`}
           icon="💰"
           color="#22C55E"
           trend={-5}
         />
         <StatCard
           label="Today Revenue"
-          value={`₹${stats.todayRevenue.toLocaleString()}`}
+          value={`₹${Number(stats.todayRevenue || 0).toLocaleString()}`}
           icon="📈"
           color="#FF6A00"
           trend={35}
@@ -112,7 +112,7 @@ export const AdminDashboard = () => {
             logs.map((log) => (
               <LogCard
                 key={log._id || log.id}
-                timestamp={new Date(log.createdAt).toLocaleTimeString()}
+                timestamp={new Date(log.createdAt || log.timestamp || Date.now()).toLocaleTimeString()}
                 level={log.level}
                 action={log.action}
                 details={log.details}

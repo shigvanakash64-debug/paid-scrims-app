@@ -128,7 +128,7 @@ export const LogsPanel = () => {
           {filteredLogs.map((log) => (
             <LogCard
               key={log._id || log.id}
-              timestamp={new Date(log.timestamp || log.createdAt).toLocaleString()}
+              timestamp={new Date(log.timestamp || log.createdAt || Date.now()).toLocaleString()}
               level={log.level}
               action={log.action}
               details={log.details}
