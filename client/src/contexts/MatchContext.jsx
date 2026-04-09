@@ -58,7 +58,18 @@ export const MatchProvider = ({ children }) => {
 
   // Force refresh match data
   const refreshMatch = useCallback(async (matchId = null) => {
-    const id = matchId || currentMatch?.id || currentMatch?._id;
+    // Get latest state from a getter function to avoid adding to deps
+    const getLatestState = () => {
+      const storedMatch = localStorage.getItem('clutchzone_currentMatch');
+      try {
+        return storedMatch ? JSON.parse(storedMatch) : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const latestMatch = getLatestState();
+    const id = matchId || latestMatch?.id || latestMatch?._id;
     if (!id) return;
 
     try {
@@ -72,17 +83,22 @@ export const MatchProvider = ({ children }) => {
       const updatedMatch = response.data.match;
       const currentPlayerCount = updatedMatch.players?.length || 0;
 
-      // Check if opponent just joined (player count increased)
-      if (previousPlayerCount > 0 && currentPlayerCount > previousPlayerCount) {
-        sendNotification('🔔 You got an opponent!', {
-          body: 'An opponent has joined your match! Start uploading payment proof.',
-          tag: 'opponent-joined',
-          requireInteraction: true,
-        });
-      }
+      // Use current state from context for comparison
+      setCurrentMatch((prevMatch) => {
+        const prevPlayerCount = prevMatch?.players?.length || 0;
+        
+        if (prevPlayerCount > 0 && currentPlayerCount > prevPlayerCount) {
+          sendNotification('🔔 You got an opponent!', {
+            body: 'An opponent has joined your match! Start uploading payment proof.',
+            tag: 'opponent-joined',
+            requireInteraction: true,
+          });
+        }
 
-      setPreviousPlayerCount(currentPlayerCount);
-      setCurrentMatch(updatedMatch);
+        setPreviousPlayerCount(currentPlayerCount);
+        return updatedMatch;
+      });
+
       setLastMatchUpdate(new Date());
       localStorage.setItem('clutchzone_currentMatch', JSON.stringify(updatedMatch));
       localStorage.setItem('clutchzone_currentMatchId', updatedMatch.id || updatedMatch._id || '');
@@ -97,13 +113,12 @@ export const MatchProvider = ({ children }) => {
       console.error('Failed to refresh match:', error);
       return null;
     }
-  }, [currentMatch, previousPlayerCount, sendNotification]);
+  }, [sendNotification]);
 
   // Start polling for match updates
   const startMatchPolling = useCallback(() => {
-    if (matchPolling) return;
     setMatchPolling(true);
-  }, [matchPolling]);
+  }, []);
 
   // Stop polling for match updates
   const stopMatchPolling = useCallback(() => {
@@ -123,13 +138,13 @@ export const MatchProvider = ({ children }) => {
     setPreviousPlayerCount(match?.players?.length || 0);
     setLastMatchUpdate(new Date());
 
-    // Start polling if match is active
+    // Start or stop polling based on match status
     if (match && !['completed', 'cancelled', 'disputed'].includes(match.status)) {
-      startMatchPolling();
+      setMatchPolling(true);
     } else {
-      stopMatchPolling();
+      setMatchPolling(false);
     }
-  }, [startMatchPolling, stopMatchPolling]);
+  }, []);
 
   // Clear current match
   const clearMatch = useCallback(() => {

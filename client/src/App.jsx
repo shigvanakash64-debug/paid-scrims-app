@@ -72,7 +72,7 @@ function App() {
     };
 
     restoreSession();
-  }, [refreshMatch, setMatch, clearMatch, updateUser]);
+  }, []);
 
   const setSession = (userData, token) => {
     updateUser(userData);
