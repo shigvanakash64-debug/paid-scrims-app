@@ -246,7 +246,24 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                 <div>
                   <div className="match-tag">YOUR MATCH</div>
                   <div className="match-title">
-                    {activeMatch.mode} · {activeMatch.type} · ₹{activeMatch.entryFee}
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: '50%',
+                          background: '#ef4444',
+                          display: 'inline-block',
+                        }}
+                      />
+                      {activeMatch.mode} · {activeMatch.type} · ₹{activeMatch.entryFee}
+                    </span>
                   </div>
                 </div>
                 <div className={`trust-pill ${getTrustClass(currentUser?.trustScore || 0)}`}>

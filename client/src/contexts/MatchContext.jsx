@@ -23,6 +23,22 @@ export const MatchProvider = ({ children }) => {
   // Polling interval for active matches (every 3 seconds)
   const POLLING_INTERVAL = 3000;
 
+  useEffect(() => {
+    const storedMatch = localStorage.getItem('clutchzone_currentMatch');
+    if (storedMatch) {
+      try {
+        const parsedMatch = JSON.parse(storedMatch);
+        setCurrentMatch(parsedMatch);
+        setPreviousPlayerCount(parsedMatch?.players?.length || 0);
+        if (parsedMatch && !['completed', 'cancelled', 'disputed'].includes(parsedMatch.status)) {
+          setMatchPolling(true);
+        }
+      } catch (error) {
+        console.error('Failed to restore currentMatch from storage:', error);
+      }
+    }
+  }, []);
+
   // Send desktop notification
   const sendNotification = useCallback((title, options = {}) => {
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -68,6 +84,8 @@ export const MatchProvider = ({ children }) => {
       setPreviousPlayerCount(currentPlayerCount);
       setCurrentMatch(updatedMatch);
       setLastMatchUpdate(new Date());
+      localStorage.setItem('clutchzone_currentMatch', JSON.stringify(updatedMatch));
+      localStorage.setItem('clutchzone_currentMatchId', updatedMatch.id || updatedMatch._id || '');
 
       // If match is completed, cancelled, or disputed, stop polling
       if (['completed', 'cancelled', 'disputed'].includes(updatedMatch.status)) {
@@ -100,6 +118,8 @@ export const MatchProvider = ({ children }) => {
   // Set a new match
   const setMatch = useCallback((match) => {
     setCurrentMatch(match);
+    localStorage.setItem('clutchzone_currentMatch', JSON.stringify(match));
+    localStorage.setItem('clutchzone_currentMatchId', match?.id || match?._id || '');
     setPreviousPlayerCount(match?.players?.length || 0);
     setLastMatchUpdate(new Date());
 
@@ -115,6 +135,9 @@ export const MatchProvider = ({ children }) => {
   const clearMatch = useCallback(() => {
     setCurrentMatch(null);
     setLastMatchUpdate(null);
+    setPreviousPlayerCount(0);
+    localStorage.removeItem('clutchzone_currentMatch');
+    localStorage.removeItem('clutchzone_currentMatchId');
     stopMatchPolling();
   }, [stopMatchPolling]);
 

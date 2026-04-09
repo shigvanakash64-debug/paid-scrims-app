@@ -24,13 +24,17 @@ const TOKEN_KEY = 'clutchzone_token';
 function App() {
   const [currentScreen, setCurrentScreen] = useState('login');
   const [loadingAuth, setLoadingAuth] = useState(true);
-  const { currentMatch, setMatch, clearMatch } = useMatch();
+  const { currentMatch, setMatch, clearMatch, refreshMatch } = useMatch();
   const { user, updateUser, clearUser } = useUser();
 
   useEffect(() => {
     const restoreSession = async () => {
       const token = localStorage.getItem(TOKEN_KEY);
+      const savedScreen = localStorage.getItem('clutchzone_currentScreen');
+      const savedMatchId = localStorage.getItem('clutchzone_currentMatchId');
+
       if (!token) {
+        setCurrentScreen(savedScreen || 'login');
         setLoadingAuth(false);
         return;
       }
@@ -41,8 +45,25 @@ function App() {
             Authorization: `Bearer ${token}`,
           },
         });
-        updateUser(response.data.user);
-        setCurrentScreen('home');
+        const restoredUser = response.data.user;
+        updateUser(restoredUser);
+
+        const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin'];
+        const targetScreen = validScreens.includes(savedScreen) ? savedScreen : 'home';
+        if (targetScreen === 'admin' && !restoredUser?.isAdmin && restoredUser?.role !== 'admin') {
+          setCurrentScreen('home');
+        } else {
+          setCurrentScreen(targetScreen);
+        }
+
+        if (savedMatchId) {
+          const refreshed = await refreshMatch(savedMatchId);
+          if (refreshed) {
+            setMatch(refreshed);
+          } else {
+            clearMatch();
+          }
+        }
       } catch (error) {
         localStorage.removeItem(TOKEN_KEY);
       } finally {
@@ -51,7 +72,7 @@ function App() {
     };
 
     restoreSession();
-  }, []);
+  }, [refreshMatch, setMatch, clearMatch, updateUser]);
 
   const setSession = (userData, token) => {
     updateUser(userData);
@@ -62,6 +83,9 @@ function App() {
   const clearSession = () => {
     clearUser();
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem('clutchzone_currentMatch');
+    localStorage.removeItem('clutchzone_currentMatchId');
+    localStorage.removeItem('clutchzone_currentScreen');
     clearMatch();
     setCurrentScreen('login');
   };
@@ -118,6 +142,12 @@ function App() {
   const handleLogout = () => {
     clearSession();
   };
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('clutchzone_currentScreen', currentScreen);
+    }
+  }, [currentScreen, user]);
 
   const renderScreen = () => {
     if (loadingAuth) {
