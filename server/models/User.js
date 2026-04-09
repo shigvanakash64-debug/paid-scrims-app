@@ -88,6 +88,29 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  notifications: [
+    {
+      type: {
+        type: String,
+        enum: ['info', 'success', 'warning', 'error'],
+        default: 'info'
+      },
+      message: String,
+      link: String,
+      read: {
+        type: Boolean,
+        default: false
+      },
+      relatedMatch: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Match'
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now
+      }
+    }
+  ],
   disputesRaised: {
     type: Number,
     default: 0

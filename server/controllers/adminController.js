@@ -436,6 +436,10 @@ export const getAdminLogs = async (req, res) => {
         action = 'Payment Verified';
         details = `Match #${match._id} payments verified`;
         level = 'success';
+      } else if (match.status === 'result_pending') {
+        action = 'Result Pending';
+        details = `Match #${match._id} awaiting result verification`;
+        level = 'info';
       }
 
       return {
@@ -473,7 +477,25 @@ export const getAdminLogs = async (req, res) => {
       type: 'withdrawal',
     }));
 
-    const logs = [...matchEvents, ...withdrawalEvents]
+    const users = await User.find().sort({ updatedAt: -1 }).limit(parseInt(limit));
+    const transactionEvents = users
+      .flatMap((user) => {
+        return (user.wallet?.transactions || [])
+          .filter((transaction) => transaction.type === 'match_win')
+          .map((transaction) => ({
+            id: `${user.username}-${transaction.matchId}-win`,
+            timestamp: transaction.timestamp,
+            level: 'success',
+            action: 'Match Payout',
+            details: `₹${transaction.amount} paid to ${user.username} for match win`,
+            user: 'system',
+            type: 'payout',
+          }));
+      })
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, parseInt(limit) / 3);
+
+    const logs = [...matchEvents, ...withdrawalEvents, ...transactionEvents]
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(0, parseInt(limit));
 

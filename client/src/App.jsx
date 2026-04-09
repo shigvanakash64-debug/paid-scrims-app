@@ -7,6 +7,7 @@ import { PairingScreen } from './screens/PairingScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { WalletScreen } from './screens/WalletScreen';
+import { InboxScreen } from './screens/InboxScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
 import { BottomNav } from './components/BottomNav';
@@ -48,7 +49,7 @@ function App() {
         const restoredUser = response.data.user;
         updateUser(restoredUser);
 
-        const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin'];
+        const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox'];
         const targetScreen = validScreens.includes(savedScreen) ? savedScreen : 'home';
         if (targetScreen === 'admin' && !restoredUser?.isAdmin && restoredUser?.role !== 'admin') {
           setCurrentScreen('home');
@@ -184,7 +185,7 @@ function App() {
       case 'match':
         return <MatchScreen match={currentMatch} user={user} onScreenChange={setCurrentScreen} />;
       case 'result':
-        return <ResultScreen match={currentMatch} user={user} onScreenChange={setCurrentScreen} />;
+        return <ResultScreen match={currentMatch} user={user} onScreenChange={setCurrentScreen} onUserUpdate={handleUserUpdate} />;
       case 'pairing':
         return (
           <PairingScreen
@@ -194,6 +195,8 @@ function App() {
             onMatchSelect={setMatch}
           />
         );
+      case 'inbox':
+        return <InboxScreen user={user} onUserUpdate={handleUserUpdate} />;
       case 'profile':
         return <ProfileScreen user={user} onUserUpdate={handleUserUpdate} onProfileSave={handleProfileSave} />;
       case 'wallet':

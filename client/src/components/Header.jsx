@@ -33,6 +33,9 @@ export const Header = ({ user, onNavigate, onLogout }) => {
                 <button className="menu-item" type="button" onClick={() => handleNavigate('profile')}>
                   Profile
                 </button>
+                <button className="menu-item" type="button" onClick={() => handleNavigate('inbox')}>
+                  Inbox{currentUser?.notifications?.some((n) => !n.read) ? ` (${currentUser.notifications.filter((n) => !n.read).length})` : ''}
+                </button>
                 <button className="menu-item" type="button" onClick={() => handleNavigate('settings')}>
                   Settings
                 </button>

@@ -18,6 +18,8 @@ import {
   cancelMatch,
   addChatMessage,
   requestWithdrawal,
+  approveResult,
+  rejectResult,
 } from "../controllers/matchController.js";
 
 const router = express.Router();
@@ -86,6 +88,9 @@ router.post(
   upload.single("screenshot"),
   submitResult
 );
+
+router.post("/approve-result", authMiddleware, adminMiddleware, approveResult);
+router.post("/reject-result", authMiddleware, adminMiddleware, rejectResult);
 
 /**
  * GET /api/match/list

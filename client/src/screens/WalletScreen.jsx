@@ -131,10 +131,10 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                     {transaction.type.replace('_', ' ')}
                   </div>
                   <div className="text-xs text-[#A1A1A1]">
-                    {new Date(transaction.date).toLocaleDateString()}
+                    {new Date(transaction.timestamp || transaction.date || Date.now()).toLocaleDateString()}
                   </div>
-                  {transaction.reason && (
-                    <div className="text-xs text-[#A1A1A1]">{transaction.reason}</div>
+                  {transaction.description && (
+                    <div className="text-xs text-[#A1A1A1]">{transaction.description}</div>
                   )}
                 </div>
                 <div className={`text-sm font-semibold ${

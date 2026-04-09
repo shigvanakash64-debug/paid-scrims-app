@@ -4,7 +4,7 @@ import { useMatch } from '../contexts/MatchContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 
-export const ResultScreen = ({ match, onScreenChange }) => {
+export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
   const { refreshMatch, clearMatch } = useMatch();
   const fileInputRef = useRef(null);
   const [winner, setWinner] = useState('');
@@ -69,6 +69,17 @@ export const ResultScreen = ({ match, onScreenChange }) => {
       });
 
       if (response.data?.success) {
+        if (response.data.matchStatus === 'completed' && response.data.payoutInfo) {
+          try {
+            const token = localStorage.getItem('clutchzone_token');
+            const meResponse = await axios.get(`${API_BASE}/auth/me`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (onUserUpdate) onUserUpdate(meResponse.data.user);
+          } catch (refreshError) {
+            console.error('Failed to refresh user after payout', refreshError);
+          }
+        }
         await refreshMatch(matchId);
         if (response.data.matchStatus === 'completed') {
           clearMatch();

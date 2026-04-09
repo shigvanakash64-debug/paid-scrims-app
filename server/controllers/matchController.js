@@ -111,13 +111,13 @@ export const submitResult = async (req, res) => {
 
     const submittedCount = match.result.submittedBy.length;
     const totalPlayers = match.players.length;
+    let payoutInfo = null;
 
     if (submittedCount === totalPlayers) {
       if (!match.result.winner || selectedWinner.toString() === match.result.winner.toString()) {
         match.result.winner = selectedWinner;
         match.result.decidedAt = new Date();
         match.status = 'completed';
-        match.result.paidOut = true;
 
         await TrustScoreEngine.onValidMatchCompletion(userId);
         if (opponentId) {
@@ -127,6 +127,40 @@ export const submitResult = async (req, res) => {
         await TrustScoreEngine.onBothAgreeResult(userId);
         if (opponentId) {
           await TrustScoreEngine.onBothAgreeResult(opponentId);
+        }
+
+        await match.save();
+        try {
+          payoutInfo = await processPayout(match._id, selectedWinner, User);
+        } catch (payoutError) {
+          console.error('PAYOUT ERROR:', payoutError.message);
+        }
+
+        // Add notifications after payout
+        const loserId = match.players.find((p) => p.toString() !== selectedWinner.toString());
+        if (selectedWinner) {
+          await User.findByIdAndUpdate(selectedWinner, {
+            $push: {
+              notifications: {
+                type: 'success',
+                message: `You won match #${match._id} and earned ₹${payoutInfo?.winnerAmount ?? 0}!`,
+                link: `/match/${match._id}`,
+                relatedMatch: match._id,
+              },
+            },
+          });
+        }
+        if (loserId) {
+          await User.findByIdAndUpdate(loserId, {
+            $push: {
+              notifications: {
+                type: 'info',
+                message: `Match #${match._id} is complete. Better luck next time!`,
+                link: `/match/${match._id}`,
+                relatedMatch: match._id,
+              },
+            },
+          });
         }
       } else {
         match.status = 'disputed';
@@ -141,7 +175,9 @@ export const submitResult = async (req, res) => {
       match.status = 'result_pending';
     }
 
-    await match.save();
+    if (!payoutInfo) {
+      await match.save();
+    }
 
     res.status(200).json({
       success: true,
@@ -151,9 +187,129 @@ export const submitResult = async (req, res) => {
       totalPlayers,
       matchId,
       screenshotUrl,
+      payoutInfo,
     });
   } catch (error) {
     console.error("submitResult error:", error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
+
+export const approveResult = async (req, res) => {
+  try {
+    const { matchId, winnerId } = req.body;
+    const adminId = req.userId;
+
+    if (!matchId) {
+      return res.status(400).json({ error: 'matchId is required' });
+    }
+
+    const match = await Match.findById(matchId).populate('players', 'username');
+    if (!match) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+
+    if (match.status !== 'result_pending' && match.status !== 'disputed') {
+      return res.status(400).json({ error: 'Match is not pending result approval' });
+    }
+
+    const winner = winnerId
+      ? match.players.find((player) => player._id.toString() === winnerId.toString())
+      : match.result.winner
+        ? match.players.find((player) => player._id.toString() === match.result.winner.toString())
+        : null;
+
+    if (!winner) {
+      return res.status(400).json({ error: 'Winner could not be determined' });
+    }
+
+    const payoutInfo = await processPayout(matchId, winner._id, User);
+
+    const loser = match.players.find((player) => player._id.toString() !== winner._id.toString());
+    await User.findByIdAndUpdate(winner._id, {
+      $push: {
+        notifications: {
+          type: 'success',
+          message: `Admin approved your win for match #${match._id}. ₹${payoutInfo.winnerAmount} has been added to your balance.`,
+          link: `/match/${match._id}`,
+          relatedMatch: match._id,
+        },
+      },
+    });
+    if (loser) {
+      await User.findByIdAndUpdate(loser._id, {
+        $push: {
+          notifications: {
+            type: 'info',
+            message: `Match #${match._id} has been approved by admin. Better luck next time.`,
+            link: `/match/${match._id}`,
+            relatedMatch: match._id,
+          },
+        },
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Result approved and payout processed',
+      payoutInfo,
+      matchId,
+    });
+  } catch (error) {
+    console.error('approveResult error:', error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
+
+export const rejectResult = async (req, res) => {
+  try {
+    const { matchId } = req.body;
+    const adminId = req.userId;
+
+    if (!matchId) {
+      return res.status(400).json({ error: 'matchId is required' });
+    }
+
+    const match = await Match.findById(matchId).populate('players', 'username');
+    if (!match) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+
+    if (match.status !== 'result_pending') {
+      return res.status(400).json({ error: 'Match is not pending result approval' });
+    }
+
+    match.status = 'disputed';
+    await match.save();
+
+    await User.findByIdAndUpdate(match.players[0]._id, {
+      $push: {
+        notifications: {
+          type: 'warning',
+          message: `Result for match #${match._id} was rejected by admin and moved to dispute.`,
+          link: `/match/${match._id}`,
+          relatedMatch: match._id,
+        },
+      },
+    });
+    await User.findByIdAndUpdate(match.players[1]._id, {
+      $push: {
+        notifications: {
+          type: 'warning',
+          message: `Result for match #${match._id} was rejected by admin and moved to dispute.`,
+          link: `/match/${match._id}`,
+          relatedMatch: match._id,
+        },
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Result rejected and match moved to dispute',
+      matchId,
+    });
+  } catch (error) {
+    console.error('rejectResult error:', error);
     res.status(500).json({ error: `Server error: ${error.message}` });
   }
 };
@@ -338,6 +494,20 @@ export const acceptMatch = async (req, res) => {
     });
 
     await match.save();
+
+    const creatorId = match.creator._id?.toString ? match.creator._id.toString() : match.creator.toString();
+    if (creatorId) {
+      await User.findByIdAndUpdate(creatorId, {
+        $push: {
+          notifications: {
+            type: 'info',
+            message: `Opponent ${opponentUsername} joined your match. Upload payment proof now.`,
+            link: `/match/${match._id}`,
+            relatedMatch: match._id,
+          },
+        },
+      });
+    }
 
     res.status(200).json({ match: serializeMatch(match) });
   } catch (error) {

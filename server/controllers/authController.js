@@ -17,11 +17,27 @@ const sanitizeUser = (user) => ({
   role: user.role || 'user',
   isAdmin: user.role === 'admin',
   ffUid: user.ffUid || "",
-  balance: user.wallet?.balance || 0,
+  wallet: {
+    balance: user.wallet?.balance || 0,
+    transactions: user.wallet?.transactions || [],
+    pendingWithdrawals: user.wallet?.pendingWithdrawals || [],
+  },
   trustScore: user.trustScore,
   matchesPlayed: user.matchesPlayed,
   matchesWon: user.matchesWon,
+  matchesLost: user.matchesLost,
   disputesRaised: user.disputesRaised,
+  disputesLost: user.disputesLost,
+  notifications: (user.notifications || []).map((notification) => ({
+    id: notification._id?.toString ? notification._id.toString() : undefined,
+    type: notification.type,
+    message: notification.message,
+    link: notification.link,
+    relatedMatch: notification.relatedMatch,
+    read: notification.read,
+    createdAt: notification.createdAt,
+  })),
+  unreadNotifications: (user.notifications || []).filter((notification) => !notification.read).length,
 });
 
 export const register = async (req, res) => {
@@ -116,6 +132,45 @@ export const getMe = async (req, res) => {
     return res.json({ user: sanitizeUser(user) });
   } catch (error) {
     return sendError(res, 500, 'Could not load user', error);
+  }
+};
+
+export const markNotificationRead = async (req, res) => {
+  try {
+    const { notificationId } = req.body;
+    if (!notificationId) {
+      return res.status(400).json({ error: 'notificationId is required' });
+    }
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const notification = user.notifications.id(notificationId);
+    if (!notification) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+    notification.read = true;
+    await user.save();
+    return res.json({ success: true, notifications: sanitizeUser(user).notifications, unreadNotifications: sanitizeUser(user).unreadNotifications });
+  } catch (error) {
+    return sendError(res, 500, 'Could not mark notification read', error);
+  }
+};
+
+export const markAllNotificationsRead = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    user.notifications = (user.notifications || []).map((notification) => ({
+      ...notification.toObject(),
+      read: true,
+    }));
+    await user.save();
+    return res.json({ success: true, notifications: sanitizeUser(user).notifications, unreadNotifications: 0 });
+  } catch (error) {
+    return sendError(res, 500, 'Could not mark notifications read', error);
   }
 };
 
