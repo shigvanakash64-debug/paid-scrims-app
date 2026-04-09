@@ -575,7 +575,9 @@ export const listMatches = async (req, res) => {
     const { mode, type, entry } = req.query;
     await cancelExpiredPayments();
 
-    const query = { status: 'waiting' };
+    // Exclude matches older than 2 hours
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const query = { status: 'waiting', createdAt: { $gte: twoHoursAgo } };
     if (mode) query.mode = mode;
     if (type) query.type = type;
     if (entry) query.entry = Number(entry);

@@ -165,7 +165,11 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   };
 
   const liveMatches = useMemo(() => {
-    const current = [...matches];
+    const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+    const current = matches.filter((item) => {
+      const createdAt = new Date(item.createdAt).getTime();
+      return createdAt > twoHoursAgo;
+    });
     if (activeMatch && isLiveMatch(activeMatch.status) && !current.some((item) => item.id === activeMatch.id)) {
       current.unshift(activeMatch);
     }
@@ -297,7 +301,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                     <div className="match-card-header">
                       <div>
                         <div className="match-tag">{item.type}</div>
-                        <div className="match-title">{item.mode} · ₹{item.entryFee}</div>
+                        <div className="match-title">{item.mode} · Entry ₹{item.entryFee || item.entry}</div>
                       </div>
                       <div className={`trust-pill ${getTrustClass(item.trustScore)}`}>
                         {item.trustScore}
