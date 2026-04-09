@@ -155,10 +155,13 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         ...currentMatch,
         id: currentMatch.id || currentMatch._id || 'my-match',
         entryFee: currentMatch.entryFee || currentMatch.entry || 0,
-        creator: currentMatch.creator || currentUser || { username: 'You' },
+        creator: currentMatch.creator || { username: 'Unknown' },
       }
     : null;
 
+  const activeMatchCreatorId = activeMatch?.creator?.id || activeMatch?.creator?._id || activeMatch?.creator;
+  const isMatchCreator = currentUser && activeMatchCreatorId && (currentUser.id === activeMatchCreatorId || currentUser._id === activeMatchCreatorId);
+  const showOpponentJoinedDot = isMatchCreator && activeMatch?.players?.length > 1;
   const isLiveMatch = (status) => {
     const value = String(status || '').toLowerCase();
     return !['ongoing', 'completed', 'cancelled'].includes(value);
@@ -253,15 +256,17 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                         gap: 8,
                       }}
                     >
-                      <span
-                        style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: '50%',
-                          background: '#ef4444',
-                          display: 'inline-block',
-                        }}
-                      />
+                      {showOpponentJoinedDot && (
+                        <span
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: '50%',
+                            background: '#ef4444',
+                            display: 'inline-block',
+                          }}
+                        />
+                      )}
                       {activeMatch.mode} · {activeMatch.type} · ₹{activeMatch.entryFee}
                     </span>
                   </div>
