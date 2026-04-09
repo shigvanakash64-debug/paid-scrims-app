@@ -98,19 +98,18 @@ export const PaymentsPanel = () => {
       </div>
 
       {payments.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-4">
           {payments.map((payment) => {
             const player = Array.isArray(payment.players)
               ? payment.players.join(' vs ')
               : payment.player?.username || payment.player || 'Unknown Player';
-            const screenshotUrl = payment.paymentScreenshots?.[0]?.image || payment.screenshotUrl || payment.paymentScreenshot || payment.screenshot || '';
             const matchId = payment.matchId || payment.match?._id || payment._id;
             return (
               <PaymentStatusCard
                 key={matchId}
                 player={player}
                 isPaid={payment.isPaid ?? payment.paid ?? false}
-                screenshotUrl={screenshotUrl}
+                paymentScreenshots={payment.paymentScreenshots || []}
                 onApprove={() => handleApprove(matchId)}
                 onReject={() => handleReject(matchId)}
                 isLoading={isLoading}

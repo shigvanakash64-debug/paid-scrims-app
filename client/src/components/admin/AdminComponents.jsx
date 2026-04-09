@@ -112,7 +112,7 @@ export const MatchCard = ({
 };
 
 // PaymentStatusCard - Payment verification display
-export const PaymentStatusCard = ({ player, isPaid, screenshotUrl, onApprove, onReject, isLoading }) => (
+export const PaymentStatusCard = ({ player, isPaid, paymentScreenshots, onApprove, onReject, isLoading }) => (
   <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4 space-y-3">
     <div className="flex items-center justify-between">
       <div>
@@ -126,9 +126,15 @@ export const PaymentStatusCard = ({ player, isPaid, screenshotUrl, onApprove, on
       </span>
     </div>
 
-    {screenshotUrl && (
-      <div className="relative overflow-hidden rounded-lg bg-[#0B0B0B] border border-[#1F1F1F] aspect-video">
-        <img src={screenshotUrl} alt="Payment proof" className="w-full h-full object-cover" />
+    {paymentScreenshots && paymentScreenshots.length > 0 && (
+      <div className={`grid gap-3 ${
+        paymentScreenshots.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
+      }`}>
+        {paymentScreenshots.map((screenshot, idx) => (
+          <div key={idx} className="relative overflow-hidden rounded-lg bg-[#0B0B0B] border border-[#1F1F1F] aspect-video">
+            <img src={screenshot.image} alt={`Payment proof ${idx + 1}`} className="w-full h-full object-cover" />
+          </div>
+        ))}
       </div>
     )}
 

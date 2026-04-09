@@ -367,57 +367,15 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-5">
-            <h3 className="text-lg font-semibold">Quick actions</h3>
-            <div className="mt-4 space-y-3">
-              {!isMatchActive && !isCancelled && (
-                <button
-                  type="button"
-                  onClick={handlePaidClick}
-                  className="w-full rounded-3xl bg-[#FF6A00] px-4 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black"
-                >
-                  I HAVE PAID
-                </button>
-              )}
-              {!isMatchActive && !isCancelled && (
-                <button
-                  type="button"
-                  onClick={() => handleCancelMatch()}
-                  className="w-full rounded-3xl border border-[#EF4444] bg-[#0B0B0B] px-4 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-[#EF4444]"
-                >
-                  Cancel Match
-                </button>
-              )}
-              {showRoomDetails && (
-                <div className="rounded-3xl border border-[#2A2A2A] bg-[#0B0B0B] p-4 text-sm text-[#A1A1A1]">
-                  <div className="text-white">Room is ready when admin marks it live.</div>
-                </div>
-              )}
+          {showRoomDetails && (
+            <div className="rounded-3xl border border-[#2A2A2A] bg-[#0B0B0B] p-4 text-sm text-[#A1A1A1]">
+              <div className="text-white">Room is ready when admin marks it live.</div>
             </div>
-          </div>
+          )}
         </aside>
       </div>
 
-      <div className="fixed bottom-20 left-0 right-0 z-30 border-t border-[#1F1F1F] bg-[#0B0B0B]/95 p-4 backdrop-blur-sm sm:hidden">
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={handlePaidClick}
-            className="flex-1 rounded-3xl bg-[#FF6A00] px-4 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black"
-            disabled={isMatchActive || isCancelled}
-          >
-            I HAVE PAID
-          </button>
-          <button
-            type="button"
-            onClick={() => handleCancelMatch()}
-            className="flex-1 rounded-3xl border border-[#EF4444] bg-[#0B0B0B] px-4 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-[#EF4444]"
-            disabled={isMatchActive || isCancelled}
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
+
     </div>
   );
 };
