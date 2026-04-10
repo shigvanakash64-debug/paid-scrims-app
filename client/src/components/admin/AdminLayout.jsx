@@ -1,20 +1,16 @@
 import { useState } from 'react';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminDashboard } from '../../screens/AdminDashboard';
+import { AdminRequests } from '../../screens/AdminRequests';
 import { LiveMatches } from '../../screens/LiveMatches';
-import { PaymentsPanel } from '../../screens/PaymentsPanel';
-import { ResultReviewPanel } from '../../screens/ResultReviewPanel';
-import { DisputesPanel } from '../../screens/DisputesPanel';
 import { UsersPanel } from '../../screens/UsersPanel';
 import { WithdrawalsPanel } from '../../screens/WithdrawalsPanel';
 import { LogsPanel } from '../../screens/LogsPanel';
 
 const SCREENS = {
   DASHBOARD: 'dashboard',
+  REQUESTS: 'requests',
   LIVE_MATCHES: 'live_matches',
-  PAYMENTS: 'payments',
-  RESULT_REVIEW: 'result_review',
-  DISPUTES: 'disputes',
   USERS: 'users',
   WITHDRAWALS: 'withdrawals',
   LOGS: 'logs',
@@ -28,14 +24,10 @@ export const AdminLayout = () => {
     switch (currentScreen) {
       case SCREENS.DASHBOARD:
         return <AdminDashboard />;
+      case SCREENS.REQUESTS:
+        return <AdminRequests />;
       case SCREENS.LIVE_MATCHES:
         return <LiveMatches />;
-      case SCREENS.PAYMENTS:
-        return <PaymentsPanel />;
-      case SCREENS.RESULT_REVIEW:
-        return <ResultReviewPanel />;
-      case SCREENS.DISPUTES:
-        return <DisputesPanel />;
       case SCREENS.USERS:
         return <UsersPanel />;
       case SCREENS.WITHDRAWALS:

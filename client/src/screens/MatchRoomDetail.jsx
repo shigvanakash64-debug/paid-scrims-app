@@ -1,35 +1,72 @@
 import { useState } from 'react';
+import axios from 'axios';
 import { PaymentStatusCard } from '../components/admin/AdminComponents';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+
+const getPlayerName = (player) => {
+  if (!player) return 'Unknown';
+  if (typeof player === 'string') return player;
+  return player.username || player;
+};
 
 export const MatchRoomDetail = ({ match, onBack, onUpdate }) => {
   const [roomData, setRoomData] = useState({
-    roomId: '',
-    password: '',
+    roomId: match.roomDetails?.roomId || '',
+    password: match.roomDetails?.password || '',
   });
 
   const [paymentStatus, setPaymentStatus] = useState({
-    playerA: match.paymentA,
-    playerB: match.paymentB,
+    playerA: !!match.paymentA,
+    playerB: !!match.paymentB,
   });
 
   const [isLoading, setIsLoading] = useState(false);
   const [actionMessage, setActionMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
+  const matchId = match._id || match.id;
+  const headers = {
+    Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}`,
+  };
+
+  const playerAName = getPlayerName(match.playerA || match.players?.[0]);
+  const playerBName = getPlayerName(match.playerB || match.players?.[1]);
   const allVerified = paymentStatus.playerA && paymentStatus.playerB;
   const hasRoomData = roomData.roomId && roomData.password;
   const canStartMatch = allVerified && hasRoomData && match.status !== 'cancelled';
 
-  const handleApprovePayment = async (player) => {
+  const handleApprovePayment = async () => {
     setIsLoading(true);
+    setErrorMessage('');
+
     try {
-      // Simulated API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setPaymentStatus((prev) => ({
-        ...prev,
-        [player]: true,
-      }));
-      setActionMessage(`✓ ${player} payment verified`);
-      setTimeout(() => setActionMessage(''), 2000);
+      await axios.post(`${API_BASE}/admin/matches/${matchId}/verify-payment`, {}, { headers });
+      setPaymentStatus({ playerA: true, playerB: true });
+      onUpdate({ ...match, status: 'verified', paymentA: true, paymentB: true });
+      setActionMessage('✓ Payment verified for this match');
+      setTimeout(() => setActionMessage(''), 2500);
+    } catch (error) {
+      console.error('verify-payment error', error);
+      setErrorMessage(error.response?.data?.error || 'Failed to verify payment');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRejectPayment = async () => {
+    if (!window.confirm('Reject the payment proof and require a new upload?')) return;
+    setIsLoading(true);
+    setErrorMessage('');
+
+    try {
+      await axios.post(`${API_BASE}/admin/matches/${matchId}/reject-payment`, {}, { headers });
+      onUpdate({ ...match, status: 'payment_failed', paymentA: false, paymentB: false });
+      setActionMessage('✓ Payment rejected and match sent back to payment review');
+      setTimeout(() => setActionMessage(''), 2500);
+    } catch (error) {
+      console.error('reject-payment error', error);
+      setErrorMessage(error.response?.data?.error || 'Failed to reject payment');
     } finally {
       setIsLoading(false);
     }
@@ -38,51 +75,69 @@ export const MatchRoomDetail = ({ match, onBack, onUpdate }) => {
   const handleStartMatch = async () => {
     if (!canStartMatch) return;
     setIsLoading(true);
+    setErrorMessage('');
+
     try {
-      // Simulated API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      onUpdate({
-        ...match,
-        status: 'ongoing',
-      });
+      const response = await axios.post(
+        `${API_BASE}/admin/matches/${matchId}/start`,
+        {
+          roomId: roomData.roomId,
+          password: roomData.password,
+        },
+        { headers }
+      );
+      onUpdate({ ...match, ...response.data.match });
       setActionMessage('✓ Match started successfully');
-      setTimeout(() => setActionMessage(''), 2000);
+      setTimeout(() => setActionMessage(''), 2500);
+    } catch (error) {
+      console.error('start-match error', error);
+      setErrorMessage(error.response?.data?.error || 'Failed to start match');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleCancelMatch = async () => {
-    if (window.confirm('Are you sure you want to cancel this match? Users will be refunded.')) {
-      setIsLoading(true);
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        onUpdate({
-          ...match,
-          status: 'cancelled',
-        });
-        setActionMessage('✓ Match cancelled, refunds processed');
-        setTimeout(() => onBack(), 2000);
-      } finally {
-        setIsLoading(false);
-      }
+    if (!window.confirm('Are you sure you want to cancel this match? Users will be refunded.')) return;
+    setIsLoading(true);
+    setErrorMessage('');
+
+    try {
+      const response = await axios.post(
+        `${API_BASE}/admin/matches/${matchId}/cancel`,
+        { reason: 'Admin cancelled' },
+        { headers }
+      );
+      onUpdate({ ...match, ...response.data.match });
+      setActionMessage('✓ Match cancelled, refunds processed');
+      setTimeout(() => setActionMessage(''), 2500);
+    } catch (error) {
+      console.error('cancel-match error', error);
+      setErrorMessage(error.response?.data?.error || 'Failed to cancel match');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleRefundBoth = async () => {
-    if (window.confirm('Refund both players? This will cancel the match and return all funds.')) {
-      setIsLoading(true);
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        onUpdate({
-          ...match,
-          status: 'cancelled',
-        });
-        setActionMessage('✓ Both players refunded');
-        setTimeout(() => onBack(), 2000);
-      } finally {
-        setIsLoading(false);
-      }
+    if (!window.confirm('Refund both players? This will cancel the match and return all funds.')) return;
+    setIsLoading(true);
+    setErrorMessage('');
+
+    try {
+      const response = await axios.post(
+        `${API_BASE}/admin/matches/${matchId}/cancel`,
+        { reason: 'Admin refund both players' },
+        { headers }
+      );
+      onUpdate({ ...match, ...response.data.match });
+      setActionMessage('✓ Both players refunded');
+      setTimeout(() => setActionMessage(''), 2500);
+    } catch (error) {
+      console.error('refund-both error', error);
+      setErrorMessage(error.response?.data?.error || 'Failed to refund both players');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -115,6 +170,12 @@ export const MatchRoomDetail = ({ match, onBack, onUpdate }) => {
       </div>
 
       {/* Action Message */}
+      {errorMessage && (
+        <div className="rounded-lg border border-[#EF4444] bg-[#2B121A] px-4 py-3 text-sm text-[#FECACA]">
+          {errorMessage}
+        </div>
+      )}
+
       {actionMessage && (
         <div className="bg-[#022c0b] border border-[#22C55E] text-[#22C55E] px-4 py-3 rounded-lg text-sm font-medium">
           {actionMessage}
@@ -158,17 +219,19 @@ export const MatchRoomDetail = ({ match, onBack, onUpdate }) => {
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <PaymentStatusCard
-                player={match.playerA}
+                player={playerAName}
                 isPaid={paymentStatus.playerA}
                 screenshotUrl={MOCK_SCREENSHOT_A}
-                onApprove={() => handleApprovePayment('playerA')}
+                onApprove={handleApprovePayment}
+                onReject={handleRejectPayment}
                 isLoading={isLoading}
               />
               <PaymentStatusCard
-                player={match.playerB}
+                player={playerBName}
                 isPaid={paymentStatus.playerB}
                 screenshotUrl={MOCK_SCREENSHOT_B}
-                onApprove={() => handleApprovePayment('playerB')}
+                onApprove={handleApprovePayment}
+                onReject={handleRejectPayment}
                 isLoading={isLoading}
               />
             </div>
