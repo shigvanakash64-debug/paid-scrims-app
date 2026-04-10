@@ -33,7 +33,7 @@ const formatTime = (seconds) => {
 
 export const MatchScreen = ({ match, user, onScreenChange }) => {
   const matchId = match?.id || match?._id;
-  const { currentMatch, refreshMatch, updateMatchState } = useMatch();
+  const { currentMatch, refreshMatch, updateMatchState, clearMatch } = useMatch();
   const { user: currentUser } = useUser();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,7 +41,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [screenshotError, setScreenshotError] = useState('');
   const [timeLeft, setTimeLeft] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Use currentMatch from context, fallback to prop
   const activeMatch = currentMatch || match;
@@ -102,14 +101,14 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     }
 
     const updateTimer = () => {
-      const diff = Math.max(new Date(currentMatch.paymentDueAt).getTime() - Date.now(), 0);
+      const diff = Math.max(new Date(activeMatch?.paymentDueAt).getTime() - Date.now(), 0);
       setTimeLeft(Math.floor(diff / 1000));
     };
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [activeMatch, isMatchActive, isCancelled]);
+  }, [activeMatch?.paymentDueAt, isMatchActive, isCancelled]);
 
   const addLocalMessage = (sender, text) => {
     updateMatchState({
@@ -129,7 +128,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     try {
       await navigator.clipboard.writeText('yourupi@okaxis');
       addLocalMessage('system', 'UPI ID copied to clipboard.');
-    } catch (error) {
+    } catch {
       addLocalMessage('system', 'Copy failed. Please copy manually.');
     }
   };
@@ -147,7 +146,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
       return;
     }
 
-    setIsSubmitting(true);
     setScreenshotError('');
     setUploadedFileName(file.name);
 
@@ -157,7 +155,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
 
     try {
       const token = localStorage.getItem(TOKEN_KEY);
-      const response = await axios.post(`${API_BASE}/match/upload-payment`, formData, {
+      await axios.post(`${API_BASE}/match/upload-payment`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
@@ -166,15 +164,13 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
       setShowUpload(false);
     } catch (err) {
       setScreenshotError(err.response?.data?.error || 'Upload failed.');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const handleVerifyPlayer = async (playerId) => {
     try {
       const token = localStorage.getItem(TOKEN_KEY);
-      const response = await axios.post(
+      await axios.post(
         `${API_BASE}/match/verify-player`,
         { matchId, playerId },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -192,7 +188,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
 
     try {
       const token = localStorage.getItem(TOKEN_KEY);
-      const response = await axios.post(
+      await axios.post(
         `${API_BASE}/match/start`,
         { matchId, roomId: roomDetails.roomId, password: roomDetails.password },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -202,11 +198,11 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     }
   };
 
-  const handleCancelMatch = async (byAdmin = false) => {
+  const handleCancelMatch = async () => {
     if (isMatchActive || isCancelled) return;
     try {
       const token = localStorage.getItem(TOKEN_KEY);
-      const response = await axios.post(
+      await axios.post(
         `${API_BASE}/match/cancel`,
         { matchId },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -220,7 +216,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     if (!matchId) return;
     try {
       const token = localStorage.getItem(TOKEN_KEY);
-      const response = await axios.post(
+      await axios.post(
         `${API_BASE}/match/chat`,
         { matchId, sender, text },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -301,10 +297,30 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     );
   }
 
+  const isFinalStatus = ['completed', 'cancelled', 'disputed'].includes(currentMatch?.status);
+
   return (
     <div className="min-h-screen bg-[#0B0B0B] px-4 pb-24 pt-6 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl space-y-6">
         <MatchHeader match={currentMatch} statusLabel={currentStatusLabel} />
+
+        {isFinalStatus && (
+          <div className="rounded-3xl border border-[#444] bg-[#111111] p-5 text-center">
+            <p className="text-sm text-[#A1A1A1] mb-4">
+              This match is now {currentStatusLabel}. You can return to the lobby to create or join a new match.
+            </p>
+            <button
+              type="button"
+              className="inline-flex rounded-3xl bg-[#FF6A00] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-black"
+              onClick={() => {
+                clearMatch();
+                onScreenChange('pairing');
+              }}
+            >
+              Back to lobby
+            </button>
+          </div>
+        )}
 
         <PaymentCard
           amount={currentMatch.entry}

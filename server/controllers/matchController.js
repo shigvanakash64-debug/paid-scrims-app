@@ -223,6 +223,14 @@ export const approveResult = async (req, res) => {
       return res.status(400).json({ error: 'Winner could not be determined' });
     }
 
+    match.result.winner = winner._id;
+    match.result.paidOut = true;
+    match.isPaid = true;
+    match.status = 'completed';
+    match.completedAt = new Date();
+
+    await match.save();
+
     const payoutInfo = await processPayout(matchId, winner._id, User);
 
     const loser = match.players.find((player) => player._id.toString() !== winner._id.toString());

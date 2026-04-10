@@ -297,11 +297,10 @@ export const getAllMatches = async (req, res) => {
     const { status = null, limit = 50, page = 1 } = req.query;
     const skip = (page - 1) * limit;
 
-    const filter = status ? { status } : {};
+    const filter = status && status !== 'all' ? { status } : {};
 
     const matches = await Match.find(filter)
-      .populate('playerA', 'username trustScore')
-      .populate('playerB', 'username trustScore')
+      .populate('players', 'username trustScore')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
