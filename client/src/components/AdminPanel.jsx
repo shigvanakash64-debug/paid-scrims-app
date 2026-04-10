@@ -74,6 +74,7 @@ const MatchAdminControls = ({
             className="w-full rounded-2xl border border-[#2A2A2A] bg-[#111111] px-4 py-3 text-sm text-white outline-none focus:border-[#FF6A00]"
           />
         </div>
+        <p className="text-sm text-[#A1A1A1]">Enter room credentials after both players are verified, then start the match to publish them.</p>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <button

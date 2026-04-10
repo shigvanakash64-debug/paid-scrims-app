@@ -1,17 +1,5 @@
-import { useMemo } from 'react';
-
 export const PaymentCard = ({ amount, upiId, deadline, onCopy, onPaid, showUpload, onUpload, uploadedFileName, isPaid, paymentStatus, screenshotError }) => {
   const buttonLabel = isPaid ? 'Payment proof uploaded' : 'I HAVE PAID';
-
-  const qrPlaceholder = useMemo(() => {
-    return (
-      <div className="flex h-40 w-full items-center justify-center rounded-3xl border border-dashed border-[#2A2A2A] bg-[#0B0B0B] text-center text-sm text-[#A1A1A1]">
-        QR Code
-        <br />
-        Placeholder
-      </div>
-    );
-  }, []);
 
   return (
     <section className="space-y-4 rounded-3xl border border-[#1F1F1F] bg-[#111111] p-5 text-white">
@@ -25,17 +13,14 @@ export const PaymentCard = ({ amount, upiId, deadline, onCopy, onPaid, showUploa
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
-        <div className="rounded-3xl border border-[#1F1F1F] bg-[#0B0B0B] p-4">
-          <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">UPI ID</div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="break-all text-base font-medium text-white">{upiId}</span>
-            <button type="button" onClick={onCopy} className="rounded-xl border border-[#2A2A2A] bg-[#151515] px-3 py-2 text-sm text-[#FF6A00] transition hover:bg-[#1f1f1f]">
-              Copy
-            </button>
-          </div>
+      <div className="rounded-3xl border border-[#1F1F1F] bg-[#0B0B0B] p-4">
+        <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">UPI ID</div>
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <span className="break-all text-base font-medium text-white">{upiId}</span>
+          <button type="button" onClick={onCopy} className="rounded-xl border border-[#2A2A2A] bg-[#151515] px-3 py-2 text-sm text-[#FF6A00] transition hover:bg-[#1f1f1f]">
+            Copy
+          </button>
         </div>
-        <div className="hidden min-h-[160px] w-full sm:block">{qrPlaceholder}</div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">

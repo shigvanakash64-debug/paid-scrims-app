@@ -479,8 +479,7 @@ export const acceptMatch = async (req, res) => {
     }
 
     // Get opponent's username
-    const User = req.app?.locals?.User;
-    const opponent = User ? await User.findById(userId).select('username') : null;
+    const opponent = await User.findById(userId).select('username');
     const opponentUsername = opponent?.username || 'Opponent';
 
     match.players.push(userId);

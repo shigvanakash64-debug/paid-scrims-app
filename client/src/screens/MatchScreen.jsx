@@ -6,7 +6,6 @@ import { MatchHeader } from '../components/MatchHeader';
 import { PaymentCard } from '../components/PaymentCard';
 import { PlayerStatusList } from '../components/PlayerStatusList';
 import { RoomDetailsCard } from '../components/RoomDetailsCard';
-import { Timer } from '../components/Timer';
 import { useMatch } from '../contexts/MatchContext';
 import { useUser } from '../contexts/UserContext';
 
@@ -75,7 +74,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const deadlineLabel = isCancelled ? '00:00' : formatTime(timeLeft);
   const currentStatusLabel = statusLabels[activeMatch?.status] || 'Unknown';
   const roomDetails = activeMatch?.roomDetails || { roomId: '', password: '' };
-  const showRoomDetails = activeMatch?.status === 'ongoing' || activeMatch?.status === 'completed';
+  const showRoomDetails = Boolean(roomDetails?.roomId || roomDetails?.password);
 
   useEffect(() => {
     const fetchMatch = async () => {
@@ -303,79 +302,54 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] px-4 pb-40 pt-6 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto grid max-w-6xl gap-6 xl:grid-cols-[1fr_320px]">
-        <div className="space-y-6">
-          <MatchHeader match={currentMatch} statusLabel={currentStatusLabel} />
+    <div className="min-h-screen bg-[#0B0B0B] px-4 pb-24 pt-6 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <MatchHeader match={currentMatch} statusLabel={currentStatusLabel} />
 
-          <PaymentCard
-            amount={currentMatch.entry}
-            upiId="yourupi@okaxis"
-            deadline={deadlineLabel}
-            onCopy={handleCopyUpi}
-            onPaid={handlePaidClick}
-            showUpload={showUpload}
-            onUpload={handleUpload}
-            uploadedFileName={uploadedFileName}
-            isPaid={currentMatch?.paidUsers?.includes(user?.id)}
-            paymentStatus={currentStatusLabel}
-            screenshotError={screenshotError}
-          />
+        <PaymentCard
+          amount={currentMatch.entry}
+          upiId="yourupi@okaxis"
+          deadline={deadlineLabel}
+          onCopy={handleCopyUpi}
+          onPaid={handlePaidClick}
+          showUpload={showUpload}
+          onUpload={handleUpload}
+          uploadedFileName={uploadedFileName}
+          isPaid={currentMatch?.paidUsers?.includes(user?.id)}
+          paymentStatus={currentStatusLabel}
+          screenshotError={screenshotError}
+        />
 
-          <PlayerStatusList players={playerStatuses} />
+        <PlayerStatusList players={playerStatuses} />
 
-          {isAdmin && (
-            <AdminPanel
-              players={players}
-              verifiedUsers={currentMatch?.verifiedUsers || []}
-              onVerify={handleVerifyPlayer}
-              roomData={currentMatch?.roomDetails || { roomId: '', password: '' }}
-              onRoomChange={handleRoomChange}
-              onStartMatch={handleStartMatch}
-              canStart={currentMatch?.verifiedUsers?.length === players.length && currentMatch?.roomDetails?.roomId?.trim() && currentMatch?.roomDetails?.password?.trim()}
-              status={currentMatch?.status}
-              onAdminAction={handleAdminAction}
-              onCancel={handleCancelMatch}
-              isMatchActive={isMatchActive}
-            />
-          )}
-
-          {showRoomDetails && (
-            <RoomDetailsCard roomId={roomDetails.roomId} password={roomDetails.password} />
-          )}
-
-          <ChatBox
-            messages={currentMatch?.adminMessages || []}
-            isAdmin={isAdmin}
-            onUserAction={handleUserAction}
-            onAdminAction={handleAdminAction}
+        {isAdmin && (
+          <AdminPanel
+            players={players}
+            verifiedUsers={currentMatch?.verifiedUsers || []}
+            onVerify={handleVerifyPlayer}
+            roomData={currentMatch?.roomDetails || { roomId: '', password: '' }}
+            onRoomChange={handleRoomChange}
+            onStartMatch={handleStartMatch}
+            canStart={currentMatch?.verifiedUsers?.length === players.length && currentMatch?.roomDetails?.roomId?.trim() && currentMatch?.roomDetails?.password?.trim()}
             status={currentMatch?.status}
+            onAdminAction={handleAdminAction}
+            onCancel={handleCancelMatch}
+            isMatchActive={isMatchActive}
           />
-        </div>
+        )}
 
-        <aside className="space-y-6">
-          <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm uppercase tracking-[0.18em] text-[#A1A1A1]">Match progress</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{currentStatusLabel}</p>
-              </div>
-              <span className="rounded-3xl border border-[#2A2A2A] bg-[#0B0B0B] px-3 py-2 text-sm text-[#A1A1A1]">{currentMatch?.mode}</span>
-            </div>
-            <div className="mt-5">
-              <Timer deadline={currentMatch?.paymentDueAt} onExpire={() => {}} />
-            </div>
-          </div>
+        {showRoomDetails && (
+          <RoomDetailsCard roomId={roomDetails.roomId} password={roomDetails.password} />
+        )}
 
-          {showRoomDetails && (
-            <div className="rounded-3xl border border-[#2A2A2A] bg-[#0B0B0B] p-4 text-sm text-[#A1A1A1]">
-              <div className="text-white">Room is ready when admin marks it live.</div>
-            </div>
-          )}
-        </aside>
+        <ChatBox
+          messages={currentMatch?.adminMessages || []}
+          isAdmin={isAdmin}
+          onUserAction={handleUserAction}
+          onAdminAction={handleAdminAction}
+          status={currentMatch?.status}
+        />
       </div>
-
-
     </div>
   );
 };

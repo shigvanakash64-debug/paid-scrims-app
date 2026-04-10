@@ -1,12 +1,12 @@
 export const RoomDetailsCard = ({ roomId, password }) => {
   return (
     <section className="space-y-4 rounded-3xl border border-[#1F1F1F] bg-[#111111] p-5 text-white">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1]">Match Started</p>
-          <h2 className="text-xl font-semibold">Room access</h2>
+          <p className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1]">Room credentials</p>
+          <h2 className="text-xl font-semibold">Match access</h2>
         </div>
-        <span className="rounded-full border border-[#2A2A2A] bg-[#0B0B0B] px-3 py-2 text-sm text-[#A1A1A1]">Secure</span>
+        <span className="rounded-full border border-[#2A2A2A] bg-[#0B0B0B] px-3 py-2 text-sm text-[#A1A1A1]">Visible to both players</span>
       </div>
       <div className="space-y-3 rounded-3xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
         <div className="flex items-center justify-between gap-3">
