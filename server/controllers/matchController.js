@@ -356,6 +356,16 @@ const serializeMatch = (match) => {
       image: item.image,
       uploadedAt: item.uploadedAt,
     })),
+    result: {
+      winner: record.result?.winner ? record.result.winner.toString() : null,
+      screenshots: (record.result?.screenshots || []).map((item) => ({
+        user: item.user?.toString(),
+        image: item.image,
+        uploadedAt: item.uploadedAt,
+      })),
+      decidedAt: record.result?.decidedAt || null,
+      paidOut: record.result?.paidOut || false,
+    },
     adminMessages: (record.adminMessages || []).map((item) => ({
       id: item._id?.toString() || `${item.sender}-${item.createdAt}`,
       sender: item.sender,
@@ -397,7 +407,8 @@ export const getMatch = async (req, res) => {
     const match = await Match.findById(matchId)
       .populate('creator', 'username')
       .populate('players', 'username')
-      .populate('paymentScreenshots.user', 'username');
+      .populate('paymentScreenshots.user', 'username')
+      .populate('result.screenshots.user', 'username');
 
     if (!match) {
       return res.status(404).json({ error: 'Match not found' });

@@ -38,6 +38,7 @@ export const AdminRequests = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
+  const [lightboxImage, setLightboxImage] = useState(null);
 
   const token = localStorage.getItem('clutchzone_token');
   const headers = { Authorization: `Bearer ${token}` };
@@ -408,7 +409,12 @@ export const AdminRequests = () => {
                               <div key={index} className="rounded-2xl border border-[#1F1F1F] bg-[#111111] p-3">
                                 <p className="text-xs text-[#A1A1A1]">{getPlayerName(proof.user) || `Proof ${index + 1}`}</p>
                                 <div className="mt-3 aspect-video overflow-hidden rounded-xl border border-[#1F1F1F] bg-[#0B0B0B]">
-                                  <img src={proof.image} alt={`Payment proof ${index + 1}`} className="h-full w-full object-cover" />
+                                  <img
+                                    src={proof.image}
+                                    alt={`Payment proof ${index + 1}`}
+                                    className="h-full w-full object-cover cursor-pointer"
+                                    onClick={() => setLightboxImage(proof.image)}
+                                  />
                                 </div>
                               </div>
                             ))}
@@ -447,7 +453,12 @@ export const AdminRequests = () => {
                               <div key={index} className="rounded-2xl border border-[#1F1F1F] bg-[#111111] p-3">
                                 <p className="text-xs text-[#A1A1A1]">{getPlayerName(proof.user) || `Submission ${index + 1}`}</p>
                                 <div className="mt-3 aspect-video overflow-hidden rounded-xl border border-[#1F1F1F] bg-[#0B0B0B]">
-                                  <img src={proof.image} alt={`Result proof ${index + 1}`} className="h-full w-full object-cover" />
+                                  <img
+                                    src={proof.image}
+                                    alt={`Result proof ${index + 1}`}
+                                    className="h-full w-full object-cover cursor-pointer"
+                                    onClick={() => setLightboxImage(proof.image)}
+                                  />
                                 </div>
                               </div>
                             ))}
@@ -461,14 +472,14 @@ export const AdminRequests = () => {
                           disabled={actionLoading || selectedMatch.status === 'completed'}
                           className="flex-1 rounded-full bg-[#22C55E] px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-50"
                         >
-                          {actionLoading ? 'Working…' : `Approve as ${playerA}`}
+                          {actionLoading ? 'Working…' : `Winner is ${playerA}`}
                         </button>
                         <button
                           onClick={() => handleApproveResult(selectedMatch.players?.[1]?._id || selectedMatch.players?.[1] || null)}
                           disabled={actionLoading || selectedMatch.status === 'completed'}
                           className="flex-1 rounded-full bg-[#FF6A00] px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-50"
                         >
-                          {actionLoading ? 'Working…' : `Approve as ${playerB}`}
+                          {actionLoading ? 'Working…' : `Winner is ${playerB}`}
                         </button>
                         <button
                           onClick={handleRejectResult}
@@ -478,6 +489,19 @@ export const AdminRequests = () => {
                           {actionLoading ? 'Working…' : 'Reject to dispute'}
                         </button>
                       </div>
+                    </div>
+                  )}
+
+                  {lightboxImage && (
+                    <div
+                      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+                      onClick={() => setLightboxImage(null)}
+                    >
+                      <img
+                        src={lightboxImage}
+                        alt="Preview"
+                        className="max-h-full max-w-full rounded-3xl shadow-2xl"
+                      />
                     </div>
                   )}
 

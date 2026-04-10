@@ -95,20 +95,21 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   }, [matchId, refreshMatch]);
 
   useEffect(() => {
-    if (!activeMatch?.paymentDueAt || isMatchActive || isCancelled) {
+    const isPaymentCountdownActive = activeMatch?.status === 'payment_pending';
+    if (!activeMatch?.paymentDueAt || !isPaymentCountdownActive || isCancelled) {
       setTimeLeft(0);
       return undefined;
     }
 
     const updateTimer = () => {
-      const diff = Math.max(new Date(activeMatch?.paymentDueAt).getTime() - Date.now(), 0);
+      const diff = Math.max(new Date(activeMatch.paymentDueAt).getTime() - Date.now(), 0);
       setTimeLeft(Math.floor(diff / 1000));
     };
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [activeMatch?.paymentDueAt, isMatchActive, isCancelled]);
+  }, [activeMatch?.paymentDueAt, activeMatch?.status, isCancelled]);
 
   const addLocalMessage = (sender, text) => {
     updateMatchState({
