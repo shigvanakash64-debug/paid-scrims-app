@@ -4,9 +4,7 @@ export const BottomNav = ({ currentScreen, onScreenChange }) => {
     { id: 'match', label: 'Match', icon: '⚔' },
     { id: 'result', label: 'Result', icon: '✓' },
     { id: 'pairing', label: 'Pairing', icon: '🔗' },
-    { id: 'inbox', label: 'Inbox', icon: '✉' },
     { id: 'wallet', label: 'Wallet', icon: '💰' },
-    { id: 'profile', label: 'Profile', icon: '◎' },
   ];
 
   return (

@@ -65,7 +65,7 @@ function App() {
             clearMatch();
           }
         }
-      } catch (error) {
+      } catch {
         localStorage.removeItem(TOKEN_KEY);
       } finally {
         setLoadingAuth(false);
@@ -73,7 +73,7 @@ function App() {
     };
 
     restoreSession();
-  }, []);
+  }, [clearMatch, refreshMatch, setMatch, updateUser]);
 
   const setSession = (userData, token) => {
     updateUser(userData);
@@ -208,11 +208,13 @@ function App() {
     }
   };
 
+  const showBottomNav = user && currentScreen !== 'admin';
+
   return (
-    <div className="app">
+    <div className={`app ${currentScreen === 'admin' ? 'app-admin' : ''}`}>
       <Header user={user} onNavigate={setCurrentScreen} onLogout={handleLogout} />
       <div className="scroll-area">{renderScreen()}</div>
-      {user && <BottomNav currentScreen={currentScreen} onScreenChange={setCurrentScreen} />}
+      {showBottomNav && <BottomNav currentScreen={currentScreen} onScreenChange={setCurrentScreen} />}
     </div>
   );
 }
