@@ -229,9 +229,6 @@ export const approveResult = async (req, res) => {
     }
 
     match.result.winner = winner._id;
-    match.result.paidOut = true;
-    match.isPaid = true;
-    match.status = 'completed';
     match.completedAt = new Date();
 
     await match.save();
