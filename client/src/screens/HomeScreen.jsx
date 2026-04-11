@@ -44,19 +44,9 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
   const [selectedType, setSelectedType] = useState('Headshot');
   const [selectedFee, setSelectedFee] = useState(50);
 
-  // Prize pool is fixed per entry amount, not multiplied by player count
-  let prizePool;
-  if (selectedFee <= 30) {
-    prizePool = 50;
-  } else if (selectedFee <= 50) {
-    prizePool = Math.floor(selectedFee * 1.5);
-  } else if (selectedFee <= 100) {
-    prizePool = Math.floor(selectedFee * 1.6);
-  } else if (selectedFee <= 200) {
-    prizePool = Math.floor(selectedFee * 1.7);
-  } else {
-    prizePool = Math.floor(selectedFee * 1.7);
-  }
+  const playersCount = getPlayersCount(selectedMode);
+  const platformFee = calculateCommission(selectedFee);
+  const prizePool = selectedFee * playersCount - platformFee;
 
   const handleFindMatch = async () => {
     if (currentMatch && !['completed', 'cancelled', 'disputed'].includes(currentMatch.status)) {

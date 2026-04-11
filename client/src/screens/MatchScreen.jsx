@@ -52,6 +52,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const isMatchCreator = currentUser && creatorId && (currentUser.id === creatorId || currentUser._id === creatorId);
   const isMatchActive = activeMatch?.status === 'ongoing' || activeMatch?.status === 'completed';
   const isCancelled = activeMatch?.status === 'cancelled';
+  const isFinalStatus = ['completed', 'cancelled', 'disputed'].includes(activeMatch?.status);
 
   const players = useMemo(() => {
     return (activeMatch?.players || []).map((player, index) => {
@@ -102,6 +103,17 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
 
     fetchMatch();
   }, [matchId, refreshMatch]);
+
+  useEffect(() => {
+    if (!isFinalStatus) return undefined;
+
+    const timer = setTimeout(() => {
+      clearMatch();
+      onScreenChange('pairing');
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [isFinalStatus, clearMatch, onScreenChange]);
 
   useEffect(() => {
     const isPaymentCountdownActive = activeMatch?.status === 'payment_pending';
