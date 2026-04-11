@@ -213,10 +213,15 @@ export const approveResult = async (req, res) => {
       return res.status(400).json({ error: 'Match is not pending result approval' });
     }
 
-    const winner = winnerId
-      ? match.players.find((player) => player._id.toString() === winnerId.toString())
+    const normalizedWinnerId = winnerId?.id?.toString?.() || winnerId?.toString?.();
+    const winner = normalizedWinnerId
+      ? match.players.find((player) =>
+          player._id?.toString() === normalizedWinnerId ||
+          player.toString() === normalizedWinnerId ||
+          player.id?.toString() === normalizedWinnerId
+        )
       : match.result.winner
-        ? match.players.find((player) => player._id.toString() === match.result.winner.toString())
+        ? match.players.find((player) => player._id?.toString() === match.result.winner.toString() || player.toString() === match.result.winner.toString() || player.id?.toString() === match.result.winner.toString())
         : null;
 
     if (!winner) {

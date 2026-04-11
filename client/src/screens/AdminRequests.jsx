@@ -524,14 +524,14 @@ export const AdminRequests = () => {
 
                       <div className="flex flex-col gap-3 sm:flex-row">
                         <button
-                          onClick={() => handleApproveResult(selectedMatch.players?.[0]?._id || selectedMatch.players?.[0] || null)}
+                          onClick={() => handleApproveResult(selectedMatch.players?.[0]?.id || selectedMatch.players?.[0] || null)}
                           disabled={actionLoading || selectedMatch.status === 'completed'}
                           className="flex-1 rounded-full bg-[#22C55E] px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-50"
                         >
                           {actionLoading ? 'Working…' : `Winner is ${playerA}`}
                         </button>
                         <button
-                          onClick={() => handleApproveResult(selectedMatch.players?.[1]?._id || selectedMatch.players?.[1] || null)}
+                          onClick={() => handleApproveResult(selectedMatch.players?.[1]?.id || selectedMatch.players?.[1] || null)}
                           disabled={actionLoading || selectedMatch.status === 'completed'}
                           className="flex-1 rounded-full bg-[#FF6A00] px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-50"
                         >
