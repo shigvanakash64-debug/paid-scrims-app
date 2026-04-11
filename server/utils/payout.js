@@ -75,11 +75,15 @@ export const processPayout = async (matchId, winnerId, userModel) => {
       throw new Error("Atomic match update failed - safety flags not set");
     }
 
-    // Credit winner wallet
+    // Credit winner wallet and update player stats
     const updatedUser = await userModel.findByIdAndUpdate(
       winnerId,
       {
-        $inc: { "wallet.balance": winnerAmount },
+        $inc: {
+          "wallet.balance": winnerAmount,
+          matchesPlayed: 1,
+          matchesWon: 1,
+        },
         $push: {
           transactions: {
             type: "match_win",
@@ -92,6 +96,17 @@ export const processPayout = async (matchId, winnerId, userModel) => {
       },
       { new: true }
     );
+
+    const loserIds = match.players
+      .map((player) => player.toString())
+      .filter((playerId) => playerId !== winnerId.toString());
+
+    if (loserIds.length > 0) {
+      await userModel.updateMany(
+        { _id: { $in: loserIds } },
+        { $inc: { matchesPlayed: 1, matchesLost: 1 } }
+      );
+    }
 
     console.log(`[PAYOUT] Successfully paid ${winnerId} ${winnerAmount}. New balance: ${updatedUser?.wallet?.balance}`);
 

@@ -698,12 +698,24 @@ export const resolveDispute = async (req, res) => {
     const winnerId = winner === 'A' ? match.playerA : match.playerB;
     const prize = match.entry * 2;
 
-    // Pay winner
+    // Pay winner and update match stats
     const winnerUser = await User.findById(winnerId);
     if (winnerUser) {
       winnerUser.wallet.balance += prize;
+      winnerUser.matchesPlayed = (winnerUser.matchesPlayed || 0) + 1;
       winnerUser.matchesWon = (winnerUser.matchesWon || 0) + 1;
       await winnerUser.save();
+    }
+
+    const loserIds = match.players
+      ? match.players.map((player) => player.toString()).filter((playerId) => playerId !== winnerId.toString())
+      : [];
+
+    if (loserIds.length > 0) {
+      await User.updateMany(
+        { _id: { $in: loserIds } },
+        { $inc: { matchesPlayed: 1, matchesLost: 1 } }
+      );
     }
 
     // Update match
@@ -773,11 +785,51 @@ export const getAllUsers = async (req, res) => {
 
     const filter = search ? { username: { $regex: search, $options: 'i' } } : {};
 
-    const users = await User.find(filter)
-      .select('username email trustScore isBanned matchesPlayed matchesWon createdAt wallet.balance')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
+    const users = await User.aggregate([
+      { $match: filter },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: parseInt(limit) },
+      {
+        $lookup: {
+          from: 'matches',
+          let: { userId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $in: ['$$userId', '$players'] },
+                    { $eq: ['$status', 'completed'] }
+                  ]
+                }
+              }
+            },
+            { $count: 'count' }
+          ],
+          as: 'matchStats'
+        }
+      },
+      {
+        $addFields: {
+          matchesPlayed: {
+            $ifNull: [{ $arrayElemAt: ['$matchStats.count', 0] }, '$matchesPlayed']
+          }
+        }
+      },
+      {
+        $project: {
+          username: 1,
+          email: 1,
+          trustScore: 1,
+          isBanned: 1,
+          matchesPlayed: 1,
+          matchesWon: 1,
+          createdAt: 1,
+          wallet: 1
+        }
+      }
+    ]);
 
     const total = await User.countDocuments(filter);
 
