@@ -130,8 +130,8 @@ export const WithdrawalsPanel = () => {
               id={withdrawal.withdrawalId}
               username={withdrawal.username}
               amount={withdrawal.amount}
-              method="UPI" // Default method, could be expanded later
-              details={`User ID: ${withdrawal.userId}`}
+              method="UPI"
+              details={`UPI: ${withdrawal.upi || 'N/A'} • User ID: ${withdrawal.userId}`}
               requestedAt={new Date(withdrawal.requestedAt).toLocaleString()}
               onApprove={() => handleApprove(withdrawal.withdrawalId)}
               onReject={() => handleReject(withdrawal.withdrawalId)}

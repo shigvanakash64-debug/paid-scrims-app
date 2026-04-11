@@ -887,6 +887,7 @@ export const getAllWithdrawals = async (req, res) => {
           userId: '$_id',
           username: '$username',
           amount: '$wallet.pendingWithdrawals.amount',
+          upi: '$wallet.pendingWithdrawals.upi',
           status: '$wallet.pendingWithdrawals.status',
           requestedAt: '$wallet.pendingWithdrawals.requestedAt',
           processedAt: '$wallet.pendingWithdrawals.processedAt',

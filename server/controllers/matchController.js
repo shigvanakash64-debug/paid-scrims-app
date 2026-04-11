@@ -1003,8 +1003,12 @@ export const canJoinMatch = async (req, res) => {
  */
 export const requestWithdrawal = async (req, res) => {
   try {
-    const { amount } = req.body;
-    const userId = req.userId;
+const { amount, upi } = req.body;
+  const userId = req.userId;
+
+  if (!upi || typeof upi !== 'string' || !upi.trim()) {
+    return res.status(400).json({ error: "UPI ID is required" });
+  }
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ error: "Valid amount is required" });
@@ -1022,6 +1026,7 @@ export const requestWithdrawal = async (req, res) => {
     // Create pending withdrawal
     const withdrawal = {
       amount: parseFloat(amount),
+      upi: upi.trim(),
       status: 'pending',
       requestedAt: new Date()
     };

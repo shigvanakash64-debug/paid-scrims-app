@@ -7,6 +7,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const [balance, setBalance] = useState(user?.wallet?.balance || 0);
   const [transactions, setTransactions] = useState([]);
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
+  const [withdrawalUpi, setWithdrawalUpi] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -30,6 +31,11 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   };
 
   const handleWithdrawalRequest = async () => {
+    if (!withdrawalUpi?.trim()) {
+      setMessage('Please enter your UPI ID');
+      return;
+    }
+
     if (!withdrawalAmount || parseFloat(withdrawalAmount) <= 0) {
       setMessage('Please enter a valid amount');
       return;
@@ -44,13 +50,15 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     try {
       const token = localStorage.getItem('clutchzone_token');
       await axios.post(`${API_BASE}/match/withdraw`, {
-        amount: parseFloat(withdrawalAmount)
+        amount: parseFloat(withdrawalAmount),
+        upi: withdrawalUpi.trim(),
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       setMessage('Withdrawal request submitted successfully. Admin approval required.');
       setWithdrawalAmount('');
+      setWithdrawalUpi('');
       fetchWalletData(); // Refresh data
     } catch (error) {
       setMessage(error.response?.data?.error || 'Failed to submit withdrawal request');
@@ -90,6 +98,16 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
 
         <div className="space-y-4">
           <div>
+            <label className="block text-sm text-[#A1A1A1] mb-2">UPI ID</label>
+            <input
+              type="text"
+              value={withdrawalUpi}
+              onChange={(e) => setWithdrawalUpi(e.target.value)}
+              placeholder="Enter UPI ID"
+              className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
+            />
+          </div>
+          <div>
             <label className="block text-sm text-[#A1A1A1] mb-2">Amount (₹)</label>
             <input
               type="number"
@@ -104,7 +122,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
 
           <button
             onClick={handleWithdrawalRequest}
-            disabled={loading || !withdrawalAmount || parseFloat(withdrawalAmount) > balance}
+            disabled={loading || !withdrawalUpi || !withdrawalAmount || parseFloat(withdrawalAmount) > balance}
             className="w-full rounded-3xl bg-[#FF6A00] px-6 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black transition disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loading ? 'Submitting...' : 'Request Withdrawal'}

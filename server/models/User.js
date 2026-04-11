@@ -41,7 +41,8 @@ const userSchema = new mongoose.Schema({
         default: Date.now
       },
       processedAt: Date,
-      adminNote: String
+      adminNote: String,
+      upi: String
     }],
     transactions: [{
       type: {
