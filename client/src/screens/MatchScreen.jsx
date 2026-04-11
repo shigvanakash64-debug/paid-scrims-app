@@ -41,6 +41,8 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [screenshotError, setScreenshotError] = useState('');
   const [timeLeft, setTimeLeft] = useState(0);
+  const [localRoomId, setLocalRoomId] = useState('');
+  const [localPassword, setLocalPassword] = useState('');
 
   // Use currentMatch from context, fallback to prop
   const activeMatch = currentMatch || match;
@@ -76,6 +78,11 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const currentStatusLabel = statusLabels[activeMatch?.status] || 'Unknown';
   const roomDetails = activeMatch?.roomDetails || { roomId: '', password: '' };
   const showRoomDetails = Boolean(roomDetails?.roomId || roomDetails?.password);
+
+  useEffect(() => {
+    setLocalRoomId(roomDetails.roomId || '');
+    setLocalPassword(roomDetails.password || '');
+  }, [roomDetails.roomId, roomDetails.password]);
 
   useEffect(() => {
     const fetchMatch = async () => {
@@ -137,13 +144,22 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   };
 
   const handleCopyRoomCredentials = async () => {
-    const text = `Room ID: ${roomDetails.roomId}\nPassword: ${roomDetails.password}`;
+    const text = `Room ID: ${localRoomId || roomDetails.roomId}\nPassword: ${localPassword || roomDetails.password}`;
     try {
       await navigator.clipboard.writeText(text);
       addLocalMessage('system', 'Room credentials copied to clipboard.');
     } catch {
       addLocalMessage('system', 'Copy failed. Please copy room credentials manually.');
     }
+  };
+
+  const handleRoomChange = (key, value) => {
+    updateMatchState({
+      roomDetails: {
+        ...activeMatch?.roomDetails,
+        [key]: value,
+      },
+    });
   };
 
   const handlePaidClick = () => {
@@ -194,7 +210,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   };
 
   const handleStartMatch = async () => {
-    if (!roomDetails.roomId?.trim() || !roomDetails.password?.trim()) {
+    if (!localRoomId.trim() || !localPassword.trim()) {
       alert('Room ID and password are required');
       return;
     }
@@ -203,7 +219,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
       const token = localStorage.getItem(TOKEN_KEY);
       await axios.post(
         `${API_BASE}/match/start`,
-        { matchId, roomId: roomDetails.roomId, password: roomDetails.password },
+        { matchId, roomId: localRoomId.trim(), password: localPassword.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       await refreshMatch(matchId);
@@ -254,15 +270,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
       return;
     }
     await addChatMessage('admin', action);
-  };
-
-  const handleRoomChange = (key, value) => {
-    updateMatchState({
-      roomDetails: {
-        ...activeMatch?.roomDetails,
-        [key]: value,
-      },
-    });
   };
 
   if (!match) {
@@ -382,15 +389,15 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
             <div className="grid gap-3 sm:grid-cols-2 mt-4">
               <input
                 type="text"
-                value={roomDetails.roomId}
-                onChange={(e) => handleRoomChange('roomId', e.target.value)}
+                value={localRoomId}
+                onChange={(e) => setLocalRoomId(e.target.value)}
                 placeholder="Room ID"
                 className="w-full rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] px-4 py-3 text-sm text-white outline-none focus:border-[#FF6A00]"
               />
               <input
                 type="text"
-                value={roomDetails.password}
-                onChange={(e) => handleRoomChange('password', e.target.value)}
+                value={localPassword}
+                onChange={(e) => setLocalPassword(e.target.value)}
                 placeholder="Password"
                 className="w-full rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] px-4 py-3 text-sm text-white outline-none focus:border-[#FF6A00]"
               />
@@ -400,7 +407,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
               <button
                 type="button"
                 onClick={handleStartMatch}
-                disabled={!roomDetails.roomId?.trim() || !roomDetails.password?.trim()}
+                disabled={!localRoomId.trim() || !localPassword.trim()}
                 className="flex-1 rounded-full bg-[#FF6A00] px-4 py-3 text-sm font-semibold text-black hover:opacity-90 transition disabled:opacity-50"
               >
                 Publish room details
@@ -408,7 +415,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
               <button
                 type="button"
                 onClick={handleCopyRoomCredentials}
-                disabled={!roomDetails.roomId?.trim() || !roomDetails.password?.trim()}
+                disabled={!localRoomId.trim() || !localPassword.trim()}
                 className="flex-1 rounded-full border border-[#1F1F1F] px-4 py-3 text-sm font-semibold text-[#A1A1A1] hover:border-[#FF6A00] transition disabled:opacity-50"
               >
                 Copy credentials
