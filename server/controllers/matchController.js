@@ -283,33 +283,27 @@ export const rejectResult = async (req, res) => {
       return res.status(404).json({ error: 'Match not found' });
     }
 
-    if (match.status !== 'result_pending') {
-      return res.status(400).json({ error: 'Match is not pending result approval' });
+    if (match.status !== 'result_pending' && match.status !== 'disputed') {
+      return res.status(400).json({ error: 'Match is not pending result approval or already disputed' });
     }
 
-    match.status = 'disputed';
-    await match.save();
+    if (match.status !== 'disputed') {
+      match.status = 'disputed';
+      await match.save();
 
-    await User.findByIdAndUpdate(match.players[0]._id, {
-      $push: {
-        notifications: {
-          type: 'warning',
-          message: `Result for match #${match._id} was rejected by admin and moved to dispute.`,
-          link: `/match/${match._id}`,
-          relatedMatch: match._id,
-        },
-      },
-    });
-    await User.findByIdAndUpdate(match.players[1]._id, {
-      $push: {
-        notifications: {
-          type: 'warning',
-          message: `Result for match #${match._id} was rejected by admin and moved to dispute.`,
-          link: `/match/${match._id}`,
-          relatedMatch: match._id,
-        },
-      },
-    });
+      for (const player of match.players) {
+        await User.findByIdAndUpdate(player._id, {
+          $push: {
+            notifications: {
+              type: 'warning',
+              message: `Result for match #${match._id} was rejected by admin and moved to dispute.`,
+              link: `/match/${match._id}`,
+              relatedMatch: match._id,
+            },
+          },
+        });
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -350,16 +344,30 @@ const serializeMatch = (match) => {
     paidUsers: (record.paidUsers || []).map((u) => u.toString()),
     verifiedUsers: (record.verifiedUsers || []).map((u) => u.toString()),
     paymentDueAt: record.paymentDueAt,
-    roomDetails: record.roomDetails || {},
+    roomDetails: record.roomDetails || null,
     paymentScreenshots: (record.paymentScreenshots || []).map((item) => ({
-      user: item.user?.toString(),
+      user: item.user
+        ? typeof item.user === 'object'
+          ? {
+              id: item.user._id?.toString() || item.user.toString(),
+              username: item.user.username || item.user._id?.toString?.() || item.user.toString(),
+            }
+          : { id: item.user.toString(), username: item.user.toString() }
+        : null,
       image: item.image,
       uploadedAt: item.uploadedAt,
     })),
     result: {
       winner: record.result?.winner ? record.result.winner.toString() : null,
       screenshots: (record.result?.screenshots || []).map((item) => ({
-        user: item.user?.toString(),
+        user: item.user
+          ? typeof item.user === 'object'
+            ? {
+                id: item.user._id?.toString() || item.user.toString(),
+                username: item.user.username || item.user._id?.toString?.() || item.user.toString(),
+              }
+            : { id: item.user.toString(), username: item.user.toString() }
+          : null,
         image: item.image,
         uploadedAt: item.uploadedAt,
       })),

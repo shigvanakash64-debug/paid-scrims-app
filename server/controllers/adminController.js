@@ -338,6 +338,7 @@ export const getAllPayments = async (req, res) => {
     const [paymentMatches, resultMatches, paymentTotal] = await Promise.all([
       Match.find(paymentFilter)
         .populate('players', 'username')
+        .populate('paymentScreenshots.user', 'username')
         .sort({ updatedAt: -1 })
         .skip(parseInt(skip))
         .limit(parseInt(limit)),
@@ -353,7 +354,12 @@ export const getAllPayments = async (req, res) => {
       matchId: match._id,
       players: match.players.map((player) => player.username),
       paymentScreenshots: (match.paymentScreenshots || []).map((s) => ({
-        user: s.user?.toString(),
+        user: s.user
+          ? {
+              id: s.user._id?.toString ? s.user._id.toString() : s.user.toString(),
+              username: s.user.username || s.user._id?.toString?.() || s.user.toString(),
+            }
+          : null,
         image: s.image,
         uploadedAt: s.uploadedAt,
       })),
