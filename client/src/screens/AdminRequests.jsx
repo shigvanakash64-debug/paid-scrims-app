@@ -230,6 +230,63 @@ export const AdminRequests = () => {
   const paymentScreenshots = selectedMatch?.paymentScreenshots || [];
   const resultScreenshots = selectedMatch?.result?.screenshots || [];
   const disputes = selectedMatch?.disputes || [];
+  const verifiedPlayerIds = new Set((selectedMatch?.verifiedUsers || []).map((id) => id.toString()));
+  const [roomId, setRoomId] = useState(selectedMatch?.roomDetails?.roomId || '');
+  const [password, setPassword] = useState(selectedMatch?.roomDetails?.password || '');
+
+  useEffect(() => {
+    setRoomId(selectedMatch?.roomDetails?.roomId || '');
+    setPassword(selectedMatch?.roomDetails?.password || '');
+  }, [selectedMatch?.roomDetails]);
+
+  const isProofVerified = (proof) => {
+    if (!proof?.user) return false;
+    const userId = proof.user.id || proof.user._id || proof.user;
+    return verifiedPlayerIds.has(userId?.toString());
+  };
+
+  const handleVerifyProof = async (playerId) => {
+    if (!selectedMatchId || !playerId) return;
+    setActionLoading(true);
+    try {
+      await axios.post(
+        `${API_BASE}/match/verify-player`,
+        { matchId: selectedMatchId, playerId },
+        { headers }
+      );
+      await refresh();
+    } catch (err) {
+      console.error('handleVerifyProof error', err);
+      alert(err.response?.data?.error || 'Failed to verify proof');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleStartMatch = async () => {
+    if (!selectedMatchId || !roomId.trim() || !password.trim()) return;
+    setActionLoading(true);
+    try {
+      await axios.post(
+        `${API_BASE}/admin/matches/${selectedMatchId}/start`,
+        { roomId: roomId.trim(), password: password.trim() },
+        { headers }
+      );
+      await refresh();
+      setSelectedTab('overview');
+    } catch (err) {
+      console.error('handleStartMatch error', err);
+      alert(err.response?.data?.error || 'Failed to publish room credentials');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const copyRoomCredentials = () => {
+    const credentials = `Room ID: ${roomId}\nPassword: ${password}`;
+    navigator.clipboard.writeText(credentials);
+    alert('Room credentials copied to clipboard');
+  };
 
   return (
     <div className="space-y-6">
@@ -405,31 +462,99 @@ export const AdminRequests = () => {
                           <p className="mt-3 text-sm text-[#A1A1A1]">Waiting for payment screenshots from both players.</p>
                         ) : (
                           <div className="grid gap-3 sm:grid-cols-2 mt-4">
-                            {paymentScreenshots.map((proof, index) => (
-                              <div key={index} className="rounded-2xl border border-[#1F1F1F] bg-[#111111] p-3">
-                                <p className="text-xs text-[#A1A1A1]">{getPlayerName(proof.user) || `Proof ${index + 1}`}</p>
-                                <div className="mt-3 aspect-video overflow-hidden rounded-xl border border-[#1F1F1F] bg-[#0B0B0B]">
-                                  <img
-                                    src={proof.image}
-                                    alt={`Payment proof ${index + 1}`}
-                                    className="h-full w-full object-cover cursor-pointer"
-                                    onClick={() => setLightboxImage(proof.image)}
-                                  />
+                            {paymentScreenshots.map((proof, index) => {
+                              const proofVerified = isProofVerified(proof);
+                              const playerId = proof.user?.id || proof.user?._id || proof.user;
+                              return (
+                                <div key={index} className="rounded-2xl border border-[#1F1F1F] bg-[#111111] p-3">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-xs text-[#A1A1A1]">{getPlayerName(proof.user) || `Proof ${index + 1}`}</p>
+                                    <span className={`text-xs font-semibold rounded-full px-2 py-1 ${proofVerified ? 'bg-[#022c0b] text-[#22C55E]' : 'bg-[#1F1F1F] text-[#A1A1A1]'}`}>
+                                      {proofVerified ? 'Verified' : 'Pending'}
+                                    </span>
+                                  </div>
+                                  <div className="mt-3 aspect-video overflow-hidden rounded-xl border border-[#1F1F1F] bg-[#0B0B0B]">
+                                    <img
+                                      src={proof.image}
+                                      alt={`Payment proof ${index + 1}`}
+                                      className="h-full w-full object-cover cursor-pointer"
+                                      onClick={() => setLightboxImage(proof.image)}
+                                    />
+                                  </div>
+                                  {!proofVerified && playerId && (
+                                    <button
+                                      onClick={() => handleVerifyProof(playerId)}
+                                      disabled={actionLoading}
+                                      className="mt-3 w-full rounded-full bg-[#22C55E] px-3 py-2 text-sm font-semibold text-black hover:opacity-90 transition disabled:opacity-50"
+                                    >
+                                      {actionLoading ? 'Working…' : 'Verify'}
+                                    </button>
+                                  )}
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>
 
+                      {selectedMatch.status === 'verified' && (
+                        <div className="rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-xs text-[#A1A1A1]">Room Credentials</p>
+                              <p className="text-sm text-[#A1A1A1] mt-1">Enter room details after both payments are approved.</p>
+                            </div>
+                            <span className="text-xs rounded-full bg-[#022c0b] px-3 py-1 text-[#22C55E]">Ready</span>
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2 mt-4">
+                            <input
+                              type="text"
+                              value={roomId}
+                              onChange={(e) => setRoomId(e.target.value)}
+                              placeholder="Room ID"
+                              disabled={actionLoading}
+                              className="w-full rounded-2xl border border-[#1F1F1F] bg-[#111111] px-4 py-3 text-sm text-white outline-none focus:border-[#FF6A00]"
+                            />
+                            <input
+                              type="text"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              placeholder="Password"
+                              disabled={actionLoading}
+                              className="w-full rounded-2xl border border-[#1F1F1F] bg-[#111111] px-4 py-3 text-sm text-white outline-none focus:border-[#FF6A00]"
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-3 sm:flex-row mt-4">
+                            <button
+                              onClick={handleStartMatch}
+                              disabled={actionLoading || !roomId.trim() || !password.trim()}
+                              className="flex-1 rounded-full bg-[#FF6A00] px-4 py-3 text-sm font-semibold text-black hover:opacity-90 transition disabled:opacity-50"
+                            >
+                              {actionLoading ? 'Working…' : selectedMatch?.roomDetails?.roomId ? 'Update Room' : 'Publish Room'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={copyRoomCredentials}
+                              disabled={!roomId.trim() || !password.trim()}
+                              className="flex-1 rounded-full border border-[#1F1F1F] px-4 py-3 text-sm font-semibold text-[#A1A1A1] hover:border-[#FF6A00] transition disabled:opacity-50"
+                            >
+                              Copy Credentials
+                            </button>
+                          </div>
+
+                          {selectedMatch?.roomDetails?.roomId && selectedMatch?.roomDetails?.password && (
+                            <div className="mt-4 rounded-2xl border border-[#1F1F1F] bg-[#111111] p-4">
+                              <p className="text-xs text-[#A1A1A1]">Published room details</p>
+                              <p className="mt-2 text-sm text-white">Room ID: {selectedMatch.roomDetails.roomId}</p>
+                              <p className="text-sm text-white">Password: {selectedMatch.roomDetails.password}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <div className="flex flex-col gap-3 sm:flex-row">
-                        <button
-                          onClick={handleVerifyPayment}
-                          disabled={actionLoading || selectedMatch.status === 'verified'}
-                          className="flex-1 rounded-full bg-[#22C55E] px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-50"
-                        >
-                          {selectedMatch.status === 'verified' ? 'Payment Verified' : actionLoading ? 'Working…' : 'Verify Payment'}
-                        </button>
                         <button
                           onClick={handleRejectPayment}
                           disabled={actionLoading || selectedMatch.status === 'payment_failed'}
