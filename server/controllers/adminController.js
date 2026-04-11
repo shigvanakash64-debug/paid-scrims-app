@@ -254,6 +254,12 @@ export const getUserProfile = async (req, res) => {
  */
 export const getDashboardStats = async (req, res) => {
   try {
+    const calculateCommission = (entryFee) => {
+      if (entryFee <= 30) return entryFee / 3;
+      if (entryFee <= 50) return entryFee * 0.4;
+      return entryFee * 0.3;
+    };
+
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -264,13 +270,14 @@ export const getDashboardStats = async (req, res) => {
       Match.countDocuments({ status: 'disputed' })
     ]);
 
-    // Get today's revenue (assume 10% platform fee)
+    const completedMatches = await Match.find({ status: 'completed' }).select('entry');
+    const systemBalance = completedMatches.reduce((sum, match) => sum + calculateCommission(match.entry), 0);
+
     const todayMatches = await Match.find({
       status: 'completed',
       completedAt: { $gte: todayStart }
     }).select('entry');
-
-    const todayRevenue = todayMatches.reduce((sum, match) => sum + (match.entry * 0.1), 0);
+    const todayRevenue = todayMatches.reduce((sum, match) => sum + calculateCommission(match.entry), 0);
 
     res.status(200).json({
       success: true,
@@ -279,6 +286,7 @@ export const getDashboardStats = async (req, res) => {
         totalUsers,
         pendingPayments,
         disputes,
+        systemBalance,
         todayRevenue,
         timestamp: now
       }

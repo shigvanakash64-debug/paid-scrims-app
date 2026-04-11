@@ -4,7 +4,7 @@ import { StatCard, LogCard } from '../components/admin/AdminComponents';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 
-export const AdminDashboard = () => {
+export const AdminDashboard = ({ onNavigate }) => {
   const [stats, setStats] = useState({
     activeMatches: 0,
     pendingPayments: 0,
@@ -63,7 +63,6 @@ export const AdminDashboard = () => {
           value={stats.pendingPayments}
           icon="💳"
           color="#F59E0B"
-          trend={20}
         />
         <StatCard
           label="Disputes"
@@ -76,26 +75,33 @@ export const AdminDashboard = () => {
           value={`₹${Number(stats.systemBalance || 0).toLocaleString()}`}
           icon="💰"
           color="#22C55E"
-          trend={-5}
         />
         <StatCard
           label="Today Revenue"
           value={`₹${Number(stats.todayRevenue || 0).toLocaleString()}`}
           icon="📈"
           color="#FF6A00"
-          trend={35}
         />
       </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <button className="bg-[#FF6A00] text-black px-6 py-4 rounded-lg font-semibold hover:opacity-90 transition">
+        <button
+          onClick={() => onNavigate?.('live_matches')}
+          className="bg-[#FF6A00] text-black px-6 py-4 rounded-lg font-semibold hover:opacity-90 transition"
+        >
           🎮 View Live Matches
         </button>
-        <button className="border border-[#1F1F1F] text-white px-6 py-4 rounded-lg font-semibold hover:border-[#FF6A00] transition">
+        <button
+          onClick={() => onNavigate?.('requests')}
+          className="border border-[#1F1F1F] text-white px-6 py-4 rounded-lg font-semibold hover:border-[#FF6A00] transition"
+        >
           💳 Verify Payments
         </button>
-        <button className="border border-[#EF4444] text-[#EF4444] px-6 py-4 rounded-lg font-semibold hover:bg-[#3d1c1c] transition">
+        <button
+          onClick={() => onNavigate?.('requests')}
+          className="border border-[#EF4444] text-[#EF4444] px-6 py-4 rounded-lg font-semibold hover:bg-[#3d1c1c] transition"
+        >
           ⚠️ Resolve Disputes
         </button>
       </div>

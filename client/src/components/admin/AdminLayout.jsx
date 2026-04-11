@@ -23,7 +23,7 @@ export const AdminLayout = () => {
   const renderScreen = () => {
     switch (currentScreen) {
       case SCREENS.DASHBOARD:
-        return <AdminDashboard />;
+        return <AdminDashboard onNavigate={setCurrentScreen} />;
       case SCREENS.REQUESTS:
         return <AdminRequests />;
       case SCREENS.LIVE_MATCHES:
