@@ -230,6 +230,7 @@ export const AdminRequests = () => {
   const paymentScreenshots = selectedMatch?.paymentScreenshots || [];
   const resultScreenshots = selectedMatch?.result?.screenshots || [];
   const disputes = selectedMatch?.disputes || [];
+  const verifiedPlayerIds = new Set((selectedMatch?.verifiedUsers || []).map((id) => id.toString()));
 
   const isProofVerified = (proof) => {
     if (!proof?.user) return false;
