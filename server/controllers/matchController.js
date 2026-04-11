@@ -649,7 +649,7 @@ export const verifyPlayer = async (req, res) => {
 export const startMatch = async (req, res) => {
   try {
     const { matchId, roomId, password } = req.body;
-    const adminId = req.userId;
+    const userId = req.userId;
 
     if (!matchId || !roomId || !password) {
       return res.status(400).json({ error: 'matchId, roomId, and password are required' });
@@ -658,6 +658,11 @@ export const startMatch = async (req, res) => {
     const match = await Match.findById(matchId);
     if (!match) {
       return res.status(404).json({ error: 'Match not found' });
+    }
+
+    const isCreator = match.creator.toString() === userId.toString();
+    if (!isCreator && !req.isAdmin) {
+      return res.status(403).json({ error: 'Only the match creator or an admin can publish room credentials' });
     }
 
     if (match.status !== 'verified') {
@@ -672,7 +677,7 @@ export const startMatch = async (req, res) => {
     match.status = 'ongoing';
     match.startedAt = new Date();
     match.adminMessages.push({
-      sender: 'admin',
+      sender: 'system',
       text: 'Room created',
     });
 

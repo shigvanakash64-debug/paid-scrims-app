@@ -55,9 +55,9 @@ router.post("/verify-player", authMiddleware, adminMiddleware, verifyPlayer);
 
 /**
  * POST /api/match/start
- * Admin starts the verified match and publishes room details
+ * Creator or admin starts the verified match and publishes room details
  */
-router.post("/start", authMiddleware, adminMiddleware, startMatch);
+router.post("/start", authMiddleware, startMatch);
 
 /**
  * POST /api/match/cancel

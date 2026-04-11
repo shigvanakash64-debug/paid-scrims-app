@@ -46,6 +46,8 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const activeMatch = currentMatch || match;
 
   const isAdmin = currentUser?.role === 'admin';
+  const creatorId = activeMatch?.creator?.id || activeMatch?.creator?._id || activeMatch?.creator;
+  const isMatchCreator = currentUser && creatorId && (currentUser.id === creatorId || currentUser._id === creatorId);
   const isMatchActive = activeMatch?.status === 'ongoing' || activeMatch?.status === 'completed';
   const isCancelled = activeMatch?.status === 'cancelled';
 
@@ -134,6 +136,16 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     }
   };
 
+  const handleCopyRoomCredentials = async () => {
+    const text = `Room ID: ${roomDetails.roomId}\nPassword: ${roomDetails.password}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      addLocalMessage('system', 'Room credentials copied to clipboard.');
+    } catch {
+      addLocalMessage('system', 'Copy failed. Please copy room credentials manually.');
+    }
+  };
+
   const handlePaidClick = () => {
     if (isCancelled || isMatchActive) return;
     setShowUpload(true);
@@ -194,6 +206,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
         { matchId, roomId: roomDetails.roomId, password: roomDetails.password },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      await refreshMatch(matchId);
     } catch (err) {
       alert(err.response?.data?.error || 'Could not start match');
     }
@@ -353,6 +366,55 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
             onCancel={handleCancelMatch}
             isMatchActive={isMatchActive}
           />
+        )}
+
+        {isMatchCreator && activeMatch?.status === 'verified' && !showRoomDetails && (
+          <section className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1]">Room credentials</p>
+                <h2 className="text-xl font-semibold">Publish room details</h2>
+                <p className="text-sm text-[#A1A1A1] mt-2">You can upload the room ID and password once both payments are verified.</p>
+              </div>
+              <span className="rounded-full bg-[#022c0b] px-3 py-1 text-xs font-semibold text-[#22C55E]">Creator only</span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 mt-4">
+              <input
+                type="text"
+                value={roomDetails.roomId}
+                onChange={(e) => handleRoomChange('roomId', e.target.value)}
+                placeholder="Room ID"
+                className="w-full rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] px-4 py-3 text-sm text-white outline-none focus:border-[#FF6A00]"
+              />
+              <input
+                type="text"
+                value={roomDetails.password}
+                onChange={(e) => handleRoomChange('password', e.target.value)}
+                placeholder="Password"
+                className="w-full rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] px-4 py-3 text-sm text-white outline-none focus:border-[#FF6A00]"
+              />
+            </div>
+
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={handleStartMatch}
+                disabled={!roomDetails.roomId?.trim() || !roomDetails.password?.trim()}
+                className="flex-1 rounded-full bg-[#FF6A00] px-4 py-3 text-sm font-semibold text-black hover:opacity-90 transition disabled:opacity-50"
+              >
+                Publish room details
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyRoomCredentials}
+                disabled={!roomDetails.roomId?.trim() || !roomDetails.password?.trim()}
+                className="flex-1 rounded-full border border-[#1F1F1F] px-4 py-3 text-sm font-semibold text-[#A1A1A1] hover:border-[#FF6A00] transition disabled:opacity-50"
+              >
+                Copy credentials
+              </button>
+            </div>
+          </section>
         )}
 
         {showRoomDetails && (

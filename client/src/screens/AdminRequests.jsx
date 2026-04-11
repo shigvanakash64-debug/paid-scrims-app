@@ -230,14 +230,6 @@ export const AdminRequests = () => {
   const paymentScreenshots = selectedMatch?.paymentScreenshots || [];
   const resultScreenshots = selectedMatch?.result?.screenshots || [];
   const disputes = selectedMatch?.disputes || [];
-  const verifiedPlayerIds = new Set((selectedMatch?.verifiedUsers || []).map((id) => id.toString()));
-  const [roomId, setRoomId] = useState(selectedMatch?.roomDetails?.roomId || '');
-  const [password, setPassword] = useState(selectedMatch?.roomDetails?.password || '');
-
-  useEffect(() => {
-    setRoomId(selectedMatch?.roomDetails?.roomId || '');
-    setPassword(selectedMatch?.roomDetails?.password || '');
-  }, [selectedMatch?.roomDetails]);
 
   const isProofVerified = (proof) => {
     if (!proof?.user) return false;
@@ -280,12 +272,6 @@ export const AdminRequests = () => {
     } finally {
       setActionLoading(false);
     }
-  };
-
-  const copyRoomCredentials = () => {
-    const credentials = `Room ID: ${roomId}\nPassword: ${password}`;
-    navigator.clipboard.writeText(credentials);
-    alert('Room credentials copied to clipboard');
   };
 
   return (
@@ -497,62 +483,6 @@ export const AdminRequests = () => {
                         )}
                       </div>
 
-                      {selectedMatch.status === 'verified' && (
-                        <div className="rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="text-xs text-[#A1A1A1]">Room Credentials</p>
-                              <p className="text-sm text-[#A1A1A1] mt-1">Enter room details after both payments are approved.</p>
-                            </div>
-                            <span className="text-xs rounded-full bg-[#022c0b] px-3 py-1 text-[#22C55E]">Ready</span>
-                          </div>
-
-                          <div className="grid gap-3 sm:grid-cols-2 mt-4">
-                            <input
-                              type="text"
-                              value={roomId}
-                              onChange={(e) => setRoomId(e.target.value)}
-                              placeholder="Room ID"
-                              disabled={actionLoading}
-                              className="w-full rounded-2xl border border-[#1F1F1F] bg-[#111111] px-4 py-3 text-sm text-white outline-none focus:border-[#FF6A00]"
-                            />
-                            <input
-                              type="text"
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              placeholder="Password"
-                              disabled={actionLoading}
-                              className="w-full rounded-2xl border border-[#1F1F1F] bg-[#111111] px-4 py-3 text-sm text-white outline-none focus:border-[#FF6A00]"
-                            />
-                          </div>
-
-                          <div className="flex flex-col gap-3 sm:flex-row mt-4">
-                            <button
-                              onClick={handleStartMatch}
-                              disabled={actionLoading || !roomId.trim() || !password.trim()}
-                              className="flex-1 rounded-full bg-[#FF6A00] px-4 py-3 text-sm font-semibold text-black hover:opacity-90 transition disabled:opacity-50"
-                            >
-                              {actionLoading ? 'Working…' : selectedMatch?.roomDetails?.roomId ? 'Update Room' : 'Publish Room'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={copyRoomCredentials}
-                              disabled={!roomId.trim() || !password.trim()}
-                              className="flex-1 rounded-full border border-[#1F1F1F] px-4 py-3 text-sm font-semibold text-[#A1A1A1] hover:border-[#FF6A00] transition disabled:opacity-50"
-                            >
-                              Copy Credentials
-                            </button>
-                          </div>
-
-                          {selectedMatch?.roomDetails?.roomId && selectedMatch?.roomDetails?.password && (
-                            <div className="mt-4 rounded-2xl border border-[#1F1F1F] bg-[#111111] p-4">
-                              <p className="text-xs text-[#A1A1A1]">Published room details</p>
-                              <p className="mt-2 text-sm text-white">Room ID: {selectedMatch.roomDetails.roomId}</p>
-                              <p className="text-sm text-white">Password: {selectedMatch.roomDetails.password}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
 
                       <div className="flex flex-col gap-3 sm:flex-row">
                         <button
