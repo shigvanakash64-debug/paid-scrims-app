@@ -330,8 +330,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     );
   }
 
-  const isFinalStatus = ['completed', 'cancelled', 'disputed'].includes(currentMatch?.status);
-
   return (
     <div className="min-h-screen bg-[#0B0B0B] px-4 pb-24 pt-6 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl space-y-6">
