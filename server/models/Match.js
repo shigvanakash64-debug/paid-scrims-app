@@ -72,7 +72,7 @@ const matchSchema = new mongoose.Schema(
     paymentA: {
       type: Boolean,
       default: false,
-    }
+    },
     paymentAScreenshot: String,
     paymentB: {
       type: Boolean,
