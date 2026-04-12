@@ -9,6 +9,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { WalletScreen } from './screens/WalletScreen';
 import { InboxScreen } from './screens/InboxScreen';
 import { InstructionsScreen } from './screens/InstructionsScreen';
+import { ContactsScreen } from './screens/ContactsScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
 import { BottomNav } from './components/BottomNav';
@@ -50,7 +51,7 @@ function App() {
         const restoredUser = response.data.user;
         updateUser(restoredUser);
 
-        const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions'];
+        const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts'];
         const targetScreen = validScreens.includes(savedScreen) ? savedScreen : 'home';
         if (targetScreen === 'admin' && !restoredUser?.isAdmin && restoredUser?.role !== 'admin') {
           setCurrentScreen('home');
@@ -198,6 +199,8 @@ function App() {
         );
       case 'inbox':
         return <InboxScreen user={user} onUserUpdate={handleUserUpdate} />;
+      case 'contacts':
+        return <ContactsScreen />;
       case 'profile':
         return <ProfileScreen user={user} onUserUpdate={handleUserUpdate} onProfileSave={handleProfileSave} />;
       case 'wallet':

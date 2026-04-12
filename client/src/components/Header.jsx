@@ -39,6 +39,9 @@ export const Header = ({ user, onNavigate, onLogout }) => {
                 <button className="menu-item" type="button" onClick={() => handleNavigate('settings')}>
                   Settings
                 </button>
+                <button className="menu-item" type="button" onClick={() => handleNavigate('contacts')}>
+                  Contacts
+                </button>
                 <button className="menu-item" type="button" onClick={() => handleNavigate('instructions')}>
                   Instructions
                 </button>
