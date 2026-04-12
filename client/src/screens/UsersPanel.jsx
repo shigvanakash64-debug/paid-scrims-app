@@ -90,11 +90,11 @@ export const UsersPanel = () => {
     }
   };
 
-  const handleViewHistory = async (user) => {
+  const handleViewHistory = async (userId) => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('clutchzone_token');
-      const response = await axios.get(`${API_BASE}/admin/user/${user._id}`, {
+      const response = await axios.get(`${API_BASE}/admin/user/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const detailedUser = response.data.user;
@@ -270,7 +270,7 @@ export const UsersPanel = () => {
                 matchCount={user.matchCount}
                 onBan={() => handleBanUnban(user.id, user.isBanned)}
                 onAdjustBalance={() => handleAdjustBalance(user.id)}
-                onViewHistory={() => handleViewHistory(user)}
+                onViewHistory={() => handleViewHistory(user.id)}
               />
             ))}
         </div>
