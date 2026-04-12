@@ -40,7 +40,7 @@ const getPlayersCount = (mode) => {
 
 const getPrizePool = (entryFee) => {
   if (entryFee <= 30) return 50;
-  if (entryFee <= 50) return Math.floor(entryFee * 1.5);
+  if (entryFee === 50) return 80;
   if (entryFee <= 100) return Math.floor(entryFee * 1.6);
   return Math.floor(entryFee * 1.7);
 };

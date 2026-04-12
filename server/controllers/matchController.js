@@ -470,8 +470,8 @@ export const createMatch = async (req, res) => {
     let prizePool;
     if (parsedEntry <= 30) {
       prizePool = 50;
-    } else if (parsedEntry <= 50) {
-      prizePool = Math.floor(parsedEntry * 1.5);
+    } else if (parsedEntry === 50) {
+      prizePool = 80;
     } else if (parsedEntry <= 100) {
       prizePool = Math.floor(parsedEntry * 1.6);
     } else if (parsedEntry <= 200) {

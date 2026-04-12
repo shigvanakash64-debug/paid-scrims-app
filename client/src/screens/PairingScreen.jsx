@@ -15,7 +15,7 @@ const sampleMatches = [
     mode: '1v1',
     type: 'Headshot',
     entryFee: 50,
-    prizePool: 75,
+    prizePool: 80,
     creator: 'Akash_77',
     trustScore: 82,
     status: 'Waiting for opponent',
