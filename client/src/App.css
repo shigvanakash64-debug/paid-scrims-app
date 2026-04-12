@@ -93,9 +93,13 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .screen-contacts .section{margin:16px 16px 0}
 .screen-contacts .card{padding:18px;display:grid;gap:14px}
 .screen-contacts .card-text{color:var(--muted);line-height:1.7;font-size:14px}
-.screen-contacts .contact-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#0f0a00;border:1px solid var(--border);border-radius:10px}
-.screen-contacts .contact-label{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;color:#fff}
-.screen-contacts .contact-value{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--orange)}
+.screen-contacts .contact-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#0f0a00;border:1px solid var(--border);border-radius:10px;gap:18px}
+.screen-contacts .contact-row > div:first-child{max-width:65%}
+.screen-contacts .contact-label{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;color:#fff;letter-spacing:0.8px}
+.screen-contacts .contact-value{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--orange);margin-top:4px}
+.screen-contacts .contact-actions{display:flex;justify-content:flex-end;align-items:center}
+.screen-contacts .contact-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:#fff;text-decoration:none;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;transition:background .15s,border-color .15s}
+.screen-contacts .contact-btn:hover{background:rgba(255,106,0,0.15);border-color:var(--orange)}
 .screen-contacts .simple-list{margin:0;padding-left:20px;color:var(--muted)}
 .screen-contacts .simple-list li{margin-bottom:8px}
 .opponent-card{margin:16px;background:var(--card);border:1px solid var(--border)}
