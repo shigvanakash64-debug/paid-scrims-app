@@ -5,6 +5,26 @@ import { processPayout } from "../utils/payout.js";
 import TrustScoreEngine from "../utils/trustScore.js";
 import ScreenshotValidator from "../utils/screenshotValidation.js";
 
+const PAYMENT_UPIS = [
+  '8261047808@fam',
+  '8261047808@mbk',
+];
+
+const getNextPaymentUpi = async () => {
+  const lastMatch = await Match.findOne({ paymentUpi: { $exists: true, $ne: null } })
+    .sort({ createdAt: -1 })
+    .select('paymentUpi')
+    .lean();
+
+  if (!lastMatch || !lastMatch.paymentUpi) {
+    return PAYMENT_UPIS[0];
+  }
+
+  const lastIndex = PAYMENT_UPIS.indexOf(lastMatch.paymentUpi);
+  const nextIndex = lastIndex === -1 ? 0 : (lastIndex + 1) % PAYMENT_UPIS.length;
+  return PAYMENT_UPIS[nextIndex];
+};
+
 /**
  * Submit result with screenshot for a match
  * Validates participant, uploads screenshot, implements result logic
@@ -346,6 +366,7 @@ const serializeMatch = (match) => {
     paidUsers: (record.paidUsers || []).map((u) => u.toString()),
     verifiedUsers: (record.verifiedUsers || []).map((u) => u.toString()),
     paymentDueAt: record.paymentDueAt,
+    paymentUpi: record.paymentUpi || null,
     roomDetails: record.roomDetails || null,
     paymentScreenshots: (record.paymentScreenshots || []).map((item) => ({
       user: item.user
@@ -512,6 +533,7 @@ export const acceptMatch = async (req, res) => {
     const opponentUsername = opponent?.username || 'Opponent';
 
     match.players.push(userId);
+    match.paymentUpi = await getNextPaymentUpi();
     match.status = 'payment_pending';
     match.paymentDueAt = new Date(Date.now() + 5 * 60 * 1000);
     

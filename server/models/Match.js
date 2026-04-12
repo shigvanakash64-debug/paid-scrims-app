@@ -63,6 +63,7 @@ const matchSchema = new mongoose.Schema(
       },
     ],
     paymentDueAt: Date,
+    paymentUpi: String,
     roomDetails: {
       roomId: String,
       password: String,
@@ -71,7 +72,7 @@ const matchSchema = new mongoose.Schema(
     paymentA: {
       type: Boolean,
       default: false,
-    },
+    }
     paymentAScreenshot: String,
     paymentB: {
       type: Boolean,

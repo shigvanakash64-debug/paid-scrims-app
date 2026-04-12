@@ -38,6 +38,13 @@ const getPlayersCount = (mode) => {
   }
 };
 
+const getPrizePool = (entryFee) => {
+  if (entryFee <= 30) return 50;
+  if (entryFee <= 50) return Math.floor(entryFee * 1.5);
+  if (entryFee <= 100) return Math.floor(entryFee * 1.6);
+  return Math.floor(entryFee * 1.7);
+};
+
 export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) => {
   const { user: currentUser } = useUser();
   const [selectedMode, setSelectedMode] = useState('1v1');
@@ -46,7 +53,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
 
   const playersCount = getPlayersCount(selectedMode);
   const platformFee = calculateCommission(selectedFee);
-  const prizePool = selectedFee * playersCount - platformFee;
+  const prizePool = getPrizePool(selectedFee);
 
   const handleFindMatch = async () => {
     if (currentMatch && !['completed', 'cancelled', 'disputed'].includes(currentMatch.status)) {

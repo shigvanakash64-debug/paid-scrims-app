@@ -146,9 +146,11 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     });
   };
 
+  const upiToShow = activeMatch?.paymentUpi || 'yourupi@okaxis';
+
   const handleCopyUpi = async () => {
     try {
-      await navigator.clipboard.writeText('yourupi@okaxis');
+      await navigator.clipboard.writeText(upiToShow);
       addLocalMessage('system', 'UPI ID copied to clipboard.');
     } catch {
       addLocalMessage('system', 'Copy failed. Please copy manually.');
@@ -355,7 +357,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
 
         <PaymentCard
           amount={currentMatch.entry}
-          upiId="yourupi@okaxis"
+          upiId={upiToShow}
           deadline={deadlineLabel}
           onCopy={handleCopyUpi}
           onPaid={handlePaidClick}
