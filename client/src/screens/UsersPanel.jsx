@@ -7,6 +7,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.o
 export const UsersPanel = () => {
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
   const [filterStatus, setFilterStatus] = useState('all');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -16,15 +17,24 @@ export const UsersPanel = () => {
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
     fetchUsers();
-  }, [searchQuery, page]);
+  }, [debouncedSearch, page]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError('');
       const token = localStorage.getItem('clutchzone_token');
-      const response = await axios.get(`${API_BASE}/admin/users?search=${encodeURIComponent(searchQuery)}&page=${page}&limit=20`, {
+      const response = await axios.get(`${API_BASE}/admin/users?search=${encodeURIComponent(debouncedSearch)}&page=${page}&limit=20`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUsers(response.data.users || []);
@@ -80,8 +90,22 @@ export const UsersPanel = () => {
     }
   };
 
-  const handleViewHistory = (user) => {
-    setSelectedUser(user);
+  const handleViewHistory = async (user) => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('clutchzone_token');
+      const response = await axios.get(`${API_BASE}/admin/user/${user._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const detailedUser = response.data.user;
+      detailedUser.recentMatches = response.data.recentMatches || [];
+      setSelectedUser(detailedUser);
+    } catch (err) {
+      console.error('viewHistory error', err);
+      alert('Unable to load user history');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const visibleUsers = users.map((user) => ({
@@ -151,6 +175,42 @@ export const UsersPanel = () => {
             <p className="text-xs text-[#A1A1A1]">TOTAL MATCHES</p>
             <p className="text-2xl font-bold text-white mt-2">{selectedUser.matchCount}</p>
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-[#1F1F1F] bg-[#111111] p-4">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-xl font-bold text-white">Match History</h2>
+              <p className="text-sm text-[#A1A1A1] mt-1">Recent matches for this user</p>
+            </div>
+            <button
+              onClick={() => setSelectedUser(null)}
+              className="text-sm text-[#A1A1A1] hover:text-white"
+            >
+              Back to users
+            </button>
+          </div>
+          {selectedUser.recentMatches?.length ? (
+            <div className="space-y-3">
+              {selectedUser.recentMatches.map((match) => (
+                <div key={match._id || match.id} className="rounded-xl bg-[#0B0B0B] p-4 border border-[#1F1F1F]">
+                  <p className="text-sm text-[#A1A1A1]">Match #{match._id || match.id} • {match.mode || 'Unknown'}</p>
+                  <p className="text-lg font-semibold text-white mt-2">
+                    {match.players?.map((player) => player?.username || player).join(' vs ')}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-sm text-[#A1A1A1]">
+                    <span className="rounded-full bg-[#1F1F1F] px-2 py-1">Status: {match.status}</span>
+                    <span className="rounded-full bg-[#1F1F1F] px-2 py-1">Entry: ₹{match.entry || 0}</span>
+                    {match.result?.winner && (
+                      <span className="rounded-full bg-[#1F1F1F] px-2 py-1">Winner: {match.result.winner?.username || match.result.winner}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[#A1A1A1]">No match history available for this user.</p>
+          )}
         </div>
       </div>
     );

@@ -15,6 +15,7 @@ import {
   getAdminLogs,
   verifyPayment,
   rejectPayment,
+  rejectPlayerPayment,
   startMatch,
   cancelMatch,
   getAllDisputes,
@@ -116,6 +117,7 @@ router.post("/matches/:matchId/verify-payment", authMiddleware, verifyPayment);
  * Reject a payment submission
  */
 router.post("/matches/:matchId/reject-payment", authMiddleware, rejectPayment);
+router.post("/matches/:matchId/reject-payment/:playerId", authMiddleware, rejectPlayerPayment);
 
 /**
  * POST /api/admin/matches/:matchId/start

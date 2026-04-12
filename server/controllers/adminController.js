@@ -560,10 +560,16 @@ export const rejectPayment = async (req, res) => {
       return res.status(404).json({ error: "Match not found" });
     }
 
-    match.status = 'payment_failed';
+    match.status = 'payment_pending';
     match.paymentA = false;
     match.paymentB = false;
+    match.paidUsers = [];
+    match.verifiedUsers = [];
     match.paymentRejectedAt = new Date();
+    match.adminMessages.push({
+      sender: 'admin',
+      text: 'Payment rejected for this match. Players must re-upload proof.',
+    });
 
     await match.save();
 
@@ -574,6 +580,51 @@ export const rejectPayment = async (req, res) => {
     });
   } catch (error) {
     console.error("rejectPayment error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const rejectPlayerPayment = async (req, res) => {
+  try {
+    const { matchId, playerId } = req.params;
+    const match = await Match.findById(matchId);
+    if (!match) {
+      return res.status(404).json({ error: "Match not found" });
+    }
+
+    if (!match.players.some((player) => player.toString() === playerId.toString())) {
+      return res.status(400).json({ error: 'Player is not part of this match' });
+    }
+
+    const proofsBefore = match.paymentScreenshots.length;
+    match.paymentScreenshots = (match.paymentScreenshots || []).filter((proof) => {
+      const proofUserId = proof.user?._id ? proof.user._id.toString() : proof.user?.toString();
+      return proofUserId !== playerId.toString();
+    });
+
+    if (proofsBefore === match.paymentScreenshots.length) {
+      return res.status(404).json({ error: 'No payment proof found for this player' });
+    }
+
+    match.paidUsers = (match.paidUsers || []).filter((user) => user.toString() !== playerId.toString());
+    match.verifiedUsers = (match.verifiedUsers || []).filter((user) => user.toString() !== playerId.toString());
+    match.paymentA = false;
+    match.paymentB = false;
+    match.status = 'payment_pending';
+    match.adminMessages.push({
+      sender: 'admin',
+      text: `Rejected payment proof from player ${playerId}.`,
+    });
+
+    await match.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment proof rejected for user',
+      match
+    });
+  } catch (error) {
+    console.error('rejectPlayerPayment error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -622,20 +673,13 @@ export const cancelMatch = async (req, res) => {
       return res.status(404).json({ error: "Match not found" });
     }
 
-    // Refund both players
-    if (match.paymentA) {
-      const playerA = await User.findById(match.playerA);
-      if (playerA) {
-        playerA.wallet.balance += match.entry;
-        await playerA.save();
-      }
-    }
-
-    if (match.paymentB) {
-      const playerB = await User.findById(match.playerB);
-      if (playerB) {
-        playerB.wallet.balance += match.entry;
-        await playerB.save();
+    // Refund paid players
+    const paidUserIds = (match.paidUsers || []).map((user) => user.toString());
+    for (const playerId of paidUserIds) {
+      const player = await User.findById(playerId);
+      if (player) {
+        player.wallet.balance += match.entry;
+        await player.save();
       }
     }
 
@@ -703,7 +747,16 @@ export const resolveDispute = async (req, res) => {
       return res.status(404).json({ error: "Match not found" });
     }
 
-    const winnerId = winner === 'A' ? match.playerA : match.playerB;
+    const players = match.players || [];
+    if (players.length === 0) {
+      return res.status(400).json({ error: 'No players found for this match' });
+    }
+
+    const winnerId = winner === 'A' ? players[0] : players[1] || players[0];
+    if (!winnerId) {
+      return res.status(400).json({ error: 'Invalid winner selection' });
+    }
+
     const prize = match.entry * 2;
 
     // Pay winner and update match stats

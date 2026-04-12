@@ -8,12 +8,13 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.o
 const STATUS_FILTERS = [
   'all',
   'waiting',
-  'matched',
   'payment_pending',
   'verified',
   'result_pending',
   'disputed',
   'ongoing',
+  'completed',
+  'cancelled',
 ];
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -256,6 +257,24 @@ export const AdminRequests = () => {
     }
   };
 
+  const handleRejectProof = async (playerId) => {
+    if (!selectedMatchId || !playerId || !window.confirm('Reject this user payment proof?')) return;
+    setActionLoading(true);
+    try {
+      await axios.post(
+        `${API_BASE}/admin/matches/${selectedMatchId}/reject-payment/${playerId}`,
+        {},
+        { headers }
+      );
+      await refresh();
+    } catch (err) {
+      console.error('handleRejectProof error', err);
+      alert(err.response?.data?.error || 'Failed to reject proof');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleStartMatch = async () => {
     if (!selectedMatchId || !roomId.trim() || !password.trim()) return;
     setActionLoading(true);
@@ -469,13 +488,22 @@ export const AdminRequests = () => {
                                     />
                                   </div>
                                   {!proofVerified && playerId && (
-                                    <button
-                                      onClick={() => handleVerifyProof(playerId)}
-                                      disabled={actionLoading}
-                                      className="mt-3 w-full rounded-full bg-[#22C55E] px-3 py-2 text-sm font-semibold text-black hover:opacity-90 transition disabled:opacity-50"
-                                    >
-                                      {actionLoading ? 'Working…' : 'Verify'}
-                                    </button>
+                                    <div className="mt-3 flex gap-2">
+                                      <button
+                                        onClick={() => handleVerifyProof(playerId)}
+                                        disabled={actionLoading}
+                                        className="flex-1 rounded-full bg-[#22C55E] px-3 py-2 text-sm font-semibold text-black hover:opacity-90 transition disabled:opacity-50"
+                                      >
+                                        {actionLoading ? 'Working…' : 'Verify'}
+                                      </button>
+                                      <button
+                                        onClick={() => handleRejectProof(playerId)}
+                                        disabled={actionLoading}
+                                        className="flex-1 rounded-full border border-[#EF4444] bg-[#3D121A] px-3 py-2 text-sm font-semibold text-[#EF4444] hover:bg-[#4C1A24] transition disabled:opacity-50"
+                                      >
+                                        {actionLoading ? 'Working…' : 'Reject'}
+                                      </button>
+                                    </div>
                                   )}
                                 </div>
                               );
