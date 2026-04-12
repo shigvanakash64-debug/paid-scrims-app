@@ -13,6 +13,22 @@ export const ContactsScreen = () => {
             <div className="contact-label">Instagram</div>
             <div className="contact-value">@clutch_zone_ff</div>
           </div>
+          <div className="contact-row">
+            <div className="contact-label">Discord</div>
+            <div className="contact-value">
+              <a href="https://discord.gg/7RnDzZknpV" target="_blank" rel="noreferrer">
+                discord.gg/7RnDzZknpV
+              </a>
+            </div>
+          </div>
+          <div className="contact-row">
+            <div className="contact-label">Telegram</div>
+            <div className="contact-value">
+              <a href="https://t.me/clutchzoneff" target="_blank" rel="noreferrer">
+                t.me/clutchzoneff
+              </a>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -25,12 +41,12 @@ export const ContactsScreen = () => {
           </p>
           <ul className="simple-list">
             <li>Keep your WhatsApp and Instagram active for quick support.</li>
+            <li>Share your Discord invite and Telegram channel for community trust.</li>
             <li>Show real match history, payouts, and refund policy clearly.</li>
             <li>Use easy payment links like UPI / Google Pay, and support secure transactions.</li>
           </ul>
           <p className="card-text">
-            You can also add a presence on Telegram or Discord for community support, but WhatsApp and Instagram are great
-            starting platforms for direct player communication.
+            Discord and Telegram are great for building a community, hosting announcements, and answering player questions fast.
           </p>
         </div>
       </div>
