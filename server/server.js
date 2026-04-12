@@ -1,6 +1,8 @@
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import matchRoutes from "./routes/matchRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
@@ -12,6 +14,45 @@ dotenv.config();
 console.log("Server starting with updated code - force redeploy");
 
 const app = express();
+app.disable("x-powered-by");
+app.set('trust proxy', 1);
+
+// Security headers and protections
+app.use(helmet());
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' }
+});
+
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many auth attempts, please slow down.' }
+});
+
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many admin requests, please try again later.' }
+});
+
+const matchLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many match actions, please slow down.' }
+});
+
+app.use(globalLimiter);
 
 // CORS configuration for production
 app.use(cors({
@@ -46,10 +87,10 @@ app.get("/health", async (req, res) => {
 });
 
 // Routes
-app.use("/api/auth", authRoutes);
-app.use("/auth", authRoutes); // Alias for simpler deployed URL usage
-app.use("/api/match", matchRoutes);
-app.use("/api/admin", adminRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
+app.use("/auth", authLimiter, authRoutes); // Alias for simpler deployed URL usage
+app.use("/api/match", matchLimiter, matchRoutes);
+app.use("/api/admin", adminLimiter, adminRoutes);
 
 const PORT = process.env.PORT || 5000;
 

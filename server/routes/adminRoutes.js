@@ -1,5 +1,5 @@
 import express from "express";
-import { authMiddleware } from "../middleware/authMiddleware.js";
+import { authMiddleware, adminMiddleware } from "../middleware/authMiddleware.js";
 import {
   triggerTimeoutResolution,
   checkCronStatus,
@@ -28,11 +28,12 @@ import {
 } from "../controllers/adminController.js";
 
 const router = express.Router();
+router.use(authMiddleware, adminMiddleware);
 
 /**
  * POST /api/admin/trigger-timeout
  * Manually trigger match timeout resolution
- * Requires authentication (should be admin)
+ * Requires authentication (admin only)
  */
 router.post("/trigger-timeout", authMiddleware, triggerTimeoutResolution);
 

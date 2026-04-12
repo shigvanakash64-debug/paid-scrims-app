@@ -108,7 +108,7 @@ router.get("/:matchId", getMatch);
  * POST /api/match/resolve-dispute
  * Admin endpoint to resolve disputed matches
  */
-router.post("/resolve-dispute", authMiddleware, resolveDispute);
+router.post("/resolve-dispute", authMiddleware, adminMiddleware, resolveDispute);
 
 /**
  * POST /api/match/raise-dispute
@@ -126,7 +126,7 @@ router.get("/:matchId/disputes", getMatchDisputes);
  * POST /api/match/flag-screenshot
  * Admin endpoint to flag screenshot as fake
  */
-router.post("/flag-screenshot", authMiddleware, flagScreenshotAsFake);
+router.post("/flag-screenshot", authMiddleware, adminMiddleware, flagScreenshotAsFake);
 
 /**
  * POST /api/match/can-join
