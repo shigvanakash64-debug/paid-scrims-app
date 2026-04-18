@@ -28,24 +28,45 @@
           const playerId = await OneSignal.getPlayerId();
           console.log('📱 OneSignal Player ID:', playerId ? playerId.substring(0, 15) + '...' : 'Not available');
 
-          // Setup notification event listeners using correct v16 API
-          if (OneSignal.Notifications) {
-            OneSignal.Notifications.addEventListener('display', (event) => {
-              console.log('📱 Notification displayed:', event.notification.title);
-            });
+          // Setup notification event listeners using OneSignal browser SDK API
+          const handleDisplay = (event) => {
+            console.log('📱 Notification displayed:', event.notification?.title || 'unknown');
+          };
 
-            OneSignal.Notifications.addEventListener('click', (event) => {
-              const notification = event.notification;
-              console.log('🔔 Notification clicked:', notification.title);
+          const handleClick = (event) => {
+            const notification = event.notification || event;
+            const payload = {
+              notification,
+              data: notification?.data,
+            };
 
-              // Dispatch custom event for React to handle navigation
-              window.dispatchEvent(new CustomEvent('onesignal-notification-clicked', {
-                detail: {
-                  notification,
-                  data: notification.data,
-                },
-              }));
-            });
+            console.log('🔔 Notification clicked:', notification?.title || 'notification opened');
+
+            // Save the click payload so app navigation works even if React isn't mounted yet
+            try {
+              window.localStorage.setItem('onesignal-notification-click', JSON.stringify(payload));
+            } catch (storageError) {
+              console.warn('Could not store notification click payload:', storageError);
+            }
+
+            window.dispatchEvent(new CustomEvent('onesignal-notification-clicked', {
+              detail: payload,
+            }));
+          };
+
+          if (OneSignal.Notifications?.addEventListener) {
+            OneSignal.Notifications.addEventListener('display', handleDisplay);
+            OneSignal.Notifications.addEventListener('click', handleClick);
+          } else if (OneSignal.Notifications?.on) {
+            OneSignal.Notifications.on('display', handleDisplay);
+            OneSignal.Notifications.on('click', handleClick);
+          } else if (OneSignal.on) {
+            OneSignal.on('notificationDisplay', handleDisplay);
+            OneSignal.on('notificationClicked', handleClick);
+          } else if (OneSignal.addListenerForNotificationOpened) {
+            OneSignal.addListenerForNotificationOpened(handleClick);
+          } else {
+            console.warn('⚠️ OneSignal notification listeners not available on this SDK instance');
           }
         } catch (error) {
           console.error('❌ OneSignal initialization failed:', error);

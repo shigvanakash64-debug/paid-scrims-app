@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useCallback, useEffect, useState, lazy, Suspense } from 'react';
 import axios from 'axios';
 import { HomeScreen } from './screens/HomeScreen';
 import { MatchScreen } from './screens/MatchScreen';
@@ -116,29 +116,63 @@ function App() {
     restoreSession();
   }, [clearMatch, refreshMatch, setMatch, updateUser]);
 
-  // Handle OneSignal notification clicks
-  useEffect(() => {
-    const handleNotificationClick = (event) => {
-      const { data } = event.detail;
+  const handleNotificationClick = useCallback(async (data) => {
+    console.log('🔔 Notification click navigation payload:', data);
 
-      console.log('🔔 Navigation triggered by notification');
-
-      // Handle navigation based on notification type
-      if (data?.eventType === 'match_created' || data?.matchId) {
-        setCurrentScreen('match');
-        window.scrollTo(0, 0);
-      } else if (data?.eventType === 'withdrawal_requested') {
-        setCurrentScreen('wallet');
-        window.scrollTo(0, 0);
-      } else if (data?.eventType === 'matches_available') {
-        setCurrentScreen('home');
-        window.scrollTo(0, 0);
+    if (data?.matchId) {
+      try {
+        const refreshed = await refreshMatch(data.matchId);
+        if (refreshed) {
+          setMatch(refreshed);
+          setCurrentScreen('match');
+          window.scrollTo(0, 0);
+          return;
+        }
+      } catch (error) {
+        console.warn('Could not refresh match from notification click:', error);
       }
+    }
+
+    if (data?.eventType === 'withdrawal_requested') {
+      setCurrentScreen('wallet');
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    if (data?.eventType === 'matches_available') {
+      setCurrentScreen('home');
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    setCurrentScreen('home');
+    window.scrollTo(0, 0);
+  }, [refreshMatch, setMatch, setCurrentScreen]);
+
+  useEffect(() => {
+    const pending = window.localStorage.getItem('onesignal-notification-click');
+    if (pending) {
+      try {
+        const parsed = JSON.parse(pending);
+        if (parsed?.data) {
+          handleNotificationClick(parsed.data);
+        }
+      } catch (err) {
+        console.warn('Failed to parse pending OneSignal notification click:', err);
+      }
+      window.localStorage.removeItem('onesignal-notification-click');
+    }
+  }, [handleNotificationClick]);
+
+  useEffect(() => {
+    const handleNotificationClickEvent = (event) => {
+      const { data } = event.detail;
+      handleNotificationClick(data);
     };
 
-    window.addEventListener('onesignal-notification-clicked', handleNotificationClick);
-    return () => window.removeEventListener('onesignal-notification-clicked', handleNotificationClick);
-  }, []);
+    window.addEventListener('onesignal-notification-clicked', handleNotificationClickEvent);
+    return () => window.removeEventListener('onesignal-notification-clicked', handleNotificationClickEvent);
+  }, [handleNotificationClick]);
 
   const setSession = (userData, token) => {
     updateUser(userData);
