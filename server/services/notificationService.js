@@ -146,13 +146,6 @@ export const sendNotification = async (playerIds, title, message, options = {}) 
   }
 };
 
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
-};
-
 /**
  * Send notification to active users who can join matches
  * @param {string} title - Notification title
