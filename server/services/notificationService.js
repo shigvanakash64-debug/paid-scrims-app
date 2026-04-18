@@ -5,6 +5,29 @@ const ONESIGNAL_API_URL = 'https://onesignal.com/api/v1/notifications';
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
 
+// ✅ LOG CONFIGURATION ON STARTUP
+const validateConfig = () => {
+  const hasAppId = !!ONESIGNAL_APP_ID;
+  const hasRestKey = !!ONESIGNAL_REST_API_KEY;
+
+  console.log('\n═══════════════════════════════════════════════');
+  console.log('📡 OneSignal Configuration Check:');
+  console.log(`   App ID: ${hasAppId ? '✅ SET' : '❌ MISSING'}`);
+  console.log(`   REST API Key: ${hasRestKey ? '✅ SET' : '❌ MISSING'}`);
+  console.log('═══════════════════════════════════════════════\n');
+
+  if (!hasAppId || !hasRestKey) {
+    console.warn(
+      '⚠️  OneSignal credentials missing! Notifications will NOT be sent.'
+    );
+    console.warn('   Please add to .env file:');
+    console.warn('   ONESIGNAL_APP_ID=your_app_id');
+    console.warn('   ONESIGNAL_REST_API_KEY=your_rest_api_key');
+  }
+};
+
+validateConfig();
+
 /**
  * Send notification to specific players via OneSignal
  * @param {Array<string>} playerIds - Array of OneSignal player IDs
@@ -15,29 +38,47 @@ const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
  */
 export const sendNotification = async (playerIds, title, message, options = {}) => {
   try {
+    // ✅ VALIDATION: Check if credentials are set
+    if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
+      console.error(
+        '❌ OneSignal credentials not configured. Set ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY in .env'
+      );
+      return {
+        success: false,
+        error: 'OneSignal credentials missing. Add to .env file.',
+      };
+    }
+
     // Filter out null/undefined player IDs
     const validPlayerIds = playerIds.filter(id => id && id.trim());
 
+    console.log(`📤 Preparing notification: "${title}"`);
+    console.log(`   Players: ${playerIds.length} → Valid: ${validPlayerIds.length}`);
+
     if (validPlayerIds.length === 0) {
-      console.log('No valid player IDs provided for notification');
+      console.warn('⚠️  No valid player IDs provided for notification');
       return { success: false, message: 'No valid player IDs' };
     }
 
     // Also save notification to in-app notification center
     await Promise.all(
       playerIds.map(async (playerId) => {
-        const user = await User.findOne({ onesignalPlayerId: playerId });
-        if (user && user.notificationPreferences.systemNotifications) {
-          user.notifications.push({
-            type: options.type || 'info',
-            message: message,
-            link: options.link || null,
-            relatedMatch: options.matchId || null,
-          });
-          await user.save();
+        try {
+          const user = await User.findOne({ onesignalPlayerId: playerId });
+          if (user && user.notificationPreferences?.systemNotifications) {
+            user.notifications.push({
+              type: options.type || 'info',
+              message: message,
+              link: options.link || null,
+              relatedMatch: options.matchId || null,
+            });
+            await user.save();
+          }
+        } catch (err) {
+          console.error(`Error saving in-app notification for ${playerId}:`, err.message);
         }
       })
-    ).catch(err => console.error('Error saving in-app notifications:', err));
+    );
 
     // Prepare OneSignal payload
     const payload = {
@@ -56,6 +97,10 @@ export const sendNotification = async (playerIds, title, message, options = {}) 
       key => payload[key] === null && delete payload[key]
     );
 
+    console.log(`📡 Sending to OneSignal API...`);
+    console.log(`   URL: ${ONESIGNAL_API_URL}`);
+    console.log(`   App ID: ${ONESIGNAL_APP_ID.substring(0, 8)}...`);
+
     // Send to OneSignal
     const response = await axios.post(ONESIGNAL_API_URL, payload, {
       headers: {
@@ -68,7 +113,7 @@ export const sendNotification = async (playerIds, title, message, options = {}) 
     console.log('✅ OneSignal Notification Sent:', {
       title,
       recipients: validPlayerIds.length,
-      id: response.data?.body?.id,
+      notificationId: response.data?.body?.id,
     });
 
     return {
@@ -80,8 +125,26 @@ export const sendNotification = async (playerIds, title, message, options = {}) 
     console.error('❌ OneSignal Notification Error:', {
       message: error.message,
       status: error.response?.status,
+      statusText: error.response?.statusText,
       data: error.response?.data,
     });
+
+    // More detailed error messages
+    if (error.response?.status === 401) {
+      console.error('🔐 Authentication failed - Check ONESIGNAL_REST_API_KEY');
+    } else if (error.response?.status === 400) {
+      console.error('📋 Invalid request - Check payload format');
+      console.error('Response:', error.response?.data);
+    } else if (error.code === 'ECONNABORTED') {
+      console.error('⏱️  Request timeout - OneSignal API not responding');
+    }
+
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
 
     return {
       success: false,

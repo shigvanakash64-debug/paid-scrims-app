@@ -87,6 +87,126 @@ app.get("/health", async (req, res) => {
   }
 });
 
+// 🐛 DEBUG: Notification System Status
+app.get("/api/debug/notifications", async (req, res) => {
+  try {
+    const User = (await import("./models/User.js")).default;
+    
+    const hasAppId = !!process.env.ONESIGNAL_APP_ID;
+    const hasRestKey = !!process.env.ONESIGNAL_REST_API_KEY;
+    
+    // Count users with player IDs
+    const usersWithPlayerId = await User.countDocuments({
+      onesignalPlayerId: { $exists: true, $ne: null }
+    });
+    
+    const totalUsers = await User.countDocuments({});
+    
+    // Get sample users with and without IDs
+    const withIds = await User.find({ onesignalPlayerId: { $exists: true, $ne: null } })
+      .select('username onesignalPlayerId notificationPreferences')
+      .limit(5);
+    
+    const withoutIds = await User.find({ $or: [
+      { onesignalPlayerId: null },
+      { onesignalPlayerId: { $exists: false } }
+    ]})
+      .select('username onesignalPlayerId')
+      .limit(5);
+
+    res.json({
+      status: 'debug',
+      oneSignal: {
+        appIdSet: hasAppId,
+        restApiKeySet: hasRestKey,
+        configComplete: hasAppId && hasRestKey,
+        appIdPreview: hasAppId ? process.env.ONESIGNAL_APP_ID.substring(0, 8) + '...' : 'NOT SET'
+      },
+      users: {
+        total: totalUsers,
+        withPlayerId: usersWithPlayerId,
+        withoutPlayerId: totalUsers - usersWithPlayerId,
+        percentageRegistered: ((usersWithPlayerId / totalUsers) * 100).toFixed(2) + '%'
+      },
+      samples: {
+        usersWithIds: withIds.map(u => ({
+          username: u.username,
+          playerId: u.onesignalPlayerId?.substring(0, 10) + '...',
+          matchNotifications: u.notificationPreferences?.matchNotifications,
+          walletNotifications: u.notificationPreferences?.walletNotifications,
+          systemNotifications: u.notificationPreferences?.systemNotifications
+        })),
+        usersWithoutIds: withoutIds.map(u => ({
+          username: u.username,
+          playerId: u.onesignalPlayerId || 'NULL'
+        }))
+      },
+      solutions: !hasAppId || !hasRestKey ? [
+        `❌ Missing OneSignal credentials in .env file`,
+        `✅ Visit: https://dashboard.onesignal.com`,
+        `✅ Create app and copy App ID and REST API Key`,
+        `✅ Add to .env: ONESIGNAL_APP_ID=xxx`,
+        `✅ Add to .env: ONESIGNAL_REST_API_KEY=xxx`,
+        `✅ Restart server`
+      ] : usersWithPlayerId === 0 ? [
+        `⚠️  No users have registered OneSignal player IDs`,
+        `✅ User must call: POST /auth/notifications/register-push with onesignalPlayerId`,
+        `✅ Ensure OneSignal SDK is loaded on client`,
+        `✅ Call OneSignal.getPlayerId() on client after login`
+      ] : []
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Debug check failed',
+      message: error.message 
+    });
+  }
+});
+
+// 🧪 TEST: Send Test Notification (Admin only)
+app.post("/api/debug/test-notification", async (req, res) => {
+  try {
+    const { sendNotification } = await import("./services/notificationService.js");
+    const User = (await import("./models/User.js")).default;
+
+    // Get first user with registered player ID
+    const user = await User.findOne({ 
+      onesignalPlayerId: { $exists: true, $ne: null } 
+    }).select('username onesignalPlayerId');
+
+    if (!user) {
+      return res.json({
+        success: false,
+        error: 'No users with registered OneSignal player IDs found',
+        solution: 'Please register a player ID first via POST /auth/notifications/register-push'
+      });
+    }
+
+    // Send test notification
+    const result = await sendNotification(
+      [user.onesignalPlayerId],
+      '🧪 Test Notification',
+      'This is a test notification from Clutch Zone backend',
+      { type: 'info', priority: 10 }
+    );
+
+    res.json({
+      success: true,
+      result,
+      testUser: {
+        username: user.username,
+        playerId: user.onesignalPlayerId.substring(0, 15) + '...'
+      },
+      message: 'Check your device for notification in a few seconds'
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Test failed',
+      message: error.message 
+    });
+  }
+});
+
 // Routes
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/auth", authLimiter, authRoutes); // Alias for simpler deployed URL usage
