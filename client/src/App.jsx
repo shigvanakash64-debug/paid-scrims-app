@@ -24,6 +24,41 @@ const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m =
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
 const TOKEN_KEY = 'clutchzone_token';
 
+// Helper function to register OneSignal player ID with backend
+const registerOneSignalPlayerId = async (token) => {
+  try {
+    // Check if OneSignal is loaded
+    if (!window.OneSignal) {
+      console.warn('⚠️ OneSignal SDK not loaded yet');
+      return;
+    }
+
+    // Get the player ID from OneSignal
+    const playerId = await window.OneSignal.getPlayerId();
+    
+    if (!playerId) {
+      console.warn('⚠️ OneSignal Player ID not available yet');
+      return;
+    }
+
+    console.log('📱 Registering OneSignal Player ID:', playerId.substring(0, 15) + '...');
+
+    // Send player ID to backend
+    const response = await axios.post(
+      `${API_BASE}/auth/notifications/register-push`,
+      { onesignalPlayerId: playerId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (response.data.success) {
+      console.log('✅ OneSignal Player ID registered successfully');
+    }
+  } catch (error) {
+    console.error('⚠️ Failed to register OneSignal Player ID:', error.message);
+    // Don't throw - this is non-critical
+  }
+};
+
 function App() {
   const [currentScreen, setCurrentScreen] = useState('login');
   const [loadingAuth, setLoadingAuth] = useState(true);
@@ -77,10 +112,56 @@ function App() {
     restoreSession();
   }, [clearMatch, refreshMatch, setMatch, updateUser]);
 
+  // Setup OneSignal notification handlers
+  useEffect(() => {
+    if (!window.OneSignal) return;
+
+    // Handle notification display
+    window.OneSignal.on('notificationDisplay', (event) => {
+      console.log('📱 Notification displayed:', event.notification.heading);
+      // You can add UI updates here (like showing a toast notification)
+    });
+
+    // Handle notification click
+    window.OneSignal.on('notificationClicked', (event) => {
+      const notification = event.notification;
+      const data = notification.data;
+
+      console.log('🔔 Notification clicked:', {
+        title: notification.heading,
+        data: data,
+      });
+
+      // Handle navigation based on notification type
+      if (data?.eventType === 'match_created' || data?.matchId) {
+        // Navigate to match details
+        setCurrentScreen('match');
+        window.scrollTo(0, 0);
+      } else if (data?.eventType === 'withdrawal_requested') {
+        // Navigate to wallet
+        setCurrentScreen('wallet');
+        window.scrollTo(0, 0);
+      } else if (data?.eventType === 'matches_available') {
+        // Navigate to home to see available matches
+        setCurrentScreen('home');
+        window.scrollTo(0, 0);
+      }
+    });
+
+    // Cleanup listeners on unmount
+    return () => {
+      window.OneSignal.off?.('notificationDisplay');
+      window.OneSignal.off?.('notificationClicked');
+    };
+  }, []);
+
   const setSession = (userData, token) => {
     updateUser(userData);
     localStorage.setItem(TOKEN_KEY, token);
     setCurrentScreen('home');
+    
+    // Register OneSignal player ID after successful login
+    registerOneSignalPlayerId(token);
   };
 
   const clearSession = () => {
