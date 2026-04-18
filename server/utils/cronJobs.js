@@ -1,8 +1,14 @@
 import cron from "node-cron";
 import Match from "../models/Match.js";
 import { batchAutoResolveMatches } from "./autoResolveMatch.js";
+import {
+  sendBroadcastNotification,
+  sendRetentionNotification,
+} from "../services/notificationService.js";
 
 let cronJobInstance = null;
+let broadcastNotificationJobInstance = null;
+let retentionNotificationJobInstance = null;
 
 const cancelPaymentTimeouts = async () => {
   const now = new Date();
@@ -95,6 +101,63 @@ export const initializeCronJobs = (userModel, options = {}) => {
   });
 
   console.log(`[CRON] Initialized - Running every minute`);
+
+  // Initialize broadcast notification job (Every 10 minutes)
+  // Sends notifications about available matches to active players
+  broadcastNotificationJobInstance = cron.schedule("*/10 * * * *", async () => {
+    try {
+      // Get count of waiting matches
+      const waitingMatches = await Match.countDocuments({ status: "waiting" });
+
+      if (waitingMatches === 0) {
+        return;
+      }
+
+      console.log(
+        `[CRON - BROADCAST] Found ${waitingMatches} waiting matches, sending notifications`
+      );
+
+      await sendBroadcastNotification(
+        `🔥 ${waitingMatches} Matches Waiting`,
+        `There are ${waitingMatches} matches waiting for players. Join now and compete! 💸`,
+        {
+          priority: 9,
+          data: {
+            eventType: "matches_available",
+            count: waitingMatches,
+          },
+        }
+      );
+    } catch (error) {
+      console.error("[CRON - BROADCAST ERROR]:", error.message);
+    }
+  });
+
+  console.log(`[CRON] Broadcast notifications initialized - Running every 10 minutes`);
+
+  // Initialize retention notification job (Every 6 hours)
+  // Sends notifications to inactive users (> 24 hours)
+  retentionNotificationJobInstance = cron.schedule("0 */6 * * *", async () => {
+    try {
+      console.log(`[CRON - RETENTION] Checking for inactive users (24+ hours)`);
+
+      const result = await sendRetentionNotification(24);
+
+      if (result.success) {
+        console.log(
+          `[CRON - RETENTION] Sent notifications to ${result.recipients} inactive users`
+        );
+      } else {
+        console.log(
+          `[CRON - RETENTION] No inactive users to notify or error occurred`
+        );
+      }
+    } catch (error) {
+      console.error("[CRON - RETENTION ERROR]:", error.message);
+    }
+  });
+
+  console.log(`[CRON] Retention notifications initialized - Running every 6 hours`);
 };
 
 /**
@@ -104,8 +167,22 @@ export const stopCronJobs = () => {
   if (cronJobInstance) {
     cronJobInstance.stop();
     cronJobInstance = null;
-    console.log("[CRON] Stopped");
+    console.log("[CRON] Main match resolution job stopped");
   }
+
+  if (broadcastNotificationJobInstance) {
+    broadcastNotificationJobInstance.stop();
+    broadcastNotificationJobInstance = null;
+    console.log("[CRON] Broadcast notification job stopped");
+  }
+
+  if (retentionNotificationJobInstance) {
+    retentionNotificationJobInstance.stop();
+    retentionNotificationJobInstance = null;
+    console.log("[CRON] Retention notification job stopped");
+  }
+
+  console.log("[CRON] All cron jobs stopped");
 };
 
 /**

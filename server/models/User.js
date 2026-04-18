@@ -151,6 +151,26 @@ const userSchema = new mongoose.Schema({
   deviceFingerprint: String,
   ipAddress: String,
 
+  // OneSignal Push Notification Integration
+  onesignalPlayerId: {
+    type: String,
+    default: null
+  },
+  notificationPreferences: {
+    matchNotifications: {
+      type: Boolean,
+      default: true
+    },
+    walletNotifications: {
+      type: Boolean,
+      default: true
+    },
+    systemNotifications: {
+      type: Boolean,
+      default: true
+    }
+  },
+
   createdAt: {
     type: Date,
     default: Date.now

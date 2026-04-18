@@ -4,6 +4,12 @@ import { uploadToCloudinary } from "../utils/uploadToCloudinary.js";
 import { processPayout } from "../utils/payout.js";
 import TrustScoreEngine from "../utils/trustScore.js";
 import ScreenshotValidator from "../utils/screenshotValidation.js";
+import {
+  sendNotification,
+  sendBroadcastNotification,
+  sendMatchEventNotification,
+  updateLastActivity,
+} from "../services/notificationService.js";
 
 const PAYMENT_UPIS = [
   '8261047808@fam',
@@ -466,6 +472,20 @@ export const createMatch = async (req, res) => {
       return res.status(400).json({ error: 'Invalid entry fee' });
     }
 
+    // Check balance
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.wallet.balance < parsedEntry) {
+      return res.status(400).json({
+        error: 'Insufficient balance to create match',
+        required: parsedEntry,
+        available: user.wallet.balance,
+      });
+    }
+
     // Prize pool is fixed per entry amount, not multiplied by player count
     let prizePool;
     if (parsedEntry <= 30) {
@@ -496,6 +516,28 @@ export const createMatch = async (req, res) => {
         },
       ],
     });
+
+    // Update creator's last activity
+    await updateLastActivity(userId);
+
+    // Send broadcast notification to all active users
+    const creatorName = user.username || 'Player';
+    await sendBroadcastNotification(
+      '🔥 New Match Available',
+      `${creatorName} created a ${mode} match — join now and compete!`,
+      {
+        matchId: match._id,
+        minBalance: parsedEntry,
+        type: 'success',
+        priority: 10,
+        data: {
+          matchId: match._id.toString(),
+          eventType: 'match_created',
+          entryFee: parsedEntry,
+          mode: mode,
+        },
+      }
+    );
 
     res.status(201).json({ match: serializeMatch(match) });
   } catch (error) {
@@ -529,8 +571,9 @@ export const acceptMatch = async (req, res) => {
     }
 
     // Get opponent's username
-    const opponent = await User.findById(userId).select('username');
+    const opponent = await User.findById(userId).select('username onesignalPlayerId');
     const opponentUsername = opponent?.username || 'Opponent';
+    const opponentPlayerId = opponent?.onesignalPlayerId;
 
     match.players.push(userId);
     match.paymentUpi = await getNextPaymentUpi();
@@ -545,7 +588,12 @@ export const acceptMatch = async (req, res) => {
 
     await match.save();
 
+    // Update last activity for joining player
+    await updateLastActivity(userId);
+
     const creatorId = match.creator._id?.toString ? match.creator._id.toString() : match.creator.toString();
+    const creatorPlayerId = match.creator.onesignalPlayerId;
+
     if (creatorId) {
       await User.findByIdAndUpdate(creatorId, {
         $push: {
@@ -557,6 +605,52 @@ export const acceptMatch = async (req, res) => {
           },
         },
       });
+    }
+
+    // Send OneSignal notification to match creator
+    if (creatorPlayerId) {
+      await sendNotification(
+        [creatorPlayerId],
+        '⚡ Opponent Joined',
+        `${opponentUsername} joined your match — start now!`,
+        {
+          matchId: match._id,
+          type: 'success',
+          priority: 10,
+          data: {
+            eventType: 'player_joined',
+            matchId: match._id.toString(),
+            opponent: opponentUsername,
+          },
+        }
+      );
+    }
+
+    // If match is now full, send notification to all players
+    if (match.players.length === parseInt(match.mode.split('v')[0]) * 2) {
+      const playerIds = (
+        await User.find({
+          _id: { $in: match.players },
+          onesignalPlayerId: { $exists: true, $ne: null },
+        }).select('onesignalPlayerId')
+      ).map(u => u.onesignalPlayerId);
+
+      if (playerIds.length > 0) {
+        await sendNotification(
+          playerIds,
+          '🎮 Match Ready',
+          'All players joined! Match is ready — start playing!',
+          {
+            matchId: match._id,
+            type: 'success',
+            priority: 10,
+            data: {
+              eventType: 'match_full',
+              matchId: match._id.toString(),
+            },
+          }
+        );
+      }
     }
 
     res.status(200).json({ match: serializeMatch(match) });

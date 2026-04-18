@@ -219,3 +219,73 @@ export const updateProfile = async (req, res) => {
     return sendError(res, 500, 'Failed to update profile', error);
   }
 };
+
+/**
+ * Register or update OneSignal player ID for push notifications
+ * POST /auth/notifications/register-push
+ */
+export const registerPushNotificationId = async (req, res) => {
+  try {
+    const { onesignalPlayerId } = req.body;
+    const userId = req.userId;
+
+    if (!onesignalPlayerId || !onesignalPlayerId.trim()) {
+      return res.status(400).json({ error: 'OneSignal Player ID is required' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { onesignalPlayerId: onesignalPlayerId.trim() },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Push notification ID registered successfully',
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    return sendError(res, 500, 'Failed to register push notification ID', error);
+  }
+};
+
+/**
+ * Update notification preferences
+ * PUT /auth/notifications/preferences
+ */
+export const updateNotificationPreferences = async (req, res) => {
+  try {
+    const { matchNotifications, walletNotifications, systemNotifications } = req.body;
+    const userId = req.userId;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update only provided preferences
+    if (matchNotifications !== undefined) {
+      user.notificationPreferences.matchNotifications = matchNotifications;
+    }
+    if (walletNotifications !== undefined) {
+      user.notificationPreferences.walletNotifications = walletNotifications;
+    }
+    if (systemNotifications !== undefined) {
+      user.notificationPreferences.systemNotifications = systemNotifications;
+    }
+
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: 'Notification preferences updated',
+      preferences: user.notificationPreferences,
+    });
+  } catch (error) {
+    return sendError(res, 500, 'Failed to update notification preferences', error);
+  }
+};

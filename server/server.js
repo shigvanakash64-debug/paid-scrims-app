@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import matchRoutes from "./routes/matchRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import walletRoutes from "./routes/walletRoutes.js";
 import { initializeCronJobs, stopCronJobs } from "./utils/cronJobs.js";
 
 dotenv.config();
@@ -90,6 +91,7 @@ app.get("/health", async (req, res) => {
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/auth", authLimiter, authRoutes); // Alias for simpler deployed URL usage
 app.use("/api/match", matchLimiter, matchRoutes);
+app.use("/api/wallet", matchLimiter, walletRoutes);
 app.use("/api/admin", adminLimiter, adminRoutes);
 
 const PORT = process.env.PORT || 5000;
