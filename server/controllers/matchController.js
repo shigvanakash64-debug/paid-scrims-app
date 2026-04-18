@@ -561,19 +561,19 @@ export const acceptMatch = async (req, res) => {
       return res.status(400).json({ error: 'You already joined this match' });
     }
 
-    // Get opponent's info and check balance for joining
+    // Get opponent's info
     const opponent = await User.findById(userId).select('username onesignalPlayerId wallet');
     const opponentUsername = opponent?.username || 'Opponent';
     const opponentPlayerId = opponent?.onesignalPlayerId;
 
-    // Check balance when joining match
-    if (opponent.wallet.balance < match.entry) {
-      return res.status(400).json({
-        error: 'Insufficient balance to join match',
-        required: match.entry,
-        available: opponent.wallet.balance,
-      });
-    }
+    // TODO: Add balance check back after testing
+    // if (opponent.wallet.balance < match.entry) {
+    //   return res.status(400).json({
+    //     error: 'Insufficient balance to join match',
+    //     required: match.entry,
+    //     available: opponent.wallet.balance,
+    //   });
+    // }
 
     match.players.push(userId);
     match.paymentUpi = await getNextPaymentUpi();
