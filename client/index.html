@@ -11,8 +11,29 @@
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
+        // Initialize OneSignal
         await OneSignal.init({
           appId: "30266cf2-2ad3-49c8-ae4f-1de697e22b8f",
+        });
+
+        // Setup notification event listeners (while SDK is ready)
+        OneSignal.on('notificationDisplay', (event) => {
+          console.log('📱 Notification displayed:', event.notification.heading);
+        });
+
+        OneSignal.on('notificationClicked', (event) => {
+          const notification = event.notification;
+          const data = notification.data;
+
+          console.log('🔔 Notification clicked:', {
+            title: notification.heading,
+            data: data,
+          });
+
+          // Dispatch custom event for React to handle navigation
+          window.dispatchEvent(new CustomEvent('onesignal-notification-clicked', { 
+            detail: { notification, data } 
+          }));
         });
       });
     </script>

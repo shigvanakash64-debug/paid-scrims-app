@@ -112,47 +112,28 @@ function App() {
     restoreSession();
   }, [clearMatch, refreshMatch, setMatch, updateUser]);
 
-  // Setup OneSignal notification handlers
+  // Handle OneSignal notification clicks
   useEffect(() => {
-    if (!window.OneSignal) return;
+    const handleNotificationClick = (event) => {
+      const { data } = event.detail;
 
-    // Handle notification display
-    window.OneSignal.on('notificationDisplay', (event) => {
-      console.log('📱 Notification displayed:', event.notification.heading);
-      // You can add UI updates here (like showing a toast notification)
-    });
-
-    // Handle notification click
-    window.OneSignal.on('notificationClicked', (event) => {
-      const notification = event.notification;
-      const data = notification.data;
-
-      console.log('🔔 Notification clicked:', {
-        title: notification.heading,
-        data: data,
-      });
+      console.log('🔔 Navigation triggered by notification');
 
       // Handle navigation based on notification type
       if (data?.eventType === 'match_created' || data?.matchId) {
-        // Navigate to match details
         setCurrentScreen('match');
         window.scrollTo(0, 0);
       } else if (data?.eventType === 'withdrawal_requested') {
-        // Navigate to wallet
         setCurrentScreen('wallet');
         window.scrollTo(0, 0);
       } else if (data?.eventType === 'matches_available') {
-        // Navigate to home to see available matches
         setCurrentScreen('home');
         window.scrollTo(0, 0);
       }
-    });
-
-    // Cleanup listeners on unmount
-    return () => {
-      window.OneSignal.off?.('notificationDisplay');
-      window.OneSignal.off?.('notificationClicked');
     };
+
+    window.addEventListener('onesignal-notification-clicked', handleNotificationClick);
+    return () => window.removeEventListener('onesignal-notification-clicked', handleNotificationClick);
   }, []);
 
   const setSession = (userData, token) => {
