@@ -472,18 +472,10 @@ export const createMatch = async (req, res) => {
       return res.status(400).json({ error: 'Invalid entry fee' });
     }
 
-    // Check balance
+    // Get user for notifications (don't check balance for creating match)
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (user.wallet.balance < parsedEntry) {
-      return res.status(400).json({
-        error: 'Insufficient balance to create match',
-        required: parsedEntry,
-        available: user.wallet.balance,
-      });
     }
 
     // Prize pool is fixed per entry amount, not multiplied by player count
@@ -527,7 +519,6 @@ export const createMatch = async (req, res) => {
       `${creatorName} created a ${mode} match — join now and compete!`,
       {
         matchId: match._id,
-        minBalance: parsedEntry,
         type: 'success',
         priority: 10,
         data: {
@@ -570,10 +561,19 @@ export const acceptMatch = async (req, res) => {
       return res.status(400).json({ error: 'You already joined this match' });
     }
 
-    // Get opponent's username
-    const opponent = await User.findById(userId).select('username onesignalPlayerId');
+    // Get opponent's info and check balance for joining
+    const opponent = await User.findById(userId).select('username onesignalPlayerId wallet');
     const opponentUsername = opponent?.username || 'Opponent';
     const opponentPlayerId = opponent?.onesignalPlayerId;
+
+    // Check balance when joining match
+    if (opponent.wallet.balance < match.entry) {
+      return res.status(400).json({
+        error: 'Insufficient balance to join match',
+        required: match.entry,
+        available: opponent.wallet.balance,
+      });
+    }
 
     match.players.push(userId);
     match.paymentUpi = await getNextPaymentUpi();
