@@ -33,9 +33,13 @@ const registerOneSignalPlayerId = async (token) => {
       return;
     }
 
+    // Check permission status
+    const permission = await window.OneSignal.Notifications.permission;
+    console.log('🔔 Current notification permission:', permission);
+
     // Get the player ID from OneSignal
     const playerId = await window.OneSignal.getPlayerId();
-    
+
     if (!playerId) {
       console.warn('⚠️ OneSignal Player ID not available yet');
       return;

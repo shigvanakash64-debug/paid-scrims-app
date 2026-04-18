@@ -19,6 +19,15 @@
 
           console.log('✅ OneSignal initialized successfully');
 
+          // Request notification permission (shows "Allow" / "Skip" prompt)
+          console.log('🔔 Requesting notification permission...');
+          const permission = await OneSignal.Notifications.requestPermission();
+          console.log('🔔 Notification permission:', permission ? '✅ Granted' : '❌ Denied');
+
+          // Get and log player ID
+          const playerId = await OneSignal.getPlayerId();
+          console.log('📱 OneSignal Player ID:', playerId ? playerId.substring(0, 15) + '...' : 'Not available');
+
           // Setup notification event listeners using correct v16 API
           if (OneSignal.Notifications) {
             OneSignal.Notifications.addEventListener('display', (event) => {
