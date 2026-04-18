@@ -1,6 +1,6 @@
 # Paid Scrims App - Admin Dashboard Complete ✅
 
-**Status**: Production Ready | Build: PASSING ✅ | All tests: READY TO DEPLOY
+**Status**: Production Ready | Build: PASSING ✅ | All tests: READY TO DEPLOY  
 
 ---
 
