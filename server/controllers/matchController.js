@@ -594,29 +594,18 @@ export const acceptMatch = async (req, res) => {
     const creatorId = match.creator._id?.toString ? match.creator._id.toString() : match.creator.toString();
     const creatorPlayerId = match.creator.onesignalPlayerId;
 
-    if (creatorId) {
-      await User.findByIdAndUpdate(creatorId, {
-        $push: {
-          notifications: {
-            type: 'info',
-            message: `Opponent ${opponentUsername} joined your match. Upload payment proof now.`,
-            link: `/match/${match._id}`,
-            relatedMatch: match._id,
-          },
-        },
-      });
-    }
-
-    // Send OneSignal notification to match creator
+    // Send OneSignal notification to match creator (includes in-app notification)
     if (creatorPlayerId) {
+      console.log(`📡 Sending OneSignal notification to creator ${creatorId} with playerId ${creatorPlayerId}`);
       await sendNotification(
         [creatorPlayerId],
         '⚡ Opponent Joined',
-        `${opponentUsername} joined your match — start now!`,
+        `${opponentUsername} joined your match — come and start your match!`,
         {
           matchId: match._id,
           type: 'success',
           priority: 10,
+          link: `/match/${match._id}`,
           data: {
             eventType: 'player_joined',
             matchId: match._id.toString(),
@@ -624,6 +613,20 @@ export const acceptMatch = async (req, res) => {
           },
         }
       );
+    } else {
+      console.log(`⚠️ Creator ${creatorId} has no OneSignal player ID, skipping push notification`);
+      // Fallback: save in-app notification directly
+      console.log(`📬 Adding in-app notification to creator ${creatorId}: ${opponentUsername} joined your match`);
+      await User.findByIdAndUpdate(creatorId, {
+        $push: {
+          notifications: {
+            type: 'success',
+            message: `${opponentUsername} joined your match. Come and start your match!`,
+            link: `/match/${match._id}`,
+            relatedMatch: match._id,
+          },
+        },
+      });
     }
 
     // If match is now full, send notification to all players
