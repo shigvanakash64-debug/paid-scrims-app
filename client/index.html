@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ff6a00" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    
+    <!-- Web App Manifest (CRITICAL FOR ANDROID) -->
+    <link rel="manifest" href="/manifest.json" />
+    
     <title>Clutch Zone - Gaming Matches</title>
 
     <!-- OneSignal SDK for Push Notifications -->
@@ -15,28 +23,52 @@
           // Initialize OneSignal
           await OneSignal.init({
             appId: "30266cf2-2ad3-49c8-ae4f-1de697e22b8f",
+            allowLocalhostAsSecureOrigin: true,
           });
 
           console.log('✅ OneSignal initialized successfully');
 
-          // Request notification permission (shows "Allow" / "Skip" prompt)
-          console.log('🔔 Requesting notification permission...');
-          const permission = await OneSignal.Notifications.requestPermission();
-          console.log('🔔 Notification permission:', permission ? '✅ Granted' : '❌ Denied');
+          // FORCE USER SUBSCRIBE ON ANDROID - Shows slidedown prompt
+          // This is critical for mobile web apps
+          console.log('📱 Showing notification permission prompt...');
+          setTimeout(() => {
+            try {
+              OneSignal.Notifications.requestPermission().catch(err => {
+                console.warn('Permission request returned:', err);
+              });
+            } catch (e) {
+              console.warn('Could not request permission:', e);
+            }
+          }, 500);
 
           // CAPTURE PLAYER ID after permission is granted
-          if (permission) {
-            const playerId = await OneSignal.User.PushSubscription.id;
-            console.log("📱 Player ID captured:", playerId);
+          const checkAndCapturePlayerId = async () => {
+            try {
+              const permission = await OneSignal.Notifications.permission;
+              console.log('🔔 Notification permission:', permission ? '✅ Granted' : '❌ Denied');
 
-            // Store player ID locally for later use
-            localStorage.setItem('onesignal_player_id', playerId);
+              if (permission) {
+                const playerId = await OneSignal.User.PushSubscription.id;
+                console.log("📱 Player ID captured:", playerId);
 
-            // Dispatch event so React app can handle it
-            window.dispatchEvent(new CustomEvent('onesignal-player-id-ready', {
-              detail: { playerId }
-            }));
-          }
+                // Store player ID locally for later use
+                if (playerId) {
+                  localStorage.setItem('onesignal_player_id', playerId);
+
+                  // Dispatch event so React app can handle it
+                  window.dispatchEvent(new CustomEvent('onesignal-player-id-ready', {
+                    detail: { playerId }
+                  }));
+                }
+              }
+            } catch (err) {
+              console.warn('Could not capture player ID:', err);
+            }
+          };
+
+          // Check player ID immediately and again after a delay (for browser async loading)
+          await checkAndCapturePlayerId();
+          setTimeout(checkAndCapturePlayerId, 2000);
 
           // Setup notification event listeners using OneSignal browser SDK API
           const handleDisplay = (event) => {
@@ -78,6 +110,13 @@
           } else {
             console.warn('⚠️ OneSignal notification listeners not available on this SDK instance');
           }
+
+          // Log subscription status
+          const subscription = await OneSignal.User.PushSubscription;
+          console.log('🔔 Push subscription status:', {
+            isOptedIn: subscription?.isOptedIn,
+            id: subscription?.id ? subscription.id.substring(0, 15) + '...' : 'not available'
+          });
         } catch (error) {
           console.error('❌ OneSignal initialization failed:', error);
         }

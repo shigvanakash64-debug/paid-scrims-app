@@ -73,10 +73,34 @@ const registerOneSignalPlayerId = async (token, playerId = null) => {
       console.log('✅ OneSignal Player ID registered successfully');
       // Clear from localStorage once successfully registered
       localStorage.removeItem('onesignal_player_id');
+
+      // Immediately check the status for debugging
+      checkNotificationStatus(token);
     }
   } catch (error) {
     console.error('⚠️ Failed to register OneSignal Player ID:', error.message);
     // Don't throw - this is non-critical
+  }
+};
+
+// Helper function to check notification status (for debugging)
+const checkNotificationStatus = async (token) => {
+  try {
+    const response = await axios.get(
+      `${API_BASE}/auth/notifications/status`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (response.data.success) {
+      const { status } = response.data;
+      console.log('📊 Notification Status:');
+      console.log(`   Username: ${status.username}`);
+      console.log(`   Has Player ID: ${status.hasPlayerId ? '✅' : '❌'}`);
+      console.log(`   Player ID Preview: ${status.playerIdPreview}`);
+      console.log(`   Prefs: Match=${status.notificationPreferences.matchNotifications}, Wallet=${status.notificationPreferences.walletNotifications}, System=${status.notificationPreferences.systemNotifications}`);
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not check notification status:', error.message);
   }
 };
 
@@ -192,6 +216,24 @@ function App() {
     window.addEventListener('onesignal-notification-clicked', handleNotificationClickEvent);
     return () => window.removeEventListener('onesignal-notification-clicked', handleNotificationClickEvent);
   }, [handleNotificationClick]);
+
+  // Periodic check of notification status (for debugging)
+  useEffect(() => {
+    if (!user) return; // Only check when logged in
+
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return;
+
+    // Check immediately on mount
+    checkNotificationStatus(token);
+
+    // Then check every 60 seconds
+    const interval = setInterval(() => {
+      checkNotificationStatus(token);
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   const setSession = (userData, token) => {
     updateUser(userData);

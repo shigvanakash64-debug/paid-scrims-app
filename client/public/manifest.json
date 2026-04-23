@@ -1,0 +1,25 @@
+{
+  "name": "Clutch Zone",
+  "short_name": "Clutch",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#ff6a00",
+  "gcm_sender_id": "103953800507",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["games", "sports"],
+  "description": "Clutch Zone - Gaming Matches",
+  "screenshots": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "540x720",
+      "type": "image/svg+xml"
+    }
+  ]
+}

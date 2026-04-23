@@ -230,8 +230,12 @@ export const registerPushNotificationId = async (req, res) => {
     const userId = req.userId;
 
     if (!onesignalPlayerId || !onesignalPlayerId.trim()) {
+      console.warn(`⚠️ [Push] Player ID registration failed: Empty or missing player ID for user ${userId}`);
       return res.status(400).json({ error: 'OneSignal Player ID is required' });
     }
+
+    console.log(`📱 [Push] Registering player ID for user ${userId}`);
+    console.log(`   Player ID: ${onesignalPlayerId.substring(0, 20)}...`);
 
     const user = await User.findByIdAndUpdate(
       userId,
@@ -240,8 +244,12 @@ export const registerPushNotificationId = async (req, res) => {
     );
 
     if (!user) {
+      console.error(`❌ [Push] User not found: ${userId}`);
       return res.status(404).json({ error: 'User not found' });
     }
+
+    console.log(`✅ [Push] Player ID registered successfully for user ${userId}`);
+    console.log(`   Stored: ${user.onesignalPlayerId ? '✓' : '✗'}`);
 
     return res.json({
       success: true,
@@ -287,5 +295,35 @@ export const updateNotificationPreferences = async (req, res) => {
     });
   } catch (error) {
     return sendError(res, 500, 'Failed to update notification preferences', error);
+  }
+};
+
+/**
+ * Get notification status for debugging
+ * GET /auth/notifications/status
+ */
+export const getNotificationStatus = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const user = await User.findById(userId).select('username onesignalPlayerId notificationPreferences role');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json({
+      success: true,
+      status: {
+        userId: user._id,
+        username: user.username,
+        hasPlayerId: !!user.onesignalPlayerId,
+        playerIdPreview: user.onesignalPlayerId ? user.onesignalPlayerId.substring(0, 20) + '...' : 'NONE',
+        notificationPreferences: user.notificationPreferences,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    return sendError(res, 500, 'Failed to get notification status', error);
   }
 };
