@@ -24,9 +24,19 @@
           const permission = await OneSignal.Notifications.requestPermission();
           console.log('🔔 Notification permission:', permission ? '✅ Granted' : '❌ Denied');
 
-          // Get and log player ID
-          const playerId = await OneSignal.getPlayerId();
-          console.log('📱 OneSignal Player ID:', playerId ? playerId.substring(0, 15) + '...' : 'Not available');
+          // CAPTURE PLAYER ID after permission is granted
+          if (permission) {
+            const playerId = await OneSignal.User.PushSubscription.id;
+            console.log("📱 Player ID captured:", playerId);
+
+            // Store player ID locally for later use
+            localStorage.setItem('onesignal_player_id', playerId);
+
+            // Dispatch event so React app can handle it
+            window.dispatchEvent(new CustomEvent('onesignal-player-id-ready', {
+              detail: { playerId }
+            }));
+          }
 
           // Setup notification event listeners using OneSignal browser SDK API
           const handleDisplay = (event) => {

@@ -547,7 +547,7 @@ export const acceptMatch = async (req, res) => {
     }
 
     const match = await Match.findById(matchId)
-      .populate('creator', 'username')
+      .populate('creator', 'username onesignalPlayerId')
       .populate('players', 'username');
     if (!match) {
       return res.status(404).json({ error: 'Match not found' });
@@ -593,6 +593,9 @@ export const acceptMatch = async (req, res) => {
 
     const creatorId = match.creator._id?.toString ? match.creator._id.toString() : match.creator.toString();
     const creatorPlayerId = match.creator.onesignalPlayerId;
+
+    // DEBUG: Log player ID before sending
+    console.log("Sending to:", creatorPlayerId);
 
     // Send OneSignal notification to match creator (includes in-app notification)
     if (creatorPlayerId) {

@@ -25,7 +25,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.o
 const TOKEN_KEY = 'clutchzone_token';
 
 // Helper function to register OneSignal player ID with backend
-const registerOneSignalPlayerId = async (token) => {
+const registerOneSignalPlayerId = async (token, playerId = null) => {
   try {
     // Check if OneSignal is loaded
     if (!window.OneSignal) {
@@ -33,29 +33,46 @@ const registerOneSignalPlayerId = async (token) => {
       return;
     }
 
-    // Check permission status
-    const permission = await window.OneSignal.Notifications.permission;
-    console.log('🔔 Current notification permission:', permission);
+    let finalPlayerId = playerId;
 
-    // Get the player ID from OneSignal
-    const playerId = await window.OneSignal.getPlayerId();
+    // If no playerId provided, try to get it from OneSignal or localStorage
+    if (!finalPlayerId) {
+      // Check permission status
+      const permission = await window.OneSignal.Notifications.permission;
+      console.log('🔔 Current notification permission:', permission);
 
-    if (!playerId) {
+      if (permission !== true) {
+        console.log('⚠️ Notification permission not granted, skipping player ID registration');
+        return;
+      }
+
+      // Try to get from OneSignal first
+      finalPlayerId = await window.OneSignal.User.PushSubscription.id;
+
+      // Fallback to localStorage
+      if (!finalPlayerId) {
+        finalPlayerId = localStorage.getItem('onesignal_player_id');
+      }
+    }
+
+    if (!finalPlayerId) {
       console.warn('⚠️ OneSignal Player ID not available yet');
       return;
     }
 
-    console.log('📱 Registering OneSignal Player ID:', playerId.substring(0, 15) + '...');
+    console.log('📱 Registering OneSignal Player ID:', finalPlayerId.substring(0, 15) + '...');
 
     // Send player ID to backend
     const response = await axios.post(
       `${API_BASE}/auth/notifications/register-push`,
-      { onesignalPlayerId: playerId },
+      { onesignalPlayerId: finalPlayerId },
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
     if (response.data.success) {
       console.log('✅ OneSignal Player ID registered successfully');
+      // Clear from localStorage once successfully registered
+      localStorage.removeItem('onesignal_player_id');
     }
   } catch (error) {
     console.error('⚠️ Failed to register OneSignal Player ID:', error.message);
@@ -106,6 +123,9 @@ function App() {
             clearMatch();
           }
         }
+
+        // Register OneSignal player ID after restoring session
+        registerOneSignalPlayerId(token);
       } catch {
         localStorage.removeItem(TOKEN_KEY);
       } finally {
@@ -150,19 +170,18 @@ function App() {
   }, [refreshMatch, setMatch, setCurrentScreen]);
 
   useEffect(() => {
-    const pending = window.localStorage.getItem('onesignal-notification-click');
-    if (pending) {
-      try {
-        const parsed = JSON.parse(pending);
-        if (parsed?.data) {
-          handleNotificationClick(parsed.data);
-        }
-      } catch (err) {
-        console.warn('Failed to parse pending OneSignal notification click:', err);
+    const handlePlayerIdReady = (event) => {
+      const { playerId } = event.detail;
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (token && playerId) {
+        console.log('📱 OneSignal player ID ready, registering with backend...');
+        registerOneSignalPlayerId(token, playerId);
       }
-      window.localStorage.removeItem('onesignal-notification-click');
-    }
-  }, [handleNotificationClick]);
+    };
+
+    window.addEventListener('onesignal-player-id-ready', handlePlayerIdReady);
+    return () => window.removeEventListener('onesignal-player-id-ready', handlePlayerIdReady);
+  }, []);
 
   useEffect(() => {
     const handleNotificationClickEvent = (event) => {
