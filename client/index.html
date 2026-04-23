@@ -20,10 +20,13 @@
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
         try {
-          // Initialize OneSignal
+          // Initialize OneSignal with explicit service worker configuration
           await OneSignal.init({
             appId: "30266cf2-2ad3-49c8-ae4f-1de697e22b8f",
             allowLocalhostAsSecureOrigin: true,
+            serviceWorkerPath: '/OneSignalSDKWorker.js',
+            serviceWorkerUpdaterPath: '/OneSignalSDKUpdaterWorker.js',
+            serviceWorkerParam: { scope: '/' },
           });
 
           console.log('✅ OneSignal initialized successfully');
@@ -33,6 +36,12 @@
           console.log('📱 Showing notification permission prompt...');
           setTimeout(() => {
             try {
+              if (OneSignal.Notifications?.showSlidedownPrompt) {
+                OneSignal.Notifications.showSlidedownPrompt();
+              }
+              if (OneSignal.Notifications?.showNativePrompt) {
+                OneSignal.Notifications.showNativePrompt();
+              }
               OneSignal.Notifications.requestPermission().catch(err => {
                 console.warn('Permission request returned:', err);
               });

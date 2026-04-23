@@ -86,6 +86,7 @@ export const sendNotification = async (playerIds, title, message, options = {}) 
       include_player_ids: validPlayerIds,
       headings: { en: title },
       contents: { en: message },
+      url: options.url || undefined,
       big_picture: options.bigPicture || null,
       ios_attachments: options.iosAttachments || null,
       data: options.data || {},

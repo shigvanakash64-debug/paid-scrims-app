@@ -605,6 +605,7 @@ export const acceptMatch = async (req, res) => {
         '⚡ Opponent Joined',
         `${opponentUsername} joined your match — come and start your match!`,
         {
+          url: `https://paid-scrims-app.vercel.app/match/${match._id}`,
           matchId: match._id,
           type: 'success',
           priority: 10,
@@ -647,6 +648,7 @@ export const acceptMatch = async (req, res) => {
           '🎮 Match Ready',
           'All players joined! Match is ready — start playing!',
           {
+            url: `https://paid-scrims-app.vercel.app/match/${match._id}`,
             matchId: match._id,
             type: 'success',
             priority: 10,

@@ -2,6 +2,7 @@
   "name": "Clutch Zone",
   "short_name": "Clutch",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#ff6a00",
