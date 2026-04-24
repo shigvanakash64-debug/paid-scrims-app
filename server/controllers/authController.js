@@ -276,6 +276,8 @@ export const sendWelcomeNotification = async (req, res) => {
     res.status(500).json({ error: `Server error: ${error.message}` });
   }
 };
+
+export const registerPushNotificationId = async (req, res) => {
   try {
     const { onesignalPlayerId, userId } = req.body;
     const authenticatedUserId = req.userId || userId; // Allow userId in body for non-authenticated requests
@@ -306,7 +308,7 @@ export const sendWelcomeNotification = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    console.log(`✅ [Push] Player ID registered successfully for user ${userId}`);
+    console.log(`✅ [Push] Player ID registered successfully for user ${authenticatedUserId}`);
     console.log(`   Stored: ${user.onesignalPlayerId ? '✓' : '✗'}`);
 
     return res.json({
