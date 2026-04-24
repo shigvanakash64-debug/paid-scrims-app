@@ -8,8 +8,8 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
   registerPushNotificationId,
-  updateNotificationPreferences,
   getNotificationStatus,
+  testNotification,
 } from "../controllers/authController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
@@ -23,7 +23,7 @@ router.put("/profile", authMiddleware, updateProfile);
 router.post("/notifications/mark-read", authMiddleware, markNotificationRead);
 router.post("/notifications/read-all", authMiddleware, markAllNotificationsRead);
 router.post("/notifications/register-push", authMiddleware, registerPushNotificationId);
-router.put("/notifications/preferences", authMiddleware, updateNotificationPreferences);
 router.get("/notifications/status", authMiddleware, getNotificationStatus);
+router.post("/notifications/test", authMiddleware, testNotification);
 
 export default router;

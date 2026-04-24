@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Assuming you have routing, or use the onScreenChange prop
 
-export const SettingsScreen = ({ user }) => {
+export const SettingsScreen = ({ user, onScreenChange }) => {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -97,6 +98,20 @@ export const SettingsScreen = ({ user }) => {
             {saving ? 'SAVING...' : 'UPDATE PASSWORD'}
           </button>
         </form>
+      </div>
+
+      {/* Debug Section */}
+      <div className="settings-card">
+        <h3 className="text-lg font-semibold mb-3">Debug Tools</h3>
+        <button
+          className="btn-secondary"
+          onClick={() => onScreenChange('notification-test')}
+        >
+          🔔 Test Notifications
+        </button>
+        <p className="text-sm text-gray-600 mt-2">
+          Check notification status and send test notifications
+        </p>
       </div>
     </div>
   );

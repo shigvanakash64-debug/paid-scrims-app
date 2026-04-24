@@ -5,8 +5,13 @@ const ONESIGNAL_API_URL = 'https://onesignal.com/api/v1/notifications';
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
 
-// ✅ LOG CONFIGURATION ON STARTUP
+let configValidated = false;
+
+// ✅ LOG CONFIGURATION ON STARTUP (called after dotenv is loaded)
 const validateConfig = () => {
+  if (configValidated) return; // Only validate once
+  configValidated = true;
+
   const hasAppId = !!ONESIGNAL_APP_ID;
   const hasRestKey = !!ONESIGNAL_REST_API_KEY;
 
@@ -26,7 +31,8 @@ const validateConfig = () => {
   }
 };
 
-validateConfig();
+// Export validateConfig for external calling
+export { validateConfig };
 
 /**
  * Send notification to specific players via OneSignal
@@ -37,6 +43,8 @@ validateConfig();
  * @returns {Promise<Object>} OneSignal API response
  */
 export const sendNotification = async (playerIds, title, message, options = {}) => {
+  // Validate config on first use
+  validateConfig();
   try {
     // ✅ VALIDATION: Check if credentials are set
     if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
@@ -54,6 +62,7 @@ export const sendNotification = async (playerIds, title, message, options = {}) 
 
     console.log(`📤 Preparing notification: "${title}"`);
     console.log(`   Players: ${playerIds.length} → Valid: ${validPlayerIds.length}`);
+    console.log(`   Valid Player IDs:`, validPlayerIds);
 
     if (validPlayerIds.length === 0) {
       console.warn('⚠️  No valid player IDs provided for notification');

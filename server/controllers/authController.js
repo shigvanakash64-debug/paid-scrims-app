@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import { createToken, generateSalt, hashPassword } from "../utils/authUtils.js";
 import bcrypt from "bcrypt";
+import { sendNotification } from "../services/notificationService.js";
 
 const sendError = (res, status, message, error) => {
   console.error(`[AUTH ERROR] ${message}:`, error);
@@ -262,43 +263,6 @@ export const registerPushNotificationId = async (req, res) => {
 };
 
 /**
- * Update notification preferences
- * PUT /auth/notifications/preferences
- */
-export const updateNotificationPreferences = async (req, res) => {
-  try {
-    const { matchNotifications, walletNotifications, systemNotifications } = req.body;
-    const userId = req.userId;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Update only provided preferences
-    if (matchNotifications !== undefined) {
-      user.notificationPreferences.matchNotifications = matchNotifications;
-    }
-    if (walletNotifications !== undefined) {
-      user.notificationPreferences.walletNotifications = walletNotifications;
-    }
-    if (systemNotifications !== undefined) {
-      user.notificationPreferences.systemNotifications = systemNotifications;
-    }
-
-    await user.save();
-
-    return res.json({
-      success: true,
-      message: 'Notification preferences updated',
-      preferences: user.notificationPreferences,
-    });
-  } catch (error) {
-    return sendError(res, 500, 'Failed to update notification preferences', error);
-  }
-};
-
-/**
  * Get notification status for debugging
  * GET /auth/notifications/status
  */
@@ -325,5 +289,57 @@ export const getNotificationStatus = async (req, res) => {
     });
   } catch (error) {
     return sendError(res, 500, 'Failed to get notification status', error);
+  }
+};
+
+/**
+ * Test notification delivery
+ * POST /auth/notifications/test
+ */
+export const testNotification = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const user = await User.findById(userId).select('username onesignalPlayerId');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.onesignalPlayerId) {
+      return res.status(400).json({
+        error: 'No OneSignal player ID found',
+        message: 'Please grant notification permissions first'
+      });
+    }
+
+    console.log(`🧪 Testing notification for user ${user.username} with playerId ${user.onesignalPlayerId}`);
+
+    const result = await sendNotification(
+      [user.onesignalPlayerId],
+      '🧪 Test Notification',
+      'This is a test notification to verify your setup is working!',
+      {
+        url: 'https://paid-scrims-app.vercel.app/',
+        type: 'info',
+        priority: 5,
+        data: {
+          eventType: 'test_notification',
+          timestamp: new Date().toISOString(),
+        },
+      }
+    );
+
+    console.log(`🧪 Test notification result:`, result);
+
+    return res.json({
+      success: true,
+      message: 'Test notification sent',
+      result,
+      playerId: user.onesignalPlayerId.substring(0, 20) + '...',
+    });
+  } catch (error) {
+    console.error('🧪 Test notification error:', error);
+    return sendError(res, 500, 'Failed to send test notification', error);
   }
 };

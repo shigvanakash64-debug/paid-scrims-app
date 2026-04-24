@@ -1,16 +1,17 @@
+import dotenv from "dotenv";
+
+dotenv.config({ path: './.env' });
+
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import dotenv from "dotenv";
 import matchRoutes from "./routes/matchRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
 import { initializeCronJobs, stopCronJobs } from "./utils/cronJobs.js";
-
-dotenv.config();
 
 console.log("Server starting with updated code - force redeploy");
 

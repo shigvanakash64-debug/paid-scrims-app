@@ -14,6 +14,7 @@ import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
 import { BottomNav } from './components/BottomNav';
 import { Header } from './components/Header';
+import NotificationTest from './components/NotificationTest';
 import { useMatch } from './contexts/MatchContext';
 import { useUser } from './contexts/UserContext';
 import './App.css';
@@ -370,6 +371,8 @@ function App() {
         return <SettingsScreen user={user} />;
       case 'instructions':
         return <InstructionsScreen />;
+      case 'notification-test':
+        return <NotificationTest />;
       default:
         return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={setCurrentScreen} />;
     }

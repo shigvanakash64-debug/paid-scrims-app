@@ -116,6 +116,22 @@
           await checkAndCapturePlayerId();
           setTimeout(checkAndCapturePlayerId, 2000);
 
+          // Also check player ID after permission prompts
+          setTimeout(checkAndCapturePlayerId, 1500); // After first prompt
+          setTimeout(checkAndCapturePlayerId, 4000); // After second prompt
+
+          // Listen for permission changes
+          if (OneSignal.Notifications?.addEventListener) {
+            OneSignal.Notifications.addEventListener('permissionChange', async (permissionChange) => {
+              console.log('🔔 Permission changed:', permissionChange);
+              if (permissionChange.to === 'granted') {
+                console.log('✅ Permission granted! Capturing player ID...');
+                // Wait a bit for OneSignal to fully initialize
+                setTimeout(checkAndCapturePlayerId, 1000);
+              }
+            });
+          }
+
           // Setup notification event listeners using OneSignal browser SDK API
           const handleDisplay = (event) => {
             console.log('📱 Notification displayed:', event.notification?.title || 'unknown');

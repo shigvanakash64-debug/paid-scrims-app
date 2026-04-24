@@ -600,7 +600,10 @@ export const acceptMatch = async (req, res) => {
     // Send OneSignal notification to match creator (includes in-app notification)
     if (creatorPlayerId) {
       console.log(`📡 Sending OneSignal notification to creator ${creatorId} with playerId ${creatorPlayerId}`);
-      await sendNotification(
+      console.log(`   Match ID: ${match._id}`);
+      console.log(`   Opponent: ${opponentUsername}`);
+
+      const notificationResult = await sendNotification(
         [creatorPlayerId],
         '⚡ Opponent Joined',
         `${opponentUsername} joined your match — come and start your match!`,
@@ -617,8 +620,12 @@ export const acceptMatch = async (req, res) => {
           },
         }
       );
+
+      console.log(`📡 Notification result:`, notificationResult);
+
     } else {
       console.log(`⚠️ Creator ${creatorId} has no OneSignal player ID, skipping push notification`);
+      console.log(`   Creator playerId:`, creatorPlayerId);
       // Fallback: save in-app notification directly
       console.log(`📬 Adding in-app notification to creator ${creatorId}: ${opponentUsername} joined your match`);
       await User.findByIdAndUpdate(creatorId, {
