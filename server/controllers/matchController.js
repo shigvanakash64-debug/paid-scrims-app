@@ -591,6 +591,9 @@ export const acceptMatch = async (req, res) => {
     // Update last activity for joining player
     await updateLastActivity(userId);
 
+    const creatorId = match.creator._id?.toString ? match.creator._id.toString() : match.creator.toString();
+    const creatorPlayerId = match.creator.onesignalPlayerId;
+
     // DEBUG: Log player ID before sending
     console.log("🔥 ACCEPT MATCH DEBUG:");
     console.log("   Creator ID:", creatorId);
