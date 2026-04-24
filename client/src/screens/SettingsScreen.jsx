@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Assuming you have routing, or use the onScreenChange prop
 
 export const SettingsScreen = ({ user, onScreenChange }) => {
   const [oldPassword, setOldPassword] = useState('');
