@@ -225,7 +225,57 @@ export const updateProfile = async (req, res) => {
  * Register or update OneSignal player ID for push notifications
  * POST /auth/notifications/register-push
  */
-export const registerPushNotificationId = async (req, res) => {
+export const sendWelcomeNotification = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const authenticatedUserId = req.userId || userId;
+
+    console.log(`🎉 WELCOME NOTIFICATION:`, { authenticatedUserId, providedUserId: userId });
+
+    if (!authenticatedUserId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    const user = await User.findById(authenticatedUserId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.onesignalPlayerId) {
+      console.log(`⚠️ User ${authenticatedUserId} has no OneSignal player ID, skipping welcome notification`);
+      return res.status(200).json({ success: true, message: 'No player ID available' });
+    }
+
+    console.log(`📡 Sending welcome notification to user ${authenticatedUserId} with playerId ${user.onesignalPlayerId}`);
+
+    const { sendNotification } = await import('../services/notificationService.js');
+
+    const notificationResult = await sendNotification(
+      [user.onesignalPlayerId],
+      '🎮 Match Ready',
+      'players are waiting - join your first match now',
+      {
+        type: 'info',
+        priority: 5,
+        data: {
+          eventType: 'welcome',
+          message: 'Welcome to Clutch Zone!'
+        }
+      }
+    );
+
+    console.log(`📡 Welcome notification result:`, notificationResult);
+
+    res.status(200).json({
+      success: true,
+      message: 'Welcome notification sent',
+      result: notificationResult
+    });
+  } catch (error) {
+    console.error('❌ Welcome notification error:', error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
   try {
     const { onesignalPlayerId, userId } = req.body;
     const authenticatedUserId = req.userId || userId; // Allow userId in body for non-authenticated requests

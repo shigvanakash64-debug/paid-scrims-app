@@ -1,26 +1,76 @@
 {
-  "name": "Clutch Zone",
-  "short_name": "Clutch",
+  "name": "Clutch Zone - Gaming Matches",
+  "short_name": "Clutch Zone",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#ff6a00",
+  "orientation": "portrait-primary",
   "gcm_sender_id": "103953800507",
+  "categories": ["games", "sports", "entertainment"],
+  "description": "Clutch Zone - Competitive Gaming Matches with Real Money Prizes",
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/favicon.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ],
-  "categories": ["games", "sports"],
-  "description": "Clutch Zone - Gaming Matches",
+  "shortcuts": [
+    {
+      "name": "Create Match",
+      "short_name": "New Match",
+      "description": "Create a new gaming match",
+      "url": "/?action=create-match",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "My Matches",
+      "short_name": "Matches",
+      "description": "View your active matches",
+      "url": "/?action=my-matches",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
   "screenshots": [
     {
       "src": "/favicon.svg",
       "sizes": "540x720",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "1280x720",
+      "type": "image/svg+xml",
+      "form_factor": "wide"
     }
   ]
 }

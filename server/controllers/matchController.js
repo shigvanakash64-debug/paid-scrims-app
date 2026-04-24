@@ -591,24 +591,23 @@ export const acceptMatch = async (req, res) => {
     // Update last activity for joining player
     await updateLastActivity(userId);
 
-    const creatorId = match.creator._id?.toString ? match.creator._id.toString() : match.creator.toString();
-    const creatorPlayerId = match.creator.onesignalPlayerId;
-
     // DEBUG: Log player ID before sending
-    console.log("🔥 Sending to:", creatorPlayerId);
-    console.log("🔥 Creator ID:", creatorId);
-    console.log("🔥 Match ID:", match._id);
+    console.log("🔥 ACCEPT MATCH DEBUG:");
+    console.log("   Creator ID:", creatorId);
+    console.log("   Creator Player ID:", creatorPlayerId);
+    console.log("   Creator Player ID type:", typeof creatorPlayerId);
+    console.log("   Creator Player ID length:", creatorPlayerId ? creatorPlayerId.length : 'null');
+    console.log("   Match ID:", match._id);
+    console.log("   Opponent:", opponentUsername);
 
     // Send OneSignal notification to match creator (includes in-app notification)
-    if (creatorPlayerId) {
-      console.log(`📡 Sending OneSignal notification to creator ${creatorId} with playerId ${creatorPlayerId}`);
-      console.log(`   Match ID: ${match._id}`);
-      console.log(`   Opponent: ${opponentUsername}`);
+    if (creatorPlayerId && creatorPlayerId.trim()) {
+      console.log(`📡 Sending OneSignal notification to creator ${creatorId} with playerId ${creatorPlayerId.substring(0, 20)}...`);
 
       const notificationResult = await sendNotification(
         [creatorPlayerId],
-        '⚡ Opponent Joined',
-        `${opponentUsername} joined your match — come and start your match!`,
+        '⚡ Player Joined',
+        `${opponentUsername} has joined your match, come, join and complete it`,
         {
           url: `https://paid-scrims-app.vercel.app/match/${match._id}`,
           matchId: match._id,
@@ -634,7 +633,7 @@ export const acceptMatch = async (req, res) => {
         $push: {
           notifications: {
             type: 'success',
-            message: `${opponentUsername} joined your match. Come and start your match!`,
+            message: `${opponentUsername} has joined your match, come, join and complete it`,
             link: `/match/${match._id}`,
             relatedMatch: match._id,
           },

@@ -8,6 +8,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
   registerPushNotificationId,
+  sendWelcomeNotification,
   getNotificationStatus,
   testNotification,
 } from "../controllers/authController.js";
@@ -22,7 +23,7 @@ router.post("/change-password", authMiddleware, changePassword);
 router.put("/profile", authMiddleware, updateProfile);
 router.post("/notifications/mark-read", authMiddleware, markNotificationRead);
 router.post("/notifications/read-all", authMiddleware, markAllNotificationsRead);
-router.post("/notifications/register-push", registerPushNotificationId);
+router.post("/notifications/send-welcome", sendWelcomeNotification);
 router.get("/notifications/status", authMiddleware, getNotificationStatus);
 router.post("/notifications/test", authMiddleware, testNotification);
 

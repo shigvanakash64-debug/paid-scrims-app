@@ -17,6 +17,49 @@
     <!-- OneSignal SDK for Push Notifications -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
+      // PWA Installation Prompt
+      let deferredPrompt;
+      let installPromptShown = false;
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('🛠️ PWA install prompt available');
+        e.preventDefault();
+        deferredPrompt = e;
+
+        // Show install prompt after user interaction
+        const showInstallPrompt = () => {
+          if (deferredPrompt && !installPromptShown) {
+            installPromptShown = true;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+              if (choiceResult.outcome === 'accepted') {
+                console.log('✅ User accepted PWA installation');
+              } else {
+                console.log('❌ User dismissed PWA installation');
+              }
+              deferredPrompt = null;
+            });
+          }
+        };
+
+        // Show prompt on first meaningful interaction
+        const handleInstallTrigger = () => {
+          setTimeout(showInstallPrompt, 2000); // Delay to ensure OneSignal is ready
+          document.removeEventListener('click', handleInstallTrigger);
+          document.removeEventListener('touchstart', handleInstallTrigger);
+          document.removeEventListener('keydown', handleInstallTrigger);
+        };
+
+        document.addEventListener('click', handleInstallTrigger, { once: true });
+        document.addEventListener('touchstart', handleInstallTrigger, { once: true });
+        document.addEventListener('keydown', handleInstallTrigger, { once: true });
+      });
+
+      window.addEventListener('appinstalled', (evt) => {
+        console.log('🎉 PWA was installed');
+      });
+
+      // OneSignal SDK for Push Notifications
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
         try {
@@ -224,12 +267,58 @@
             console.warn('⚠️ OneSignal notification listeners not available on this SDK instance');
           }
 
-          // Log subscription status
-          const subscription = await OneSignal.User.PushSubscription;
-          console.log('🔔 Push subscription status:', {
-            isOptedIn: subscription?.isOptedIn,
-            id: subscription?.id ? subscription.id.substring(0, 15) + '...' : 'not available'
-          });
+          // Send welcome notification for first-time users
+          const sendWelcomeNotification = async () => {
+            try {
+              const welcomeShownKey = 'clutchzone_welcome_shown';
+              const lastWelcomeTime = localStorage.getItem('clutchzone_last_welcome');
+              const now = Date.now();
+              const oneDayMs = 24 * 60 * 60 * 1000; // 24 hours
+
+              // Only show if not shown in last 24 hours or never shown
+              if (!lastWelcomeTime || (now - parseInt(lastWelcomeTime)) > oneDayMs) {
+                console.log('🎉 Sending welcome notification');
+
+                // Get user info if logged in
+                const token = localStorage.getItem('clutchzone_token');
+                let userId = null;
+                if (token) {
+                  try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    userId = payload.userId;
+                  } catch (e) {
+                    console.warn('Could not decode token for welcome notification');
+                  }
+                }
+
+                // Send welcome notification via API
+                const API_BASE = window.location.hostname === 'localhost' 
+                  ? 'http://localhost:5000/api' 
+                  : 'https://paid-scrims-app.onrender.com/api';
+
+                const response = await fetch(`${API_BASE}/auth/notifications/send-welcome`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token ? `Bearer ${token}` : ''
+                  },
+                  body: JSON.stringify({ userId })
+                });
+
+                if (response.ok) {
+                  console.log('✅ Welcome notification sent');
+                  localStorage.setItem('clutchzone_last_welcome', now.toString());
+                } else {
+                  console.warn('⚠️ Failed to send welcome notification:', response.status);
+                }
+              }
+            } catch (error) {
+              console.warn('⚠️ Could not send welcome notification:', error.message);
+            }
+          };
+
+          // Send welcome notification after a short delay
+          setTimeout(sendWelcomeNotification, 3000);
         } catch (error) {
           console.error('❌ OneSignal initialization failed:', error);
         }
