@@ -227,25 +227,32 @@ export const updateProfile = async (req, res) => {
  */
 export const registerPushNotificationId = async (req, res) => {
   try {
-    const { onesignalPlayerId } = req.body;
-    const userId = req.userId;
+    const { onesignalPlayerId, userId } = req.body;
+    const authenticatedUserId = req.userId || userId; // Allow userId in body for non-authenticated requests
+
+    console.log(`🔥 REGISTER PUSH ID:`, { authenticatedUserId, providedUserId: userId, playerId: onesignalPlayerId?.substring(0, 20) + '...' });
+
+    if (!authenticatedUserId) {
+      console.warn(`⚠️ [Push] No user ID provided`);
+      return res.status(400).json({ error: 'User ID is required' });
+    }
 
     if (!onesignalPlayerId || !onesignalPlayerId.trim()) {
-      console.warn(`⚠️ [Push] Player ID registration failed: Empty or missing player ID for user ${userId}`);
+      console.warn(`⚠️ [Push] Player ID registration failed: Empty or missing player ID for user ${authenticatedUserId}`);
       return res.status(400).json({ error: 'OneSignal Player ID is required' });
     }
 
-    console.log(`📱 [Push] Registering player ID for user ${userId}`);
+    console.log(`📱 [Push] Registering player ID for user ${authenticatedUserId}`);
     console.log(`   Player ID: ${onesignalPlayerId.substring(0, 20)}...`);
 
     const user = await User.findByIdAndUpdate(
-      userId,
+      authenticatedUserId,
       { onesignalPlayerId: onesignalPlayerId.trim() },
       { new: true }
     );
 
     if (!user) {
-      console.error(`❌ [Push] User not found: ${userId}`);
+      console.error(`❌ [Push] User not found: ${authenticatedUserId}`);
       return res.status(404).json({ error: 'User not found' });
     }
 

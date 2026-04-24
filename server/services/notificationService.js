@@ -109,7 +109,10 @@ export const sendNotification = async (playerIds, title, message, options = {}) 
 
     console.log(`📡 Sending to OneSignal API...`);
     console.log(`   URL: ${ONESIGNAL_API_URL}`);
-    console.log(`   App ID: ${ONESIGNAL_APP_ID.substring(0, 8)}...`);
+    console.log(`   App ID: ${ONESIGNAL_APP_ID}`);
+    console.log(`   Player IDs:`, validPlayerIds);
+    console.log(`   Authorization: Basic ${ONESIGNAL_REST_API_KEY.substring(0, 10)}...`);
+    console.log(`   Payload:`, JSON.stringify(payload, null, 2));
 
     // Send to OneSignal
     const response = await axios.post(ONESIGNAL_API_URL, payload, {

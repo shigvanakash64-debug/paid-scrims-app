@@ -595,7 +595,9 @@ export const acceptMatch = async (req, res) => {
     const creatorPlayerId = match.creator.onesignalPlayerId;
 
     // DEBUG: Log player ID before sending
-    console.log("Sending to:", creatorPlayerId);
+    console.log("🔥 Sending to:", creatorPlayerId);
+    console.log("🔥 Creator ID:", creatorId);
+    console.log("🔥 Match ID:", match._id);
 
     // Send OneSignal notification to match creator (includes in-app notification)
     if (creatorPlayerId) {

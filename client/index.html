@@ -31,6 +31,57 @@
 
           console.log('✅ OneSignal initialized successfully');
 
+          // CRITICAL: Save player ID immediately when available
+          const playerId = await OneSignal.User.PushSubscription.id;
+          if (playerId) {
+            console.log('🔥 Player ID available:', playerId);
+
+            // Try to get user ID from localStorage (if logged in)
+            const token = localStorage.getItem('clutchzone_token');
+            let userId = null;
+            
+            if (token) {
+              try {
+                // Decode JWT to get user ID (simple decode, not secure validation)
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                userId = payload.userId;
+              } catch (e) {
+                console.warn('Could not decode token for user ID');
+              }
+            }
+
+            // Save to backend immediately (don't wait for login)
+            try {
+              const API_BASE = window.location.hostname === 'localhost' 
+                ? 'http://localhost:5000/api' 
+                : 'https://paid-scrims-app.onrender.com/api';
+                
+              const response = await fetch(`${API_BASE}/auth/notifications/register-push`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': token ? `Bearer ${token}` : ''
+                },
+                body: JSON.stringify({ 
+                  onesignalPlayerId: playerId,
+                  userId: userId // Send userId in body as fallback
+                })
+              });
+              
+              if (response.ok) {
+                console.log('✅ Player ID saved to backend');
+              } else {
+                console.warn('⚠️ Failed to save player ID to backend:', response.status);
+                // Store locally as fallback
+                localStorage.setItem('onesignal_player_id', playerId);
+              }
+            } catch (error) {
+              console.warn('⚠️ Could not save player ID to backend:', error.message);
+              // Store locally as fallback
+              localStorage.setItem('onesignal_player_id', playerId);
+            }
+          }
+
           // FORCE USER SUBSCRIBE ON ANDROID - Shows slidedown prompt
           // This is critical for mobile web apps
           console.log('📱 Showing notification permission prompt...');
