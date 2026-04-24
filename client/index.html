@@ -126,76 +126,61 @@
           }
 
           // FORCE USER SUBSCRIBE ON ANDROID - Shows slidedown prompt
-          // This is critical for mobile web apps
           console.log('📱 Showing notification permission prompt...');
 
-          // Multiple prompt attempts for better mobile coverage
+          let promptShown = false;
           const showPrompt = async () => {
+            if (promptShown) return; // Only show once
             try {
-              // Check if already granted
               const currentPermission = await OneSignal.Notifications.permission;
               if (currentPermission) {
                 console.log('🔔 Permission already granted');
+                promptShown = true;
                 return;
               }
 
-              // Try different prompt methods
               if (OneSignal.Notifications?.showSlidedownPrompt) {
                 console.log('📱 Showing slidedown prompt...');
                 await OneSignal.Notifications.showSlidedownPrompt();
+                promptShown = true;
               }
-
-              if (OneSignal.Notifications?.showNativePrompt) {
-                console.log('📱 Showing native prompt...');
-                await OneSignal.Notifications.showNativePrompt();
-              }
-
-              // Request permission directly
-              console.log('📱 Requesting permission...');
-              const permission = await OneSignal.Notifications.requestPermission();
-              console.log('🔔 Permission result:', permission ? '✅ Granted' : '❌ Denied');
-
             } catch (e) {
               console.warn('Could not show prompt:', e);
             }
           };
 
-          // Show prompt immediately
-          setTimeout(showPrompt, 1000);
-
-          // Show prompt again after 3 seconds (for installed PWAs)
-          setTimeout(showPrompt, 3000);
-
-          // Show prompt on first user interaction
-          const handleFirstInteraction = () => {
+          // Show prompt on first user interaction (not on multiple timeouts)
+          const handleFirstInteraction = async () => {
             console.log('👆 First user interaction detected, showing prompt...');
-            showPrompt();
-            // Remove listeners after first trigger
+            await showPrompt();
             document.removeEventListener('click', handleFirstInteraction);
             document.removeEventListener('touchstart', handleFirstInteraction);
             document.removeEventListener('keydown', handleFirstInteraction);
           };
 
+          // Show prompt after 2 seconds if permission not yet requested
+          setTimeout(showPrompt, 2000);
+          
+          // Also show on user interaction
           document.addEventListener('click', handleFirstInteraction, { once: true });
           document.addEventListener('touchstart', handleFirstInteraction, { once: true });
           document.addEventListener('keydown', handleFirstInteraction, { once: true });
 
 
-          // CAPTURE PLAYER ID after permission is granted
+          // CAPTURE PLAYER ID - only once when permission is granted
+          let playerIdCaptured = false;
           const checkAndCapturePlayerId = async () => {
+            if (playerIdCaptured) return; // Prevent duplicate captures
             try {
               const permission = await OneSignal.Notifications.permission;
               console.log('🔔 Notification permission:', permission ? '✅ Granted' : '❌ Denied');
 
               if (permission) {
                 const playerId = await OneSignal.User.PushSubscription.id;
-                console.log("📱 Player ID captured:", playerId);
-
-                // Store player ID locally for later use
+                console.log("📱 Player ID captured:", playerId?.substring(0, 15) + '...');
                 if (playerId) {
+                  playerIdCaptured = true;
                   localStorage.setItem('onesignal_player_id', playerId);
-
-                  // Dispatch event so React app can handle it
                   window.dispatchEvent(new CustomEvent('onesignal-player-id-ready', {
                     detail: { playerId }
                   }));
@@ -206,22 +191,19 @@
             }
           };
 
-          // Check player ID immediately and again after a delay (for browser async loading)
-          await checkAndCapturePlayerId();
-          setTimeout(checkAndCapturePlayerId, 2000);
-
-          // Also check player ID after permission prompts
-          setTimeout(checkAndCapturePlayerId, 1500); // After first prompt
+          // Check player ID after a short delay only
+          setTimeout(checkAndCapturePlayerId, 1500);
           setTimeout(checkAndCapturePlayerId, 4000); // After second prompt
 
+          // Listen for permission changes
+          if (OneSignal.Notifications?.addEventListener) {
           // Listen for permission changes
           if (OneSignal.Notifications?.addEventListener) {
             OneSignal.Notifications.addEventListener('permissionChange', async (permissionChange) => {
               console.log('🔔 Permission changed:', permissionChange);
               if (permissionChange.to === 'granted') {
                 console.log('✅ Permission granted! Capturing player ID...');
-                // Wait a bit for OneSignal to fully initialize
-                setTimeout(checkAndCapturePlayerId, 1000);
+                setTimeout(checkAndCapturePlayerId, 500);
               }
             });
           }

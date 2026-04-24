@@ -54,6 +54,14 @@ const matchLimiter = rateLimit({
   message: { error: 'Too many match actions, please slow down.' }
 });
 
+const notificationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30, // More lenient for notifications
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many notification requests, please try again later.' }
+});
+
 app.use(globalLimiter);
 
 // CORS configuration for production
@@ -209,6 +217,17 @@ app.post("/api/debug/test-notification", async (req, res) => {
 });
 
 // Routes
+// Apply stricter limiter only to login/register endpoints
+app.post("/api/auth/login", authLimiter, (req, res, next) => next());
+app.post("/auth/login", authLimiter, (req, res, next) => next());
+app.post("/api/auth/register", authLimiter, (req, res, next) => next());
+app.post("/auth/register", authLimiter, (req, res, next) => next());
+
+// Use more lenient notification limiter for notifications
+app.use("/api/auth/notifications", notificationLimiter);
+app.use("/auth/notifications", notificationLimiter);
+
+// Use standard auth limiter for other auth routes
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/auth", authLimiter, authRoutes); // Alias for simpler deployed URL usage
 app.use("/api/match", matchLimiter, matchRoutes);

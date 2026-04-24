@@ -149,8 +149,18 @@ function App() {
           }
         }
 
-        // Register OneSignal player ID after restoring session
-        registerOneSignalPlayerId(token);
+        // Register OneSignal player ID after restoring session (with debounce to prevent rate limiting)
+        const lastRegistrationTime = localStorage.getItem('clutchzone_last_player_id_registration');
+        const now = Date.now();
+        const timeSinceLastRegistration = lastRegistrationTime ? now - parseInt(lastRegistrationTime) : Infinity;
+        
+        // Only attempt registration if it's been more than 5 minutes since last attempt
+        if (timeSinceLastRegistration > 5 * 60 * 1000) {
+          localStorage.setItem('clutchzone_last_player_id_registration', now.toString());
+          registerOneSignalPlayerId(token);
+        } else {
+          console.log('⏭️ Skipping player ID registration - already attempted recently');
+        }
       } catch {
         localStorage.removeItem(TOKEN_KEY);
       } finally {
