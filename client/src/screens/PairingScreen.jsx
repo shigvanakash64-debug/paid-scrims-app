@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useMatch } from '../contexts/MatchContext';
 import { useUser } from '../contexts/UserContext';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 const modeOptions = ['All', '1v1', '2v2', '3v3', '4v4'];
 const typeOptions = ['All', 'Headshot', 'Bodyshot'];
@@ -354,3 +354,4 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     </div>
   );
 };
+

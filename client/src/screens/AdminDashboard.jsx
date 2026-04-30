@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { StatCard, LogCard } from '../components/admin/AdminComponents';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const AdminDashboard = ({ onNavigate }) => {
   const [stats, setStats] = useState({
@@ -125,3 +125,4 @@ export const AdminDashboard = ({ onNavigate }) => {
     </div>
   );
 };
+

@@ -67,11 +67,14 @@ app.use(globalLimiter);
 // CORS configuration for production
 app.use(cors({
   origin: [
+    "https://www.clutchzone.in",
+    "https://clutchzone.in",
     "https://paid-scrims-phoj44i5a-shigvanakash64-debugs-projects.vercel.app",
     "https://paid-scrims-app.vercel.app",
     "http://localhost:5173"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 app.use(express.json());

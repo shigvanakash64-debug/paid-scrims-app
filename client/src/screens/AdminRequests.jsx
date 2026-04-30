@@ -4,7 +4,7 @@ import {
   MatchCard,
 } from '../components/admin/AdminComponents';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const STATUS_FILTERS = [
   'all',
   'waiting',
@@ -650,3 +650,4 @@ export const AdminRequests = () => {
     </div>
   );
 };
+

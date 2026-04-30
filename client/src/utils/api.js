@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 class ApiClient {
   constructor() {

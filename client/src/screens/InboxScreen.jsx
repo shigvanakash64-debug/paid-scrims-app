@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const InboxScreen = ({ user, onUserUpdate }) => {
   const [notifications, setNotifications] = useState(user?.notifications || []);
@@ -162,3 +162,4 @@ export const InboxScreen = ({ user, onUserUpdate }) => {
     </div>
   );
 };
+

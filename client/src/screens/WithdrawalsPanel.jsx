@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { WithdrawalCard } from '../components/admin/AdminComponents';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const WithdrawalsPanel = () => {
   const [withdrawals, setWithdrawals] = useState([]);
@@ -177,3 +177,4 @@ export const WithdrawalsPanel = () => {
     </div>
   );
 };
+

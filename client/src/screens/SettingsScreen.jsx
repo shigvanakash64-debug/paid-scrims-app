@@ -7,7 +7,7 @@ export const SettingsScreen = ({ user, onScreenChange }) => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -115,3 +115,4 @@ export const SettingsScreen = ({ user, onScreenChange }) => {
     </div>
   );
 };
+

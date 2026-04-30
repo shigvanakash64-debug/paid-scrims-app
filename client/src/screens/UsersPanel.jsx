@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { UserCard } from '../components/admin/AdminComponents';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const UsersPanel = () => {
   const [users, setUsers] = useState([]);
@@ -282,3 +282,4 @@ export const UsersPanel = () => {
     </div>
   );
 };
+

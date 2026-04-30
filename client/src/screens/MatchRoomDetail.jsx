@@ -2,7 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { PaymentStatusCard } from '../components/admin/AdminComponents';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const getPlayerName = (player) => {
   if (!player) return 'Unknown';
@@ -325,3 +325,4 @@ export const MatchRoomDetail = ({ match, onBack, onUpdate }) => {
     </div>
   );
 };
+

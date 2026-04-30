@@ -1,8 +1,8 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useMatch } from '../contexts/MatchContext';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
   const { refreshMatch, clearMatch } = useMatch();
@@ -141,10 +141,10 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
         </div>
         <div className="space-y-3 text-sm text-[#E5E7EB]">
           <div>
-            <span className="text-[#FFFFFF] font-semibold">Match details:</span> {match?.mode} · {match?.type}
+            <span className="text-[#FFFFFF] font-semibold">Match details:</span> {match?.mode} � {match?.type}
           </div>
           <div>
-            <span className="text-[#FFFFFF] font-semibold">Entry fee:</span> ₹{match?.entry}
+            <span className="text-[#FFFFFF] font-semibold">Entry fee:</span> ?{match?.entry}
           </div>
           <div>
             <span className="text-[#FFFFFF] font-semibold">Players:</span> {playersLabel}
@@ -165,7 +165,7 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
           accept="image/*"
           onChange={handleFileChange}
         />
-        <div className="upload-icon">📸</div>
+        <div className="upload-icon">??</div>
         <div className="upload-label">Upload Screenshot</div>
         <div className="upload-sub">
           {selectedFile ? selectedFile.name : 'Tap to upload match result'}
@@ -186,14 +186,14 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
             className={`winner-btn ${winner === 'win' ? 'active' : ''}`}
             onClick={() => setWinner('win')}
           >
-            ✓ I WON
+            ? I WON
           </button>
           <button
             type="button"
             className={`winner-btn lose ${winner === 'lose' ? 'active' : ''}`}
             onClick={() => setWinner('lose')}
           >
-            ✗ I LOST
+            ? I LOST
           </button>
         </div>
       </div>
@@ -213,3 +213,4 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
     </div>
   );
 };
+

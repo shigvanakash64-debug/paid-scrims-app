@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { AdminPanel } from '../components/AdminPanel';
 import { ChatBox } from '../components/ChatBox';
@@ -9,7 +9,7 @@ import { RoomDetailsCard } from '../components/RoomDetailsCard';
 import { useMatch } from '../contexts/MatchContext';
 import { useUser } from '../contexts/UserContext';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 
 const statusLabels = {
@@ -451,3 +451,4 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     </div>
   );
 };
+

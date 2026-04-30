@@ -1,8 +1,8 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { useUser } from '../contexts/UserContext';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 
 const modeOptions = [
@@ -141,7 +141,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
               className={`fee-btn ${selectedFee === fee ? 'active' : ''}`}
               onClick={() => setSelectedFee(fee)}
             >
-              ₹{fee}
+              ?{fee}
             </button>
           ))}
         </div>
@@ -153,7 +153,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
       <div className="info-strip">
         <div className="info-cell">
           <div className="info-val">
-            <span className="accent">₹</span>
+            <span className="accent">?</span>
             <span>{prizePool}</span>
           </div>
           <div className="info-key">Prize Pool</div>
@@ -175,3 +175,4 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
     </div>
   );
 };
+

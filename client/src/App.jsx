@@ -22,7 +22,7 @@ import './App.css';
 // Lazy load admin dashboard
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://paid-scrims-app.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 
 // Helper function to register OneSignal player ID with backend
@@ -400,3 +400,4 @@ function App() {
 }
 
 export default App;
+
