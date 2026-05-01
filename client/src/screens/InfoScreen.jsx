@@ -8,8 +8,51 @@ const pageConfig = {
     title: 'Privacy Policy',
     content: [
       {
-        heading: 'Your privacy matters',
-        body: 'We collect only the data necessary to operate the platform, manage your wallet, and ensure safe match-making. Your information is stored securely and is never shared with third parties without your consent.',
+        body: '
+📄 1. PRIVACY POLICY
+
+**Privacy Policy – Clutch Zone**
+
+We respect your privacy and are committed to protecting your data.
+
+**1. Information We Collect**
+
+* Basic account info (username, email, phone if provided)
+* Gameplay activity (matches played, results, wallet transactions)
+* Device/browser data (for security and analytics)
+
+**2. How We Use Your Data**
+
+* To operate and improve the platform
+* To manage matches, payments, and results
+* To prevent fraud, cheating, and abuse
+* To send important notifications (match updates, wallet alerts)
+
+**3. Data Sharing**
+We do NOT sell your personal data.
+We may share data only:
+
+* With payment providers (for transactions)
+* When required by law
+
+**4. Data Security**
+We use industry-standard security practices. However, no system is 100% secure.
+
+**5. User Responsibility**
+You are responsible for keeping your account credentials safe.
+
+**6. Cookies & Tracking**
+We may use cookies or similar technologies for performance and analytics.
+
+**7. Updates**
+This policy may change over time. Continued use = acceptance of updates.
+
+8. Contact
+For privacy concerns, contact support via the app.
+
+By using Clutch Zone, you agree to this Privacy Policy.
+
+. Your information is stored securely and is never shared with third parties without your consent.',
       },
       {
         heading: 'Data usage',
