@@ -210,6 +210,15 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .result-chip.dispute{border:1px solid var(--orange);color:var(--orange)}
 .screen-home, .screen-match, .screen-result, .screen-wallet, .screen-profile, .screen-pairing { min-height: calc(100vh - 120px); }
 
+.info-page .info-section{color:#F4F2EA}
+.info-page .info-heading{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:#F4F2EA;margin-bottom:10px}
+.info-page .info-text{font-size:14px;line-height:1.8;color:#F4F2EA;margin-bottom:18px}
+.info-ticket-form{margin-top:20px}
+.info-ticket-form .form-input{min-height:48px}
+.info-ticket-form textarea.form-input{min-height:120px;resize:vertical}
+.error-message{color:#EF4444;font-size:13px;margin-bottom:10px}
+.success-message{color:#22C55E;font-size:13px;margin-bottom:10px}
+
 .pairing-topbar{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 16px 14px}
 .pairing-filter{display:flex;flex-direction:column;gap:6px}
 .filter-label{font-family:'Rajdhani',sans-serif;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}

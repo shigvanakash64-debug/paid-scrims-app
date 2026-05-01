@@ -48,8 +48,8 @@ export const Header = ({ user, onNavigate, onLogout }) => {
                 <button className="menu-item" type="button" onClick={() => handleNavigate('refund-policy')}>
                   Refund Policy
                 </button>
-                <button className="menu-item" type="button" onClick={() => handleNavigate('support-ticket')}>
-                  Support Ticket
+                <button className="menu-item" type="button" onClick={() => handleNavigate('raise-ticket')}>
+                  Raise Ticket
                 </button>
                 <button className="menu-item" type="button" onClick={() => handleNavigate('fair-play')}>
                   Fair Play Policy

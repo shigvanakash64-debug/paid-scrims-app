@@ -24,8 +24,9 @@ import {
   getAllUsers,
   getAllWithdrawals,
   approveWithdrawal,
-  rejectWithdrawal
+  rejectWithdrawal,
 } from "../controllers/adminController.js";
+import { getAllTickets } from "../controllers/ticketController.js";
 
 const router = express.Router();
 router.use(authMiddleware, adminMiddleware);
@@ -161,6 +162,7 @@ router.get("/users", authMiddleware, getAllUsers);
  * Get all withdrawal requests
  */
 router.get("/withdrawals", authMiddleware, getAllWithdrawals);
+router.get("/tickets", authMiddleware, getAllTickets);
 
 /**
  * POST /api/admin/withdrawals/:withdrawalId/approve

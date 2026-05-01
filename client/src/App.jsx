@@ -386,8 +386,8 @@ function App() {
         return <InfoScreen page="terms-conditions" />;
       case 'refund-policy':
         return <InfoScreen page="refund-policy" />;
-      case 'support-ticket':
-        return <InfoScreen page="support-ticket" />;
+      case 'raise-ticket':
+        return <InfoScreen page="raise-ticket" />;
       case 'fair-play':
         return <InfoScreen page="fair-play" />;
       case 'instructions':

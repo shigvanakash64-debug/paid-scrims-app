@@ -11,6 +11,7 @@ import matchRoutes from "./routes/matchRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
+import ticketRoutes from "./routes/ticketRoutes.js";
 import { initializeCronJobs, stopCronJobs } from "./utils/cronJobs.js";
 
 console.log("Server starting with updated code - force redeploy");
@@ -79,6 +80,8 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
+
+app.use("/api/tickets", ticketRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is running...");
