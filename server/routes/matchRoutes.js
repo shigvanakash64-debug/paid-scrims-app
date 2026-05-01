@@ -12,6 +12,7 @@ import {
   canJoinMatch,
   createMatch,
   acceptMatch,
+  payMatchWithWallet,
   uploadPaymentProof,
   verifyPlayer,
   startMatch,
@@ -35,6 +36,12 @@ router.post("/create", authMiddleware, createMatch);
  * Accept a waiting match request
  */
 router.post("/accept", authMiddleware, acceptMatch);
+
+/**
+ * POST /api/match/pay-wallet
+ * Pay match entry fee from wallet
+ */
+router.post("/pay-wallet", authMiddleware, payMatchWithWallet);
 
 /**
  * POST /api/match/upload-payment

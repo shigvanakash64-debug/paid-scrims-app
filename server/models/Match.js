@@ -21,7 +21,15 @@ const matchSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["Headshot", "Bodyshot"],
+      enum: [
+        "Headshot",
+        "Normal Headshot",
+        "Bodyshot",
+        "Only One Tap",
+        "Only SMG Headshot",
+        "Only AR Headshot",
+        "Only AWM Bodyshot"
+      ],
       required: true,
     },
     prizePool: {

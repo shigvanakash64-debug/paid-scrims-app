@@ -1,5 +1,12 @@
+import crypto from 'crypto';
+import Razorpay from 'razorpay';
 import User from '../models/User.js';
 import { sendNotification } from '../services/notificationService.js';
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || '',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || '',
+});
 
 /**
  * POST /wallet/withdraw
@@ -33,6 +40,9 @@ export const requestWithdrawal = async (req, res) => {
       });
     }
 
+    // Deduct amount from wallet immediately
+    user.wallet.balance -= amount;
+
     // Create withdrawal request
     const withdrawalRequest = {
       amount,
@@ -46,9 +56,10 @@ export const requestWithdrawal = async (req, res) => {
     // Add transaction record
     user.wallet.transactions.push({
       type: 'withdrawal',
-      amount,
+      amount: -amount,
       description: `Withdrawal request to ${upi}`,
       timestamp: new Date(),
+      matchId: null,
     });
 
     await user.save();
@@ -117,6 +128,106 @@ export const getWalletBalance = async (req, res) => {
   } catch (error) {
     console.error('Get Wallet Balance Error:', error);
     res.status(500).json({ error: 'Failed to fetch wallet balance' });
+  }
+};
+
+export const createDepositOrder = async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount || Number(amount) <= 0) {
+      return res.status(400).json({ error: 'Invalid deposit amount' });
+    }
+
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(500).json({ error: 'Razorpay credentials not configured' });
+    }
+
+    const order = await razorpay.orders.create({
+      amount: Math.round(Number(amount) * 100),
+      currency: 'INR',
+      receipt: `deposit_${Date.now()}`,
+      payment_capture: 1,
+    });
+
+    res.status(201).json({
+      success: true,
+      order,
+      key: process.env.RAZORPAY_KEY_ID,
+    });
+  } catch (error) {
+    console.error('Create Deposit Order Error:', error);
+    res.status(500).json({ error: 'Failed to create deposit order' });
+  }
+};
+
+export const confirmDeposit = async (req, res) => {
+  try {
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, amount } = req.body;
+    const { userId } = req.user;
+
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !amount) {
+      return res.status(400).json({ error: 'Payment confirmation data is required' });
+    }
+
+    if (!process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(500).json({ error: 'Razorpay credentials not configured' });
+    }
+
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ error: 'Invalid payment signature' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.wallet.balance += Number(amount);
+    user.wallet.transactions.push({
+      type: 'deposit',
+      amount: Number(amount),
+      description: 'Wallet deposit via Razorpay',
+      timestamp: new Date(),
+    });
+
+    await user.save();
+
+    if (user.onesignalPlayerId && user.notificationPreferences.walletNotifications) {
+      await sendNotification(
+        [user.onesignalPlayerId],
+        '💰 Deposit successful',
+        `₹${amount} has been added to your wallet.`,
+        {
+          type: 'success',
+          priority: 9,
+          data: {
+            eventType: 'deposit_success',
+            amount,
+          },
+        }
+      );
+    }
+
+    user.notifications.push({
+      type: 'success',
+      message: `₹${amount} deposited successfully to your wallet.`,
+      relatedMatch: null,
+    });
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      balance: user.wallet.balance,
+      message: 'Deposit confirmed and wallet updated',
+    });
+  } catch (error) {
+    console.error('Confirm Deposit Error:', error);
+    res.status(500).json({ error: 'Failed to confirm deposit' });
   }
 };
 

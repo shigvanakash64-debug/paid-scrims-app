@@ -4,6 +4,8 @@ import {
   getWalletBalance,
   addBalance,
   getTransactionHistory,
+  createDepositOrder,
+  confirmDeposit,
 } from '../controllers/walletController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
@@ -23,6 +25,18 @@ router.post('/withdraw', requestWithdrawal);
  * Get user's wallet balance and transactions
  */
 router.get('/balance', getWalletBalance);
+
+/**
+ * POST /wallet/deposit-order
+ * Create a Razorpay order for wallet deposit
+ */
+router.post('/deposit-order', createDepositOrder);
+
+/**
+ * POST /wallet/confirm-deposit
+ * Confirm Razorpay payment and update wallet balance
+ */
+router.post('/confirm-deposit', confirmDeposit);
 
 /**
  * GET /wallet/transactions

@@ -561,56 +561,28 @@ export const acceptMatch = async (req, res) => {
       return res.status(400).json({ error: 'You already joined this match' });
     }
 
-    // Get opponent's info
-    const opponent = await User.findById(userId).select('username onesignalPlayerId wallet');
+    const opponent = await User.findById(userId).select('username onesignalPlayerId');
     const opponentUsername = opponent?.username || 'Opponent';
-    const opponentPlayerId = opponent?.onesignalPlayerId;
-
-    // TODO: Add balance check back after testing
-    // if (opponent.wallet.balance < match.entry) {
-    //   return res.status(400).json({
-    //     error: 'Insufficient balance to join match',
-    //     required: match.entry,
-    //     available: opponent.wallet.balance,
-    //   });
-    // }
 
     match.players.push(userId);
     match.paymentUpi = await getNextPaymentUpi();
     match.status = 'payment_pending';
     match.paymentDueAt = new Date(Date.now() + 5 * 60 * 1000);
-    
-    // Add notification for match creator
+
     match.adminMessages.push({
       sender: 'system',
-      text: `🔔 You got an opponent! ${opponentUsername} has joined. Both players must upload payment proof within 5 minutes.`,
+      text: `🔔 You got an opponent! ${opponentUsername} has joined. Both players must pay from wallet to continue.`,
     });
 
     await match.save();
-
-    // Update last activity for joining player
     await updateLastActivity(userId);
 
-    const creatorId = match.creator._id?.toString ? match.creator._id.toString() : match.creator.toString();
     const creatorPlayerId = match.creator.onesignalPlayerId;
-
-    // DEBUG: Log player ID before sending
-    console.log("🔥 ACCEPT MATCH DEBUG:");
-    console.log("   Creator ID:", creatorId);
-    console.log("   Creator Player ID:", creatorPlayerId);
-    console.log("   Creator Player ID type:", typeof creatorPlayerId);
-    console.log("   Creator Player ID length:", creatorPlayerId ? creatorPlayerId.length : 'null');
-    console.log("   Match ID:", match._id);
-    console.log("   Opponent:", opponentUsername);
-
-    // Send OneSignal notification to match creator (includes in-app notification)
     if (creatorPlayerId && creatorPlayerId.trim()) {
-      console.log(`📡 Sending OneSignal notification to creator ${creatorId} with playerId ${creatorPlayerId.substring(0, 20)}...`);
-
-      const notificationResult = await sendNotification(
+      await sendNotification(
         [creatorPlayerId],
         '⚡ Player Joined',
-        `${opponentUsername} has joined your match, come, join and complete it`,
+        `${opponentUsername} has joined your match. Complete wallet payment to start the match.`,
         {
           url: `https://paid-scrims-app.vercel.app/match/${match._id}`,
           matchId: match._id,
@@ -624,27 +596,8 @@ export const acceptMatch = async (req, res) => {
           },
         }
       );
-
-      console.log(`📡 Notification result:`, notificationResult);
-
-    } else {
-      console.log(`⚠️ Creator ${creatorId} has no OneSignal player ID, skipping push notification`);
-      console.log(`   Creator playerId:`, creatorPlayerId);
-      // Fallback: save in-app notification directly
-      console.log(`📬 Adding in-app notification to creator ${creatorId}: ${opponentUsername} joined your match`);
-      await User.findByIdAndUpdate(creatorId, {
-        $push: {
-          notifications: {
-            type: 'success',
-            message: `${opponentUsername} has joined your match, come, join and complete it`,
-            link: `/match/${match._id}`,
-            relatedMatch: match._id,
-          },
-        },
-      });
     }
 
-    // If match is now full, send notification to all players
     if (match.players.length === parseInt(match.mode.split('v')[0]) * 2) {
       const playerIds = (
         await User.find({
@@ -657,7 +610,7 @@ export const acceptMatch = async (req, res) => {
         await sendNotification(
           playerIds,
           '🎮 Match Ready',
-          'All players joined! Match is ready — start playing!',
+          'Match is ready and waiting for wallet payments from both players.',
           {
             url: `https://paid-scrims-app.vercel.app/match/${match._id}`,
             matchId: match._id,
@@ -675,6 +628,107 @@ export const acceptMatch = async (req, res) => {
     res.status(200).json({ match: serializeMatch(match) });
   } catch (error) {
     console.error('acceptMatch error:', error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
+
+export const payMatchWithWallet = async (req, res) => {
+  try {
+    const { matchId } = req.body;
+    const userId = req.userId;
+
+    if (!matchId) {
+      return res.status(400).json({ error: 'matchId is required' });
+    }
+
+    const match = await Match.findById(matchId).populate('players', 'username onesignalPlayerId');
+    if (!match) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+
+    if (!match.players.some((player) => player._id?.toString() === userId.toString())) {
+      return res.status(403).json({ error: 'Only match participants can pay for this match' });
+    }
+
+    if (['cancelled', 'completed', 'disputed', 'verified'].includes(match.status)) {
+      return res.status(400).json({ error: 'Cannot pay for this match' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (match.paidUsers.some((p) => p.toString() === userId.toString())) {
+      return res.status(400).json({ error: 'You have already paid for this match' });
+    }
+
+    if (user.wallet.balance < match.entry) {
+      return res.status(400).json({
+        error: 'Insufficient wallet balance',
+        required: match.entry,
+        available: user.wallet.balance,
+      });
+    }
+
+    user.wallet.balance -= match.entry;
+    user.wallet.transactions.push({
+      type: 'fee',
+      amount: -match.entry,
+      description: `Match entry fee for ${match.mode} ${match.type}`,
+      timestamp: new Date(),
+      matchId: match._id,
+    });
+    await user.save();
+
+    match.paidUsers.push(userId);
+    match.adminMessages.push({
+      sender: 'system',
+      text: `${user.username} has paid ₹${match.entry} from wallet.`,
+    });
+
+    const allPlayersPaid = match.players.length > 0 && match.paidUsers.length === match.players.length;
+    if (allPlayersPaid) {
+      match.status = 'verified';
+      match.adminMessages.push({
+        sender: 'system',
+        text: 'Both players have paid from wallet. Room credentials can now be published.',
+      });
+    } else {
+      match.status = 'payment_pending';
+    }
+
+    await match.save();
+
+    const playerIds = match.players
+      .filter((player) => player.onesignalPlayerId)
+      .map((player) => player.onesignalPlayerId);
+
+    if (playerIds.length > 0) {
+      await sendNotification(
+        playerIds,
+        '💵 Match payment update',
+        `${user.username} completed wallet payment for match ${match.mode}. ${allPlayersPaid ? 'Both players have paid.' : 'Waiting for the opponent to pay.'}`,
+        {
+          type: 'info',
+          priority: 9,
+          data: {
+            eventType: 'match_payment',
+            matchId: match._id.toString(),
+          },
+        }
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      match: serializeMatch(match),
+      message: allPlayersPaid
+        ? 'Payment completed. Both players have paid and match is ready for room details.'
+        : 'Payment completed. Waiting for the opponent to pay.',
+    });
+  } catch (error) {
+    console.error('payMatchWithWallet error:', error);
     res.status(500).json({ error: `Server error: ${error.message}` });
   }
 };
