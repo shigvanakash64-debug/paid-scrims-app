@@ -1,69 +1,227 @@
 import { useState } from 'react';
 
 const rulesData = {
-  headshot: {
-    title: 'Headshot Rules',
+  global: {
+    title: 'Global Rules',
     content: (
       <div className="rules-content">
-        <h4>Allowed Weapons:</h4>
         <ul>
-          <li>AK Rifle</li>
-          <li>M14</li>
-          <li>SKS</li>
-          <li>FAMAS</li>
-          <li>M16A2</li>
-          <li>M4A1</li>
-          <li>GROZA</li>
-        </ul>
-        
-        <h4>Banned Weapons:</h4>
-        <ul>
-          <li>Sniper Rifles (AWM, SVD, etc.)</li>
-          <li>Shotguns (SPAS12, KS-23M, etc.)</li>
-          <li>SMGs used for body damage</li>
-          <li>Grenades & Explosives</li>
-          <li>Gloo Walls (defensive items)</li>
-        </ul>
-        
-        <h4>Special Rules:</h4>
-        <ul>
-          <li>Only headshot kills count</li>
-          <li>Body shots are NOT counted</li>
-          <li>Players can use primary skill on target</li>
-          <li>Crosshair customization is allowed</li>
+          <li>No hacks / scripts</li>
+          <li>No third-party interference</li>
+          <li>Same map & settings agreed before match</li>
+          <li>Net Problem → no refund</li>
+          <li>Always record your gameplay</li>
+          <li>Payment disputes → admin review</li>
+          <li>Result disputes → admin review</li>
         </ul>
       </div>
     )
   },
-  bodyshot: {
-    title: 'Bodyshot Rules',
+  normalHeadshot: {
+    title: 'NORMAL HEADSHOT',
     content: (
       <div className="rules-content">
-        <h4>Allowed Weapons:</h4>
+        <p>🧠RULES</p>
+        <h4>❌ Invalid Things</h4>
         <ul>
-          <li>AWM Sniper</li>
-          <li>VSS Sniper</li>
-          <li>SK Sniper</li>
-          <li>M14</li>
-          <li>Marksman Rifles</li>
+          <li>Grenade / launcher</li>
+          <li>Zone kill</li>
+          <li>Gloo wall packing</li>
         </ul>
-        
-        <h4>Banned Weapons:</h4>
+        <h4>🔫 ONLY Allowed Guns</h4>
         <ul>
-          <li>Assault Rifles (for body damage)</li>
+          <li>Shotguns (M1887, M1014, SPAS-12)</li>
+          <li>Pistols (Desert Eagle)</li>
+          <li>AR (WOODPECKER, AC80)</li>
+        </ul>
+        <p>SPRAY ALLOWED.</p>
+      </div>
+    )
+  },
+  bodyshot: {
+    title: 'BODYSHOT (Standard)',
+    content: (
+      <div className="rules-content">
+        <p>🧠 Rule</p>
+        <p>👉 Any kill is valid</p>
+        <h4>✅ Allowed</h4>
+        <ul>
+          <li>All weapons</li>
+        </ul>
+        <h4>❌ Only Ban</h4>
+        <ul>
+          <li>Hacks / cheating</li>
+          <li>Gloo breaking</li>
+        </ul>
+        <h4>❌ Invalid Guns</h4>
+        <ul>
+          <li>Grenade / launcher</li>
+          <li>M79</li>
+          <li>Gattling gun</li>
+          <li>Double Vector</li>
+        </ul>
+      </div>
+    )
+  },
+  oneTap: {
+    title: 'ONLY ONE TAP (Special)',
+    content: (
+      <div className="rules-content">
+        <p>🧠 Rule</p>
+        <p>👉 One bullet = one kill</p>
+        <h4>❌ Invalid Things</h4>
+        <ul>
+          <li>Multiple shots fired</li>
+          <li>Spray damage</li>
+        </ul>
+        <h4>🔫 ONLY Allowed Guns</h4>
+        <ul>
+          <li>Shotguns (M1887, M1014, SPAS-12)</li>
+          <li>Pistols (Desert Eagle)</li>
+          <li>AR (WOODPECKER, AC80)</li>
+        </ul>
+        <h4>🚫 Banned</h4>
+        <ul>
           <li>SMGs</li>
-          <li>Shotguns</li>
-          <li>Grenades & Explosives</li>
-          <li>Gloo Walls (defensive items)</li>
+          <li>Shotgun spam</li>
+          <li>AR spray</li>
+          <li>Grenade / launcher</li>
+          <li>Zone kill</li>
+          <li>Gloo wall packing</li>
+          <li>Gloo breaking</li>
         </ul>
-        
-        <h4>Special Rules:</h4>
+        <p>👉 Pure aim skill mode</p>
+      </div>
+    )
+  },
+  smgHeadshot: {
+    title: 'ONLY SMG HEADSHOT',
+    content: (
+      <div className="rules-content">
+        <p>🧠 Rule</p>
+        <p>👉 Only SMG + headshot</p>
+        <h4>🔫 Allowed</h4>
         <ul>
-          <li>Any bodyshot kill counts</li>
-          <li>Headshots are allowed and count</li>
-          <li>Quickscoping is permitted</li>
-          <li>Players can use defense items</li>
+          <li>All SMG guns allowed, only Double Vector is not allowed</li>
         </ul>
+        <h4>❌ Invalid</h4>
+        <ul>
+          <li>No AR guns</li>
+          <li>No sniper</li>
+          <li>Grenade / launcher</li>
+          <li>Zone kill</li>
+          <li>Gloo wall packing</li>
+          <li>Gloo breaking</li>
+        </ul>
+      </div>
+    )
+  },
+  arHeadshot: {
+    title: 'ONLY AR HEADSHOT (Special)',
+    content: (
+      <div className="rules-content">
+        <p>🧠 Rule</p>
+        <p>👉 Only AR + headshot</p>
+        <h4>🔫 Allowed</h4>
+        <ul>
+          <li>All AR guns allowed</li>
+        </ul>
+        <h4>❌ Invalid</h4>
+        <ul>
+          <li>SMG / shotgun kills</li>
+          <li>Grenade / launcher</li>
+          <li>Zone kill</li>
+          <li>Gloo wall packing</li>
+          <li>Gloo breaking</li>
+        </ul>
+      </div>
+    )
+  },
+  awmBodyshot: {
+    title: 'ONLY AWM BODYSHOT (Special)',
+    content: (
+      <div className="rules-content">
+        <p>🧠 Rule</p>
+        <p>👉 Only AWM bodyshot kills</p>
+        <h4>🔫 Allowed</h4>
+        <ul>
+          <li>AWM only</li>
+          <li>Only close combat</li>
+        </ul>
+        <h4>❌ Invalid</h4>
+        <ul>
+          <li>Headshot allowed</li>
+          <li>Any other gun</li>
+          <li>No hiding</li>
+        </ul>
+        <p>👉 Clean sniper mode.</p>
+      </div>
+    )
+  },
+  onlyGrenade: {
+    title: 'ONLY GRENADE',
+    content: (
+      <div className="rules-content">
+        <p>🧠 Rule</p>
+        <p>👉 Only grenade kills allowed</p>
+        <h4>🔫 Allowed</h4>
+        <ul>
+          <li>All types of grenades allowed</li>
+        </ul>
+        <h4>❌ Invalid</h4>
+        <ul>
+          <li>Any gun kills</li>
+          <li>Zone kill</li>
+          <li>Gloo wall packing</li>
+          <li>Gloo breaking</li>
+        </ul>
+      </div>
+    )
+  },
+  rankClashSquad: {
+    title: 'RANK CLASH SQUAD',
+    content: (
+      <div className="rules-content">
+        <p>🧠 Rule</p>
+        <p>👉 Everything is same as Rank CS</p>
+        <ul>
+          <li>Limited gloo</li>
+          <li>Limited ammo</li>
+          <li>Limited money</li>
+          <li>Limited grenade</li>
+          <li>Grenade allowed</li>
+        </ul>
+        <h4>🔫 Allowed</h4>
+        <ul>
+          <li>All guns are allowed</li>
+        </ul>
+        <h4>❌ Banned Guns</h4>
+        <ul>
+          <li>Double Vector</li>
+          <li>M79</li>
+          <li>Gattling gun</li>
+        </ul>
+      </div>
+    )
+  },
+  skillSettings: {
+    title: 'SKILL SETTINGS',
+    content: (
+      <div className="rules-content">
+        <p>🔥 Skill ON</p>
+        <p>👉 Abilities allowed</p>
+        <ul>
+          <li>Active skills</li>
+          <li>Character powers</li>
+        </ul>
+        <p>❄️ Skill OFF</p>
+        <p>👉 No abilities at all</p>
+        <h4>❌ Banned</h4>
+        <ul>
+          <li>Character skills</li>
+          <li>Passive boosts</li>
+        </ul>
+        <p>👉 Pure gun skill gameplay</p>
       </div>
     )
   }
@@ -71,7 +229,7 @@ const rulesData = {
 
 export const RulesModal = () => {
   const [showModal, setShowModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('headshot');
+  const [activeTab, setActiveTab] = useState('global');
 
   return (
     <>
@@ -98,16 +256,64 @@ export const RulesModal = () => {
 
             <div className="rules-tabs">
               <button
-                className={`rules-tab ${activeTab === 'headshot' ? 'active' : ''}`}
-                onClick={() => setActiveTab('headshot')}
+                className={`rules-tab ${activeTab === 'global' ? 'active' : ''}`}
+                onClick={() => setActiveTab('global')}
               >
-                Headshot
+                Global
+              </button>
+              <button
+                className={`rules-tab ${activeTab === 'normalHeadshot' ? 'active' : ''}`}
+                onClick={() => setActiveTab('normalHeadshot')}
+              >
+                Normal Headshot
               </button>
               <button
                 className={`rules-tab ${activeTab === 'bodyshot' ? 'active' : ''}`}
                 onClick={() => setActiveTab('bodyshot')}
               >
                 Bodyshot
+              </button>
+              <button
+                className={`rules-tab ${activeTab === 'oneTap' ? 'active' : ''}`}
+                onClick={() => setActiveTab('oneTap')}
+              >
+                One Tap
+              </button>
+              <button
+                className={`rules-tab ${activeTab === 'smgHeadshot' ? 'active' : ''}`}
+                onClick={() => setActiveTab('smgHeadshot')}
+              >
+                SMG Headshot
+              </button>
+              <button
+                className={`rules-tab ${activeTab === 'arHeadshot' ? 'active' : ''}`}
+                onClick={() => setActiveTab('arHeadshot')}
+              >
+                AR Headshot
+              </button>
+              <button
+                className={`rules-tab ${activeTab === 'awmBodyshot' ? 'active' : ''}`}
+                onClick={() => setActiveTab('awmBodyshot')}
+              >
+                AWM Bodyshot
+              </button>
+              <button
+                className={`rules-tab ${activeTab === 'onlyGrenade' ? 'active' : ''}`}
+                onClick={() => setActiveTab('onlyGrenade')}
+              >
+                Grenade
+              </button>
+              <button
+                className={`rules-tab ${activeTab === 'rankClashSquad' ? 'active' : ''}`}
+                onClick={() => setActiveTab('rankClashSquad')}
+              >
+                Rank Clash
+              </button>
+              <button
+                className={`rules-tab ${activeTab === 'skillSettings' ? 'active' : ''}`}
+                onClick={() => setActiveTab('skillSettings')}
+              >
+                Skill
               </button>
             </div>
 

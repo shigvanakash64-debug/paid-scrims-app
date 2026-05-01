@@ -79,7 +79,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6">
         <div className="text-center">
           <div className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1] mb-2">Current Balance</div>
-          <div className="text-4xl font-bold text-[#FF6A00] mb-4">?{balance.toLocaleString()}</div>
+          <div className="text-4xl font-bold text-[#FF6A00] mb-4">₹{balance.toLocaleString()}</div>
           <div className="text-sm text-[#A1A1A1]">Available for withdrawal</div>
         </div>
       </div>
@@ -108,7 +108,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
             />
           </div>
           <div>
-            <label className="block text-sm text-[#A1A1A1] mb-2">Amount (?)</label>
+            <label className="block text-sm text-[#A1A1A1] mb-2">Amount</label>
             <input
               type="number"
               value={withdrawalAmount}
@@ -158,7 +158,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                 <div className={`text-sm font-semibold ${
                   transaction.amount > 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'
                 }`}>
-                  {transaction.amount > 0 ? '+' : ''}?{Math.abs(transaction.amount)}
+                  {transaction.amount > 0 ? '+' : ''}₹{Math.abs(transaction.amount)}
                 </div>
               </div>
             ))}

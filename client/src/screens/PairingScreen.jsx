@@ -6,7 +6,17 @@ import { useUser } from '../contexts/UserContext';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 const modeOptions = ['All', '1v1', '2v2', '3v3', '4v4'];
-const typeOptions = ['All', 'Headshot', 'Bodyshot'];
+const typeOptions = [
+  'All',
+  'Normal Headshot',
+  'Bodyshot',
+  'Only One Tap',
+  'Only SMG Headshot',
+  'Only AR Headshot',
+  'Only AWM Bodyshot',
+  'Only Grenade',
+  'Rank Clash Squad',
+];
 const entryOptions = [0, 30, 50, 100, 200, 500, 1000];
 
 const sampleMatches = [
@@ -303,7 +313,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
           <div className="section">
             <div className="section-header">
               <span>LIVE MATCHES</span>
-              <span>{liveMatches.length} results</span>
+              <span>• {liveMatches.length} results</span>
             </div>
 
             {loading ? (

@@ -28,7 +28,9 @@ const matchSchema = new mongoose.Schema(
         "Only One Tap",
         "Only SMG Headshot",
         "Only AR Headshot",
-        "Only AWM Bodyshot"
+        "Only AWM Bodyshot",
+        "Only Grenade",
+        "Rank Clash Squad"
       ],
       required: true,
     },

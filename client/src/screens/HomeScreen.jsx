@@ -38,12 +38,22 @@ const typeOptions = [
   { 
     label: 'Only AR Headshot', 
     sub: 'Special',
-    info: 'Both users can only use AR gun here.'
+    info: 'Only AR headshot kills are allowed.'
   },
   { 
     label: 'Only AWM Bodyshot', 
     sub: 'Special',
-    info: 'Both users can only use AWM here.'
+    info: 'Only AWM bodyshot kills are allowed.'
+  },
+  {
+    label: 'Only Grenade',
+    sub: 'Special',
+    info: 'Only grenade kills allowed and all types of grenade allowed.'
+  },
+  {
+    label: 'Rank Clash Squad',
+    sub: 'Special',
+    info: 'Everything same as Rank CS: limited gloo, limited ammo, limited money, limited grenade, grenade allowed. All guns allowed except Double Vector, M79, Gattling gun.',
   }
 ];
 
