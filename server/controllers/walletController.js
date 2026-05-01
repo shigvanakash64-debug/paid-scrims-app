@@ -3,10 +3,24 @@ import Razorpay from 'razorpay';
 import User from '../models/User.js';
 import { sendNotification } from '../services/notificationService.js';
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || '',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || '',
-});
+const getRazorpayInstance = () => {
+  const key_id = process.env.RAZORPAY_KEY_ID;
+  const key_secret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!key_id || !key_secret) {
+    throw new Error('Razorpay credentials are not configured');
+  }
+
+  return new Razorpay({ key_id, key_secret });
+};
+
+const validateRazorpayConfig = (res) => {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    res.status(500).json({ error: 'Razorpay credentials are not configured' });
+    return false;
+  }
+  return true;
+};
 
 /**
  * POST /wallet/withdraw
@@ -138,10 +152,11 @@ export const createDepositOrder = async (req, res) => {
       return res.status(400).json({ error: 'Invalid deposit amount' });
     }
 
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      return res.status(500).json({ error: 'Razorpay credentials not configured' });
+    if (!validateRazorpayConfig(res)) {
+      return;
     }
 
+    const razorpay = getRazorpayInstance();
     const order = await razorpay.orders.create({
       amount: Math.round(Number(amount) * 100),
       currency: 'INR',
@@ -169,10 +184,11 @@ export const confirmDeposit = async (req, res) => {
       return res.status(400).json({ error: 'Payment confirmation data is required' });
     }
 
-    if (!process.env.RAZORPAY_KEY_SECRET) {
-      return res.status(500).json({ error: 'Razorpay credentials not configured' });
+    if (!validateRazorpayConfig(res)) {
+      return;
     }
 
+    const razorpay = getRazorpayInstance();
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
