@@ -49,16 +49,44 @@ const pageConfig = {
     title: 'Terms & Conditions',
     content: [
       {
-        heading: 'Agreement to use the service',
-        body: 'By using the platform, you agree to follow all rules, pay entry fees on time, and respect opponents. You are responsible for the accuracy of your profile and UID details.',
+        heading: 'Terms & Conditions – Clutch Zone',
+        body: '',
       },
       {
-        heading: 'Match conduct',
-        body: 'Matches must be played fairly within the selected kill type and skill settings. Any violation may result in penalties, disputes, or account restrictions.',
+        heading: '1. Platform Use',
+        body: 'Clutch Zone is a skill-based competitive platform. Users participate at their own risk.',
       },
       {
-        heading: 'Platform rights',
-        body: 'We reserve the right to modify rules, suspend accounts, or cancel matches to protect users and the integrity of the platform.',
+        heading: '2. Eligibility',
+        body: 'You must be legally allowed to participate in online skill-based competitions in your region.',
+      },
+      {
+        heading: '3. User Conduct',
+        body: '* No cheating, hacking, or unfair play\n* No abusive behavior\n* No manipulation of results\n\nViolation may result in permanent ban.',
+      },
+      {
+        heading: '4. Match Rules',
+        body: 'Each match follows predefined rules (mode, weapon restrictions, etc.).\nPlayers must follow them strictly.',
+      },
+      {
+        heading: '5. Payments',
+        body: '* Entry fees are paid before matches\n* Winnings are credited after match verification\n* Platform may hold funds temporarily for dispute resolution',
+      },
+      {
+        heading: '6. Disputes',
+        body: 'All disputes are reviewed by Clutch Zone.\nFinal decision is binding.',
+      },
+      {
+        heading: '7. Account Suspension',
+        body: 'We reserve the right to suspend or terminate accounts for violations.',
+      },
+      {
+        heading: '8. Limitation of Liability',
+        body: 'We are not responsible for:\n\n* Network issues\n* Device performance\n* Player behavior outside platform',
+      },
+      {
+        heading: '9. Changes',
+        body: 'We may update these terms anytime.\n\nBy using Clutch Zone, you agree to these Terms.',
       },
     ],
   },
@@ -66,16 +94,32 @@ const pageConfig = {
     title: 'Refund & Cancellation Policy',
     content: [
       {
-        heading: 'Deposit and wallet funds',
-        body: 'Wallet deposits are non-refundable once processed. Funds can be used for match entry fees and withdrawals subject to platform rules.',
+        heading: 'Refund & Cancellation Policy – Clutch Zone',
+        body: '',
       },
       {
-        heading: 'Match cancellation',
-        body: 'If a match is canceled by the platform or due to opponent issues, the entry fee may be refunded or returned to your wallet depending on the situation.',
+        heading: '1. Entry Fees',
+        body: 'All match entry fees are final once the match is joined.',
       },
       {
-        heading: 'Disputes',
-        body: 'Refunds for disputed matches are evaluated on a case-by-case basis after review. Please raise a ticket promptly if you believe a refund is warranted.',
+        heading: '2. Refund Eligibility',
+        body: 'Refunds may be issued only if:\n\n* Match did not start due to system failure\n* Opponent did not join (as per rules)\n* Verified technical issue from platform side',
+      },
+      {
+        heading: '3. No Refund Cases',
+        body: '* Player leaves match voluntarily\n* Rule violation or disqualification\n* Loss of match',
+      },
+      {
+        heading: '4. Cancellation',
+        body: '* Matches cannot be cancelled once started\n* Pre-match cancellation depends on lobby status',
+      },
+      {
+        heading: '5. Withdrawal',
+        body: '* Users can withdraw available wallet balance\n* Processing time may vary',
+      },
+      {
+        heading: '6. Dispute-Based Refunds',
+        body: 'Refunds in disputes are subject to admin review.\n\nAll decisions are final.\n\nBy using Clutch Zone, you agree to these.',
       },
     ],
   },
@@ -83,16 +127,28 @@ const pageConfig = {
     title: 'Raise Ticket',
     content: [
       {
-        heading: 'Need help?',
-        body: 'Use this page to raise an issue with your match, payment, or account. Provide clear details so our admin team can respond quickly.',
+        heading: 'Support – Raise a Ticket',
+        body: 'Need help? We’ve got you.',
       },
       {
-        heading: 'Response time',
-        body: 'Raised tickets are typically reviewed by admins within 24-48 hours. Urgent issues will be prioritized based on severity.',
+        heading: 'When to Contact Support',
+        body: '* Match disputes\n* Payment issues\n* Withdrawal problems\n* Bug reports',
       },
       {
-        heading: 'What to include',
-        body: 'Include your UID, match ID, and a concise description of the problem. The more detail you provide, the faster we can resolve it.',
+        heading: 'How It Works',
+        body: '1. Submit your issue with details\n2. Attach proof (screenshots/video if required)\n3. Our team reviews and responds',
+      },
+      {
+        heading: 'Required Details',
+        body: '* Match ID\n* Issue description\n* Relevant proof',
+      },
+      {
+        heading: 'Response Time',
+        body: 'Usually within 24–48 hours.',
+      },
+      {
+        heading: 'Important',
+        body: 'False or misleading reports may lead to account action.\n\nWe’re here to ensure fair and smooth gameplay.\n\nBy using Clutch Zone, you agree to these.',
       },
     ],
   },
@@ -100,16 +156,36 @@ const pageConfig = {
     title: 'Fair Play Policy',
     content: [
       {
-        heading: 'Play honestly',
-        body: 'Fair play is required in every match. Cheating, exploiting bugs, or using unauthorized tools is strictly prohibited and may lead to account suspension or bans.',
+        heading: 'Fair Play Policy – Clutch Zone',
+        body: 'Clutch Zone is built on skill, not shortcuts.',
       },
       {
-        heading: 'Respect opponents',
-        body: 'Treat other users with respect. Harassment, abuse, or disruptive behavior is not tolerated.',
+        heading: '1. Zero Tolerance for Cheating',
+        body: '* Hacks, scripts, mods = permanent ban\n* Exploits or bugs abuse = strict action',
       },
       {
-        heading: 'Match rules compliance',
-        body: 'Follow the selected kill type, skill setting, and any match-specific rules. Violations may result in penalties or match forfeiture.',
+        heading: '2. Match Integrity',
+        body: '* Follow selected mode rules (headshot, weapon restrictions, etc.)\n* Invalid kills may lead to disqualification',
+      },
+      {
+        heading: '3. No Collusion',
+        body: '* Teaming in solo matches\n* Match fixing\n  = immediate ban',
+      },
+      {
+        heading: '4. Respect Opponents',
+        body: '* No abuse, harassment, or toxic behavior',
+      },
+      {
+        heading: '5. Proof-Based System',
+        body: 'In disputes:\n\n* Valid proof = decision\n* No proof = no claim',
+      },
+      {
+        heading: '6. Admin Authority',
+        body: 'Clutch Zone reserves the right to:\n\n* Review matches\n* Reverse results\n* Suspend accounts',
+      },
+      {
+        heading: '7. Repeated Violations',
+        body: 'May lead to permanent removal from platform.\n\nPlay fair. Win real.\n\nBy using Clutch Zone, you agree to these.',
       },
     ],
   },
