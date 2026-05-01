@@ -34,8 +34,13 @@ export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
     setError('');
     setMessage('');
 
-    if (!uid.trim()) {
+    const trimmedUid = uid.trim();
+    if (!trimmedUid) {
       setError('Please enter your Free Fire UID');
+      return;
+    }
+    if (!/^[0-9]{10}$/.test(trimmedUid)) {
+      setError('UID must be exactly 10 digits');
       return;
     }
 

@@ -369,6 +369,7 @@ const serializeMatch = (match) => {
     entry: record.entry,
     prizePool: record.prizePool,
     status: record.status,
+    skillSetting: record.skillSetting || 'Skill On',
     paidUsers: (record.paidUsers || []).map((u) => u.toString()),
     verifiedUsers: (record.verifiedUsers || []).map((u) => u.toString()),
     paymentDueAt: record.paymentDueAt,
@@ -460,12 +461,15 @@ export const getMatch = async (req, res) => {
 
 export const createMatch = async (req, res) => {
   try {
-    const { mode, type, entry } = req.body;
+    const { mode, type, entry, skillSetting } = req.body;
     const userId = req.userId;
 
     if (!mode || !type || !entry) {
       return res.status(400).json({ error: 'mode, type and entry are required' });
     }
+
+    const allowedSkillSettings = ['Skill On', 'Skill Off'];
+    const finalSkillSetting = allowedSkillSettings.includes(skillSetting) ? skillSetting : 'Skill On';
 
     const parsedEntry = Number(entry);
     if (!parsedEntry || parsedEntry <= 0) {
@@ -497,6 +501,7 @@ export const createMatch = async (req, res) => {
       players: [userId],
       mode,
       type,
+      skillSetting: finalSkillSetting,
       entry: parsedEntry,
       prizePool,
       status: 'waiting',

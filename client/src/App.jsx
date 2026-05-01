@@ -12,6 +12,7 @@ import { InstructionsScreen } from './screens/InstructionsScreen';
 import { ContactsScreen } from './screens/ContactsScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
+import { InfoScreen } from './screens/InfoScreen';
 import { BottomNav } from './components/BottomNav';
 import { Header } from './components/Header';
 import NotificationTest from './components/NotificationTest';
@@ -379,6 +380,16 @@ function App() {
         return <WalletScreen user={user} onUserUpdate={handleUserUpdate} />;
       case 'settings':
         return <SettingsScreen user={user} />;
+      case 'privacy-policy':
+        return <InfoScreen page="privacy-policy" />;
+      case 'terms-conditions':
+        return <InfoScreen page="terms-conditions" />;
+      case 'refund-policy':
+        return <InfoScreen page="refund-policy" />;
+      case 'support-ticket':
+        return <InfoScreen page="support-ticket" />;
+      case 'fair-play':
+        return <InfoScreen page="fair-play" />;
       case 'instructions':
         return <InstructionsScreen />;
       case 'notification-test':

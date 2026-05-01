@@ -8,6 +8,7 @@ const TOKEN_KEY = 'clutchzone_token';
 const modeOptions = ['All', '1v1', '2v2', '3v3', '4v4'];
 const typeOptions = [
   'All',
+  'Headshot',
   'Normal Headshot',
   'Bodyshot',
   'Only One Tap',
@@ -24,6 +25,7 @@ const sampleMatches = [
     id: 'match-001',
     mode: '1v1',
     type: 'Headshot',
+    skillSetting: 'Skill Off',
     entryFee: 50,
     prizePool: 80,
     creator: 'Akash_77',
@@ -34,6 +36,7 @@ const sampleMatches = [
     id: 'match-002',
     mode: '1v1',
     type: 'Bodyshot',
+    skillSetting: 'Skill On',
     entryFee: 100,
     prizePool: 160,
     creator: 'Riya_09',
@@ -43,7 +46,8 @@ const sampleMatches = [
   {
     id: 'match-003',
     mode: '2v2',
-    type: 'Headshot',
+    type: 'Only One Tap',
+    skillSetting: 'Skill On',
     entryFee: 200,
     prizePool: 340,
     creator: 'ShadowKing',
@@ -53,7 +57,8 @@ const sampleMatches = [
   {
     id: 'match-004',
     mode: '1v1',
-    type: 'Headshot',
+    type: 'Normal Headshot',
+    skillSetting: 'Skill Off',
     entryFee: 30,
     prizePool: 50,
     creator: 'Nova_X',
@@ -63,7 +68,8 @@ const sampleMatches = [
   {
     id: 'match-005',
     mode: '3v3',
-    type: 'Bodyshot',
+    type: 'Only AWM Bodyshot',
+    skillSetting: 'Skill Off',
     entryFee: 500,
     prizePool: 850,
     creator: 'AlphaRider',
@@ -285,6 +291,11 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                   TG{currentUser?.trustScore ?? 0}
                 </div>
               </div>
+              {activeMatch.skillSetting && (
+                <div className="match-meta-row" style={{ marginTop: 8 }}>
+                  <span>Skill: {activeMatch.skillSetting}</span>
+                </div>
+              )}
               <div className="match-meta-row">
                 <span>{activeMatch.status}</span>
                 <span>Prize Pool ₹{activeMatch.prizePool}</span>
@@ -339,6 +350,11 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                         {item.trustScore}
                       </div>
                     </div>
+                    {item.skillSetting && (
+                      <div className="match-meta-row" style={{ marginTop: 8 }}>
+                        <span>Skill: {item.skillSetting}</span>
+                      </div>
+                    )}
                     <div className="match-meta-row">
                       <span>Player: {item.creator?.username || item.creator || 'Unknown'}</span>
                       <span>Status: {item.status}</span>

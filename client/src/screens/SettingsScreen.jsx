@@ -100,18 +100,6 @@ export const SettingsScreen = ({ user, onScreenChange }) => {
       </div>
 
       {/* Debug Section */}
-      <div className="settings-card">
-        <h3 className="text-lg font-semibold mb-3">Debug Tools</h3>
-        <button
-          className="btn-secondary"
-          onClick={() => onScreenChange('notification-test')}
-        >
-          🔔 Test Notifications
-        </button>
-        <p className="text-sm text-gray-600 mt-2">
-          Check notification status and send test notifications
-        </p>
-      </div>
     </div>
   );
 };

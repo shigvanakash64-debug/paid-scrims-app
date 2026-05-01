@@ -115,6 +115,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
           mode: selectedMode,
           type: selectedType,
           entry: selectedFee,
+          skillSetting: selectedSkill,
         },
         {
           headers: {

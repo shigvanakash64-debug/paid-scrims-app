@@ -34,6 +34,11 @@ const matchSchema = new mongoose.Schema(
       ],
       required: true,
     },
+    skillSetting: {
+      type: String,
+      enum: ["Skill On", "Skill Off"],
+      default: "Skill On",
+    },
     prizePool: {
       type: Number,
       required: true,
