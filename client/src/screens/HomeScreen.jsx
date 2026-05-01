@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useUser } from '../contexts/UserContext';
+import { InfoIcon } from '../components/InfoIcon';
+import { RulesModal } from '../components/RulesModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
@@ -13,8 +15,41 @@ const modeOptions = [
 ];
 
 const typeOptions = [
-  { label: 'Headshot', sub: 'Precision' },
-  { label: 'Bodyshot', sub: 'Standard' }
+  { 
+    label: 'Normal Headshot', 
+    sub: 'Precision',
+    info: 'Both users can fire 2 or more bullets.'
+  },
+  { 
+    label: 'Bodyshot', 
+    sub: 'Standard',
+    info: null
+  },
+  { 
+    label: 'Only One Tap', 
+    sub: 'Special',
+    info: 'Both users can only fire 1 bullet.'
+  },
+  { 
+    label: 'Only SMG Headshot', 
+    sub: 'Special',
+    info: 'Both users can only use SMG guns here.'
+  },
+  { 
+    label: 'Only AR Headshot', 
+    sub: 'Special',
+    info: 'Both users can only use AR gun here.'
+  },
+  { 
+    label: 'Only AWM Bodyshot', 
+    sub: 'Special',
+    info: 'Both users can only use AWM here.'
+  }
+];
+
+const skillOptions = [
+  { label: 'Skill On', sub: 'Enabled' },
+  { label: 'Skill Off', sub: 'Disabled' }
 ];
 
 const entryFees = [30, 50, 100, 200, 500, 1000];
@@ -48,7 +83,8 @@ const getPrizePool = (entryFee) => {
 export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) => {
   const { user: currentUser } = useUser();
   const [selectedMode, setSelectedMode] = useState('1v1');
-  const [selectedType, setSelectedType] = useState('Headshot');
+  const [selectedType, setSelectedType] = useState('Normal Headshot');
+  const [selectedSkill, setSelectedSkill] = useState('Skill On');
   const [selectedFee, setSelectedFee] = useState(50);
 
   const playersCount = getPlayersCount(selectedMode);
@@ -89,12 +125,17 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
   return (
     <div id="screen-home" className="screen-home">
       <div className="hero">
-        <div className="game-pill">
-          <div className="game-dot"></div>
-          <span>Free Fire</span>
+        <div className="hero-top">
+          <div>
+            <div className="game-pill">
+              <div className="game-dot"></div>
+              <span>Free Fire</span>
+            </div>
+            <div className="screen-title">CLUTCH ZONE</div>
+            <div className="screen-sub">Compete. Win. Get Paid.</div>
+          </div>
+          <RulesModal />
         </div>
-        <div className="screen-title">CLUTCH ZONE</div>
-        <div className="screen-sub">Compete. Win. Get Paid.</div>
       </div>
 
       <div className="section">
@@ -118,14 +159,33 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
         <div className="section-label">Kill Type</div>
         <div className="grid2">
           {typeOptions.map((type) => (
+            <div key={type.label} className="sel-btn-wrapper">
+              <button
+                type="button"
+                className={`sel-btn ${selectedType === type.label ? 'active' : ''}`}
+                onClick={() => setSelectedType(type.label)}
+              >
+                {type.label}
+                <span className="sub">{type.sub}</span>
+              </button>
+              {type.info && <InfoIcon title={type.label} content={type.info} />}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-label">Skill Settings</div>
+        <div className="grid2">
+          {skillOptions.map((skill) => (
             <button
-              key={type.label}
+              key={skill.label}
               type="button"
-              className={`sel-btn ${selectedType === type.label ? 'active' : ''}`}
-              onClick={() => setSelectedType(type.label)}
+              className={`sel-btn ${selectedSkill === skill.label ? 'active' : ''}`}
+              onClick={() => setSelectedSkill(skill.label)}
             >
-              {type.label}
-              <span className="sub">{type.sub}</span>
+              {skill.label}
+              <span className="sub">{skill.sub}</span>
             </button>
           ))}
         </div>
@@ -141,7 +201,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
               className={`fee-btn ${selectedFee === fee ? 'active' : ''}`}
               onClick={() => setSelectedFee(fee)}
             >
-              ?{fee}
+              ₹{fee}
             </button>
           ))}
         </div>
@@ -153,7 +213,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
       <div className="info-strip">
         <div className="info-cell">
           <div className="info-val">
-            <span className="accent">?</span>
+            <span className="accent">₹</span>
             <span>{prizePool}</span>
           </div>
           <div className="info-key">Prize Pool</div>
