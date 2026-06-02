@@ -71,8 +71,13 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   };
 
   const handleDeposit = async () => {
-    if (!depositAmount || parseFloat(depositAmount) <= 0) {
+    const amount = parseFloat(depositAmount);
+    if (!depositAmount || amount <= 0) {
       setMessage('Please enter a valid deposit amount');
+      return;
+    }
+    if (amount < 30) {
+      setMessage('Minimum deposit amount is ₹30');
       return;
     }
 
@@ -80,7 +85,6 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     setMessage('');
     try {
       const token = localStorage.getItem('clutchzone_token');
-      const amount = parseFloat(depositAmount);
 
       // Create Razorpay order via backend
       const orderResponse = await axios.post(`${API_BASE}/wallet/deposit-order`, {
@@ -194,10 +198,11 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
             <div>
               <label className="block text-sm text-[#A1A1A1] mb-2">Amount (INR)</label>
               <div className="flex gap-2 mb-2">
-                {[50,150,300,500].map((amt) => (
+                {[30,50,150,300].map((amt) => (
                   <button key={amt} onClick={() => setDepositAmount(String(amt))} className="px-3 py-2 rounded-lg bg-[#0B0B0B] border border-[#2A2A2A] text-sm text-white">₹{amt}</button>
                 ))}
               </div>
+              <p className="text-xs text-[#A1A1A1] mb-2">Minimum: ₹30</p>
               <input
                 type="number"
                 value={depositAmount}
