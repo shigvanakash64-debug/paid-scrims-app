@@ -44,6 +44,40 @@ const userSchema = new mongoose.Schema({
       adminNote: String,
       upi: String
     }],
+    pendingDeposits: [{
+      _id: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: () => new mongoose.Types.ObjectId()
+      },
+      amount: {
+        type: Number,
+        required: true,
+        min: 1
+      },
+      utr: {
+        type: String,
+        required: true,
+        trim: true,
+        uppercase: true
+      },
+      mobileLast4: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
+      },
+      requestedAt: {
+        type: Date,
+        default: Date.now
+      },
+      verifiedAt: Date,
+      verifiedBy: String,
+      adminNote: String
+    }],
     transactions: [{
       type: {
         type: String,

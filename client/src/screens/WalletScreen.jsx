@@ -10,7 +10,10 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [withdrawalUpi, setWithdrawalUpi] = useState('');
   const [depositAmount, setDepositAmount] = useState('');
+  const [depositUtr, setDepositUtr] = useState('');
+  const [depositMobileLast4, setDepositMobileLast4] = useState('');
   const [depositLoading, setDepositLoading] = useState(false);
+  const [deposits, setDeposits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -21,12 +24,14 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const fetchWalletData = async () => {
     try {
       const token = localStorage.getItem('clutchzone_token');
-      const response = await axios.get(`${API_BASE}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const userData = response.data.user;
+      const [meResponse, depositResponse] = await Promise.all([
+        axios.get(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_BASE}/wallet/deposits`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const userData = meResponse.data.user;
       setBalance(userData.wallet?.balance || 0);
       setTransactions(userData.wallet?.transactions || []);
+      setDeposits(depositResponse.data.deposits || []);
       onUserUpdate(userData);
     } catch (error) {
       console.error('Failed to fetch wallet data:', error);
@@ -80,69 +85,32 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       setMessage('Minimum deposit amount is ₹30');
       return;
     }
+    if (!depositUtr.trim() || depositUtr.trim().length < 6) {
+      setMessage('Please enter a valid UTR number');
+      return;
+    }
+    if (!depositMobileLast4.trim() || depositMobileLast4.trim().length < 4) {
+      setMessage('Please enter the last 4 digits of the payer mobile number');
+      return;
+    }
 
     setDepositLoading(true);
     setMessage('');
     try {
       const token = localStorage.getItem('clutchzone_token');
+      await axios.post(`${API_BASE}/wallet/deposit-request`, {
+        amount,
+        utr: depositUtr.trim(),
+        mobileLast4: depositMobileLast4.trim(),
+      }, { headers: { Authorization: `Bearer ${token}` } });
 
-      // Create Razorpay order via backend
-      const orderResponse = await axios.post(`${API_BASE}/wallet/deposit-order`, {
-        amount: Math.round(amount * 100), // convert to paise
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const { order, key } = orderResponse.data;
-
-      const options = {
-        key,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'Paid Scrims',
-        description: 'Wallet Topup',
-        order_id: order.id,
-        handler: async function (response) {
-          try {
-            // Verify payment on backend
-            const verifyResponse = await axios.post(
-              `${API_BASE}/wallet/confirm-deposit`,
-              {
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-                amount,
-              },
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            if (verifyResponse.data.success) {
-              setMessage('✅ Deposit successful! Your wallet has been updated.');
-              setDepositAmount('');
-              fetchWalletData();
-            }
-          } catch (err) {
-            console.error('Payment verification failed:', err);
-            setMessage('Payment verification failed. Please contact support.');
-          }
-        },
-        prefill: {
-          contact: user?.phone || '',
-          email: user?.email || '',
-        },
-        theme: { color: '#FF6A00' }
-      };
-
-      // Open Razorpay checkout
-      if (window && window.Razorpay) {
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      } else {
-        setMessage('Razorpay SDK not loaded. Please refresh and try again.');
-      }
+      setMessage('✅ Deposit request submitted. Admin will verify it and credit your wallet.');
+      setDepositAmount('');
+      setDepositUtr('');
+      setDepositMobileLast4('');
+      fetchWalletData();
     } catch (error) {
-      console.error('Deposit failed', error);
-      setMessage(error.response?.data?.error || 'Failed to initiate deposit. Please try again.');
+      setMessage(error.response?.data?.error || 'Failed to submit deposit request.');
     } finally {
       setDepositLoading(false);
     }
@@ -212,16 +180,36 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                 min="1"
               />
             </div>
+            <div>
+              <label className="block text-sm text-[#A1A1A1] mb-2">UTR Number</label>
+              <input
+                type="text"
+                value={depositUtr}
+                onChange={(e) => setDepositUtr(e.target.value.toUpperCase())}
+                placeholder="Enter UTR number"
+                className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-[#A1A1A1] mb-2">Last 4 Digits of Payer Mobile</label>
+              <input
+                type="text"
+                value={depositMobileLast4}
+                onChange={(e) => setDepositMobileLast4(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="5678"
+                className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
+              />
+            </div>
 
             <button
               onClick={handleDeposit}
               disabled={depositLoading || !depositAmount || parseFloat(depositAmount) <= 0}
               className="w-full rounded-3xl bg-[#FF6A00] px-6 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black transition disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {depositLoading ? 'Processing...' : 'Pay with Razorpay'}
+              {depositLoading ? 'Submitting...' : 'Submit Deposit Request'}
             </button>
 
-            <div className="text-xs text-[#A1A1A1]">🔒 Secured by Razorpay. Your transaction is encrypted and safe.</div>
+            <div className="text-xs text-[#A1A1A1]">Admin verifies UTR, amount, and last 4 digits before your wallet is credited.</div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -257,6 +245,29 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
             </button>
 
             <div className="mt-2 text-xs text-[#A1A1A1]">Note: Withdrawals require admin approval and may take 24-48 hours.</div>
+          </div>
+        )}
+      </div>
+
+      {/* Deposit History */}
+      <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6">
+        <h2 className="text-xl font-semibold text-white mb-4">Deposit History</h2>
+        {deposits.length === 0 ? (
+          <div className="text-[#A1A1A1] text-center py-6">No deposit requests yet</div>
+        ) : (
+          <div className="space-y-3">
+            {deposits.map((deposit) => (
+              <div key={deposit._id || deposit.depositId} className="rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-white font-semibold">₹{Number(deposit.amount).toLocaleString()}</div>
+                    <div className="text-xs text-[#A1A1A1]">UTR: {deposit.utr} • Mobile: ****{deposit.mobileLast4}</div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${deposit.status === 'approved' ? 'bg-[#022c0b] text-[#22C55E]' : deposit.status === 'rejected' ? 'bg-[#3d1c1c] text-[#EF4444]' : 'bg-[#2A2A2A] text-[#F59E0B]'}`}>{deposit.status}</span>
+                </div>
+                <div className="mt-2 text-xs text-[#A1A1A1]">Requested: {new Date(deposit.requestedAt).toLocaleString()}</div>
+              </div>
+            ))}
           </div>
         )}
       </div>

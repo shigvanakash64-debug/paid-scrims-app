@@ -37,9 +37,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const { user: currentUser } = useUser();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showUpload, setShowUpload] = useState(false);
-  const [uploadedFileName, setUploadedFileName] = useState('');
-  const [screenshotError, setScreenshotError] = useState('');
+  const [paying, setPaying] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [localRoomId, setLocalRoomId] = useState('');
   const [localPassword, setLocalPassword] = useState('');
@@ -176,37 +174,21 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     });
   };
 
-  const handlePaidClick = () => {
+  const handlePayWithWallet = async () => {
     if (isCancelled || isMatchActive) return;
-    setShowUpload(true);
-  };
-
-  const handleUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setScreenshotError('Please upload a valid image file.');
-      return;
-    }
-
-    setScreenshotError('');
-    setUploadedFileName(file.name);
-
-    const formData = new FormData();
-    formData.append('matchId', matchId);
-    formData.append('screenshot', file);
-
+    if (!matchId) return;
+    setPaying(true);
     try {
       const token = localStorage.getItem(TOKEN_KEY);
-      await axios.post(`${API_BASE}/match/upload-payment`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
+      const response = await axios.post(`${API_BASE}/match/pay-wallet`, { matchId }, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setShowUpload(false);
+      await refreshMatch(matchId);
+      alert(response.data.message || 'Wallet payment completed.');
     } catch (err) {
-      setScreenshotError(err.response?.data?.error || 'Upload failed.');
+      alert(err.response?.data?.error || 'Could not pay with wallet');
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -272,7 +254,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
 
   const handleUserAction = async (action) => {
     if (action === 'Paid') {
-      handlePaidClick();
+      handlePayWithWallet();
       return;
     }
     await addChatMessage('user', action === 'Not received room' ? 'Not received room' : 'Issue');
@@ -357,16 +339,11 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
 
         <PaymentCard
           amount={currentMatch.entry}
-          upiId={upiToShow}
+          walletBalance={currentUser?.wallet?.balance || user?.wallet?.balance || 0}
           deadline={deadlineLabel}
-          onCopy={handleCopyUpi}
-          onPaid={handlePaidClick}
-          showUpload={showUpload}
-          onUpload={handleUpload}
-          uploadedFileName={uploadedFileName}
+          onPayWithWallet={handlePayWithWallet}
           isPaid={currentMatch?.paidUsers?.includes(user?.id)}
           paymentStatus={currentStatusLabel}
-          screenshotError={screenshotError}
         />
 
         <PlayerStatusList players={playerStatuses} />

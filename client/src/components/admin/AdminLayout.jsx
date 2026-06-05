@@ -4,12 +4,14 @@ import { AdminDashboard } from '../../screens/AdminDashboard';
 import { AdminRequests } from '../../screens/AdminRequests';
 import { UsersPanel } from '../../screens/UsersPanel';
 import { WithdrawalsPanel } from '../../screens/WithdrawalsPanel';
+import { DepositsPanel } from '../../screens/DepositsPanel';
 import { LogsPanel } from '../../screens/LogsPanel';
 
 const SCREENS = {
   DASHBOARD: 'dashboard',
   REQUESTS: 'requests',
   USERS: 'users',
+  DEPOSITS: 'deposits',
   WITHDRAWALS: 'withdrawals',
   LOGS: 'logs',
 };
@@ -26,6 +28,8 @@ export const AdminLayout = () => {
         return <AdminRequests />;
       case SCREENS.USERS:
         return <UsersPanel />;
+      case SCREENS.DEPOSITS:
+        return <DepositsPanel />;
       case SCREENS.WITHDRAWALS:
         return <WithdrawalsPanel />;
       case SCREENS.LOGS:

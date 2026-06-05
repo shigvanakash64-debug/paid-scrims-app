@@ -25,6 +25,9 @@ import {
   getAllWithdrawals,
   approveWithdrawal,
   rejectWithdrawal,
+  getAllDeposits,
+  approveDeposit,
+  rejectDeposit,
 } from "../controllers/adminController.js";
 import { getAllTickets } from "../controllers/ticketController.js";
 
@@ -162,6 +165,7 @@ router.get("/users", authMiddleware, getAllUsers);
  * Get all withdrawal requests
  */
 router.get("/withdrawals", authMiddleware, getAllWithdrawals);
+router.get("/deposits", authMiddleware, getAllDeposits);
 router.get("/tickets", authMiddleware, getAllTickets);
 
 /**
@@ -175,5 +179,7 @@ router.post("/withdrawals/:withdrawalId/approve", authMiddleware, approveWithdra
  * Reject a withdrawal request
  */
 router.post("/withdrawals/:withdrawalId/reject", authMiddleware, rejectWithdrawal);
+router.post("/deposits/:depositId/approve", authMiddleware, approveDeposit);
+router.post("/deposits/:depositId/reject", authMiddleware, rejectDeposit);
 
 export default router;

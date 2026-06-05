@@ -993,6 +993,127 @@ export const getAllWithdrawals = async (req, res) => {
   }
 };
 
+export const getAllDeposits = async (req, res) => {
+  try {
+    const { status = 'pending', page = 1, limit = 20 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const deposits = await User.aggregate([
+      { $match: { 'wallet.pendingDeposits.status': status } },
+      { $unwind: '$wallet.pendingDeposits' },
+      { $match: { 'wallet.pendingDeposits.status': status } },
+      {
+        $project: {
+          _id: 0,
+          depositId: '$wallet.pendingDeposits._id',
+          userId: '$_id',
+          username: '$username',
+          amount: '$wallet.pendingDeposits.amount',
+          utr: '$wallet.pendingDeposits.utr',
+          mobileLast4: '$wallet.pendingDeposits.mobileLast4',
+          status: '$wallet.pendingDeposits.status',
+          requestedAt: '$wallet.pendingDeposits.requestedAt',
+          verifiedAt: '$wallet.pendingDeposits.verifiedAt',
+          verifiedBy: '$wallet.pendingDeposits.verifiedBy',
+          adminNote: '$wallet.pendingDeposits.adminNote',
+        },
+      },
+      { $sort: { requestedAt: -1 } },
+      { $skip: skip },
+      { $limit: parseInt(limit) },
+    ]);
+
+    const total = await User.aggregate([
+      { $match: { 'wallet.pendingDeposits.status': status } },
+      { $unwind: '$wallet.pendingDeposits' },
+      { $match: { 'wallet.pendingDeposits.status': status } },
+      { $count: 'total' },
+    ]);
+
+    res.status(200).json({
+      success: true,
+      deposits,
+      pagination: {
+        total: total[0]?.total || 0,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil((total[0]?.total || 0) / limit),
+      },
+    });
+  } catch (error) {
+    console.error('getAllDeposits error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const approveDeposit = async (req, res) => {
+  try {
+    const { depositId } = req.params;
+    const { adminNote } = req.body;
+    const adminName = req.user?.username || 'Admin';
+
+    const user = await User.findOne({
+      'wallet.pendingDeposits._id': depositId,
+      'wallet.pendingDeposits.status': 'pending',
+    });
+
+    if (!user) return res.status(404).json({ error: 'Deposit request not found' });
+
+    const deposit = user.wallet.pendingDeposits.id(depositId);
+    if (!deposit) return res.status(404).json({ error: 'Deposit not found' });
+
+    deposit.status = 'approved';
+    deposit.verifiedAt = new Date();
+    deposit.verifiedBy = adminName;
+    deposit.adminNote = adminNote || 'Approved by admin';
+
+    user.wallet.balance += deposit.amount;
+    user.wallet.transactions.push({
+      type: 'deposit',
+      amount: deposit.amount,
+      description: `Deposit approved via UTR ${deposit.utr}`,
+      timestamp: new Date(),
+    });
+
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Deposit approved successfully' });
+  } catch (error) {
+    console.error('approveDeposit error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const rejectDeposit = async (req, res) => {
+  try {
+    const { depositId } = req.params;
+    const { adminNote } = req.body;
+    const adminName = req.user?.username || 'Admin';
+
+    const user = await User.findOne({
+      'wallet.pendingDeposits._id': depositId,
+      'wallet.pendingDeposits.status': 'pending',
+    });
+
+    if (!user) return res.status(404).json({ error: 'Deposit request not found' });
+
+    const deposit = user.wallet.pendingDeposits.id(depositId);
+    if (!deposit) return res.status(404).json({ error: 'Deposit not found' });
+
+    deposit.status = 'rejected';
+    deposit.verifiedAt = new Date();
+    deposit.verifiedBy = adminName;
+    deposit.adminNote = adminNote || 'Rejected by admin';
+
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Deposit rejected successfully' });
+  } catch (error) {
+    console.error('rejectDeposit error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 /**
  * Approve a withdrawal request
  */

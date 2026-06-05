@@ -145,6 +145,77 @@ export const getWalletBalance = async (req, res) => {
   }
 };
 
+export const submitDepositRequest = async (req, res) => {
+  try {
+    const { amount, utr, mobileLast4 } = req.body;
+    const { userId } = req.user;
+
+    if (!amount || Number(amount) <= 0) {
+      return res.status(400).json({ error: 'Invalid deposit amount' });
+    }
+
+    const normalizedUtr = String(utr || '').trim().toUpperCase();
+    const normalizedMobile = String(mobileLast4 || '').trim();
+
+    if (!normalizedUtr || normalizedUtr.length < 6) {
+      return res.status(400).json({ error: 'Please enter a valid UTR number' });
+    }
+
+    if (!normalizedMobile || normalizedMobile.length < 4) {
+      return res.status(400).json({ error: 'Please enter the last 4 digits of the payer mobile number' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const duplicate = (user.wallet?.pendingDeposits || []).some((entry) =>
+      entry.utr === normalizedUtr && ['pending', 'approved'].includes(entry.status)
+    );
+
+    if (duplicate) {
+      return res.status(409).json({ error: 'This UTR has already been used for a pending or approved deposit' });
+    }
+
+    user.wallet.pendingDeposits = user.wallet.pendingDeposits || [];
+    user.wallet.pendingDeposits.unshift({
+      amount: Number(amount),
+      utr: normalizedUtr,
+      mobileLast4: normalizedMobile,
+      status: 'pending',
+      requestedAt: new Date(),
+    });
+
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Deposit request submitted successfully. Await admin approval.',
+      deposit: user.wallet.pendingDeposits[0],
+    });
+  } catch (error) {
+    console.error('Submit Deposit Request Error:', error);
+    res.status(500).json({ error: 'Failed to submit deposit request' });
+  }
+};
+
+export const getDepositHistory = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const user = await User.findById(userId).select('wallet.pendingDeposits');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    res.status(200).json({
+      success: true,
+      deposits: (user.wallet?.pendingDeposits || []).sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt)),
+    });
+  } catch (error) {
+    console.error('Get Deposit History Error:', error);
+    res.status(500).json({ error: 'Failed to fetch deposit history' });
+  }
+};
+
 export const createDepositOrder = async (req, res) => {
   try {
     const { amount } = req.body;
@@ -342,4 +413,8 @@ export default {
   getWalletBalance,
   addBalance,
   getTransactionHistory,
+  submitDepositRequest,
+  getDepositHistory,
+  createDepositOrder,
+  confirmDeposit,
 };

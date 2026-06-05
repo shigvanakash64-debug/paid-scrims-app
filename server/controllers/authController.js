@@ -22,6 +22,7 @@ const sanitizeUser = (user) => ({
     balance: user.wallet?.balance || 0,
     transactions: user.wallet?.transactions || [],
     pendingWithdrawals: user.wallet?.pendingWithdrawals || [],
+    pendingDeposits: user.wallet?.pendingDeposits || [],
   },
   trustScore: user.trustScore,
   matchesPlayed: user.matchesPlayed,

@@ -87,10 +87,10 @@ export const AdminDashboard = ({ onNavigate }) => {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button
-          onClick={() => onNavigate?.('requests')}
+          onClick={() => onNavigate?.('deposits')}
           className="bg-[#FF6A00] text-black px-6 py-4 rounded-lg font-semibold hover:opacity-90 transition"
         >
-          💳 Verify Payments
+          💳 Review Deposit Requests
         </button>
         <button
           onClick={() => onNavigate?.('requests')}
