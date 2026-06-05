@@ -1,11 +1,9 @@
 export const AdminSidebar = ({ currentScreen, onScreenChange, isMobile }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'requests', label: 'Requests', icon: '📝' },
     { id: 'deposits', label: 'Deposits', icon: '💳' },
-    { id: 'users', label: 'Users', icon: '👤' },
     { id: 'withdrawals', label: 'Withdrawals', icon: '💸' },
-    { id: 'logs', label: 'Logs', icon: '📜' },
+    { id: 'users', label: 'Users', icon: '👤' },
   ];
 
   return (

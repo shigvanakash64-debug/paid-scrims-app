@@ -1,29 +1,18 @@
-import cloudinary from "../config/cloudinary.js";
-import streamifier from "streamifier";
-
 /**
- * Upload file buffer to Cloudinary
- * @param {Buffer} buffer - File buffer from multer
- * @param {string} filename - Original filename
- * @returns {Promise<string>} - Secure URL of uploaded image
+ * Convert uploaded image buffer to a data URL.
+ * This avoids any external image hosting dependency.
  */
-export const uploadToCloudinary = (buffer, filename) => {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: "scrim-results",
-        resource_type: "auto",
-        public_id: `${Date.now()}-${filename.split(".")[0]}`,
-      },
-      (error, result) => {
-        if (error) {
-          reject(new Error(`Cloudinary upload failed: ${error.message}`));
-        } else {
-          resolve(result.secure_url);
-        }
-      }
-    );
+export const uploadToCloudinary = async (buffer, filename) => {
+  const extension = (filename?.split(".").pop() || "png").toLowerCase();
+  const mimeType = extension === "jpg" || extension === "jpeg"
+    ? "image/jpeg"
+    : extension === "png"
+      ? "image/png"
+      : extension === "gif"
+        ? "image/gif"
+        : extension === "webp"
+          ? "image/webp"
+          : "image/png";
 
-    streamifier.createReadStream(buffer).pipe(stream);
-  });
+  return `data:${mimeType};base64,${buffer.toString("base64")}`;
 };
