@@ -128,7 +128,7 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
     <div id="screen-result" className="screen-result">
       <div className="hero">
         <div className="screen-title">SUBMIT RESULT</div>
-        <div className="screen-sub">Upload proof within 15 minutes</div>
+        <div className="screen-sub">Winner screenshot proof is mandatory. Upload it within 15 minutes.</div>
       </div>
 
       <div className="result-match-card rounded-3xl border border-[#1F1F1F] bg-[#111111] p-5 mb-6">
@@ -166,9 +166,9 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
           onChange={handleFileChange}
         />
         <div className="upload-icon">+</div>
-        <div className="upload-label">Upload Screenshot</div>
+        <div className="upload-label">Upload Winner Screenshot</div>
         <div className="upload-sub">
-          {selectedFile ? selectedFile.name : 'Tap to upload match result'}
+          {selectedFile ? selectedFile.name : 'Required proof for winner claim'}
         </div>
       </div>
 
