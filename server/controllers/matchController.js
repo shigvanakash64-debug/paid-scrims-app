@@ -502,18 +502,24 @@ export const createMatch = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Prize pool is fixed per entry amount, not multiplied by player count
-    let prizePool;
-    if (parsedEntry <= 30) {
-      prizePool = 50;
-    } else if (parsedEntry === 50) {
-      prizePool = 80;
-    } else if (parsedEntry <= 100) {
-      prizePool = Math.floor(parsedEntry * 1.6);
-    } else if (parsedEntry <= 200) {
-      prizePool = Math.floor(parsedEntry * 1.7);
-    } else {
-      prizePool = Math.floor(parsedEntry * 1.7);
+    // Prize pool is fixed per entry amount using the official tier table.
+    const prizePoolTable = {
+      30: 50,
+      50: 80,
+      100: 160,
+      200: 340,
+      500: 850,
+      1000: 1700,
+    };
+
+    let prizePool = prizePoolTable[parsedEntry] ?? null;
+    if (!prizePool) {
+      const exactMatch = Object.keys(prizePoolTable)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .find((entry) => parsedEntry <= entry);
+
+      prizePool = exactMatch ? prizePoolTable[exactMatch] : 0;
     }
 
     const match = await Match.create({
