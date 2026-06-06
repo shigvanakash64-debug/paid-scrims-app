@@ -144,6 +144,26 @@ const matchSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
+      submissionClaims: [
+        {
+          user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+          },
+          claimedWinner: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+          },
+          outcome: {
+            type: String,
+            enum: ["win", "lose"],
+          },
+          submittedAt: {
+            type: Date,
+            default: Date.now,
+          },
+        },
+      ],
       decidedAt: Date,
       paidOut: {
         type: Boolean,

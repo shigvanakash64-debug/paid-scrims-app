@@ -13,6 +13,7 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [submittedMessage, setSubmittedMessage] = useState('');
 
   const matchId = match?.id || match?._id;
   const playersLabel = match?.players?.map((player) => player?.username || player).join(' vs ') || 'Unknown players';
@@ -69,7 +70,16 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
       });
 
       if (response.data?.success) {
-        if (response.data.matchStatus === 'completed' && response.data.payoutInfo) {
+        const status = response.data.matchStatus;
+        if (status === 'result_pending') {
+          setSubmittedMessage('Result submitted successfully. Conflicting winner claims are now under admin review.');
+        } else if (status === 'disputed') {
+          setSubmittedMessage('Result submitted successfully. The match has been marked for admin review.');
+        } else {
+          setSubmittedMessage('Result uploaded successfully. Wait for opponent confirmation.');
+        }
+
+        if (status === 'completed' && response.data.payoutInfo) {
           try {
             const token = localStorage.getItem('clutchzone_token');
             const meResponse = await axios.get(`${API_BASE}/auth/me`, {
@@ -81,7 +91,7 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
           }
         }
         await refreshMatch(matchId);
-        if (response.data.matchStatus === 'completed') {
+        if (status === 'completed') {
           clearMatch();
           setSubmitted(true);
           setTimeout(() => {
@@ -118,7 +128,7 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
       <div id="screen-result" className="screen-result">
         <div className="hero">
           <div className="screen-title">SUBMITTED</div>
-          <div className="screen-sub">Result uploaded successfully. Wait for opponent confirmation.</div>
+          <div className="screen-sub">{submittedMessage || 'Result uploaded successfully. Wait for opponent confirmation.'}</div>
         </div>
       </div>
     );

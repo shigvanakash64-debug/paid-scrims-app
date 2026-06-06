@@ -109,6 +109,8 @@ export const submitResult = async (req, res) => {
     // Add screenshot hash to prevent duplicates
     match.addScreenshotHash(validation.hash);
 
+    const opponentId = match.players.find((p) => p.toString() !== userId.toString());
+
     // Update match with submission
     match.result.submittedBy.push(userId);
     match.result.screenshots.push({
@@ -128,20 +130,35 @@ export const submitResult = async (req, res) => {
       match.resultDeadline = new Date(Date.now() + DEADLINE_MS);
     }
 
-    const opponentId = match.players.find((p) => p.toString() !== userId.toString());
     if (winner !== 'win' && winner !== 'lose') {
       return res.status(400).json({ error: 'Winner must be "win" or "lose"' });
     }
 
-    const selectedWinner = winner === 'win' ? userId : opponentId || userId;
+    if (!opponentId) {
+      return res.status(400).json({ error: 'This match does not have an opponent to review.' });
+    }
+
+    const selectedWinner = winner === 'win' ? userId : opponentId;
+    match.result.submissionClaims = match.result.submissionClaims || [];
+
+    match.result.submissionClaims.push({
+      user: userId,
+      claimedWinner: selectedWinner,
+      outcome: winner,
+      submittedAt: new Date(),
+    });
 
     const submittedCount = match.result.submittedBy.length;
     const totalPlayers = match.players.length;
     let payoutInfo = null;
 
     if (submittedCount === totalPlayers) {
-      if (!match.result.winner || selectedWinner.toString() === match.result.winner.toString()) {
-        match.result.winner = selectedWinner;
+      const claims = match.result.submissionClaims || [];
+      const uniqueClaimedWinners = [...new Set(claims.map((claim) => claim.claimedWinner.toString()))];
+
+      if (uniqueClaimedWinners.length === 1) {
+        const confirmedWinnerId = claims[0].claimedWinner;
+        match.result.winner = confirmedWinnerId;
         match.result.decidedAt = new Date();
         match.status = 'completed';
 
@@ -157,15 +174,14 @@ export const submitResult = async (req, res) => {
 
         await match.save();
         try {
-          payoutInfo = await processPayout(match._id, selectedWinner, User);
+          payoutInfo = await processPayout(match._id, confirmedWinnerId, User);
         } catch (payoutError) {
           console.error('PAYOUT ERROR:', payoutError.message);
         }
 
-        // Add notifications after payout
-        const loserId = match.players.find((p) => p.toString() !== selectedWinner.toString());
-        if (selectedWinner) {
-          await User.findByIdAndUpdate(selectedWinner, {
+        const loserId = match.players.find((p) => p.toString() !== confirmedWinnerId.toString());
+        if (confirmedWinnerId) {
+          await User.findByIdAndUpdate(confirmedWinnerId, {
             $push: {
               notifications: {
                 type: 'success',
@@ -189,8 +205,12 @@ export const submitResult = async (req, res) => {
           });
         }
       } else {
-        match.status = 'disputed';
+        match.status = 'result_pending';
         match.result.decidedAt = new Date();
+        match.adminMessages.push({
+          sender: 'system',
+          text: 'Both players submitted different winner claims. Admin review is required before any payout is released.',
+        });
 
         await TrustScoreEngine.onConflictSubmission(userId);
         if (opponentId) {
