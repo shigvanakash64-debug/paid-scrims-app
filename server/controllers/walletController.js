@@ -31,50 +31,37 @@ export const requestWithdrawal = async (req, res) => {
     const userId = req.userId;
     const { amount, upi } = req.body;
 
+    const parsedAmount = Number(amount);
+
     // Validation
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: 'Invalid withdrawal amount' });
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 100) {
+      return res.status(400).json({ error: 'Minimum withdrawal amount is ₹100' });
     }
 
     if (!upi || !upi.trim()) {
       return res.status(400).json({ error: 'UPI ID is required' });
     }
 
-    // Get user
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check balance
-    if (user.wallet.balance < amount) {
+    if (user.wallet.balance < parsedAmount) {
       return res.status(400).json({
         error: 'Insufficient balance for withdrawal',
         currentBalance: user.wallet.balance,
       });
     }
 
-    // Deduct amount from wallet immediately
-    user.wallet.balance -= amount;
-
-    // Create withdrawal request
     const withdrawalRequest = {
-      amount,
+      amount: parsedAmount,
       status: 'pending',
       requestedAt: new Date(),
-      upi,
+      upi: upi.trim(),
     };
 
     user.wallet.pendingWithdrawals.push(withdrawalRequest);
-
-    // Add transaction record
-    user.wallet.transactions.push({
-      type: 'withdrawal',
-      amount: -amount,
-      description: `Withdrawal request to ${upi}`,
-      timestamp: new Date(),
-      matchId: null,
-    });
 
     await user.save();
 
@@ -213,6 +200,26 @@ export const getDepositHistory = async (req, res) => {
   } catch (error) {
     console.error('Get Deposit History Error:', error);
     res.status(500).json({ error: 'Failed to fetch deposit history' });
+  }
+};
+
+export const getWithdrawalHistory = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const user = await User.findById(userId).select('wallet.pendingWithdrawals');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const withdrawals = (user.wallet?.pendingWithdrawals || [])
+      .slice()
+      .sort((a, b) => new Date(b.requestedAt || b.processedAt || 0) - new Date(a.requestedAt || a.processedAt || 0));
+
+    res.status(200).json({
+      success: true,
+      withdrawals,
+    });
+  } catch (error) {
+    console.error('Get Withdrawal History Error:', error);
+    res.status(500).json({ error: 'Failed to fetch withdrawal history' });
   }
 };
 
@@ -415,6 +422,7 @@ export default {
   getTransactionHistory,
   submitDepositRequest,
   getDepositHistory,
+  getWithdrawalHistory,
   createDepositOrder,
   confirmDeposit,
 };

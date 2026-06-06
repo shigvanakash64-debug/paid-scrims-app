@@ -51,7 +51,7 @@ export const register = async (req, res) => {
 
     if (!username || !password) {
       console.log("REGISTER MISSING FIELD:", { username, password });
-      return res.status(400).json({ error: "Username and password are required" });
+      return res.status(400).json({ error: "In Game Name and password are required" });
     }
 
     const normalizedUsername = username.trim().toLowerCase();
@@ -59,7 +59,7 @@ export const register = async (req, res) => {
     const existing = await User.findOne({ username: normalizedUsername });
     if (existing) {
       console.log("USER EXISTS:", existing.username);
-      return res.status(409).json({ error: "Username already exists" });
+      return res.status(409).json({ error: "In Game Name already exists" });
     }
 
     console.log("GENERATING SALT AND HASH");

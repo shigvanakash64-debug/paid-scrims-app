@@ -288,7 +288,7 @@ function App() {
       setSession(response.data.user, response.data.token);
     } catch (error) {
       if (error.response?.status === 409) {
-        alert('Username already exists. Choose a different username.');
+        alert('In Game Name already exists. Choose a different in-game name.');
       } else {
         alert(error.response?.data?.error || 'Registration failed');
       }

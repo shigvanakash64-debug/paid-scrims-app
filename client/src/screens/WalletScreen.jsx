@@ -14,6 +14,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const [depositMobileLast4, setDepositMobileLast4] = useState('');
   const [depositLoading, setDepositLoading] = useState(false);
   const [deposits, setDeposits] = useState([]);
+  const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -24,14 +25,16 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const fetchWalletData = async () => {
     try {
       const token = localStorage.getItem('clutchzone_token');
-      const [meResponse, depositResponse] = await Promise.all([
+      const [meResponse, depositResponse, withdrawalResponse] = await Promise.all([
         axios.get(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API_BASE}/wallet/deposits`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_BASE}/wallet/withdrawals`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const userData = meResponse.data.user;
       setBalance(userData.wallet?.balance || 0);
       setTransactions(userData.wallet?.transactions || []);
       setDeposits(depositResponse.data.deposits || []);
+      setWithdrawals(withdrawalResponse.data.withdrawals || []);
       onUserUpdate(userData);
     } catch (error) {
       console.error('Failed to fetch wallet data:', error);
@@ -44,12 +47,14 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       return;
     }
 
-    if (!withdrawalAmount || parseFloat(withdrawalAmount) <= 0) {
-      setMessage('Please enter a valid amount');
+    const amount = parseFloat(withdrawalAmount);
+
+    if (!withdrawalAmount || amount < 100) {
+      setMessage('Minimum withdrawal amount is ₹100');
       return;
     }
 
-    if (parseFloat(withdrawalAmount) > balance) {
+    if (amount > balance) {
       setMessage('Insufficient balance');
       return;
     }
@@ -57,8 +62,8 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('clutchzone_token');
-      await axios.post(`${API_BASE}/match/withdraw`, {
-        amount: parseFloat(withdrawalAmount),
+      await axios.post(`${API_BASE}/wallet/withdraw`, {
+        amount,
         upi: withdrawalUpi.trim(),
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -231,14 +236,14 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                 onChange={(e) => setWithdrawalAmount(e.target.value)}
                 placeholder="Enter amount"
                 className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
-                min="1"
+                min="100"
                 max={balance}
               />
             </div>
 
             <button
               onClick={handleWithdrawalRequest}
-              disabled={loading || !withdrawalUpi || !withdrawalAmount || parseFloat(withdrawalAmount) > balance}
+              disabled={loading || !withdrawalUpi || !withdrawalAmount || parseFloat(withdrawalAmount) < 100 || parseFloat(withdrawalAmount) > balance}
               className="w-full rounded-3xl bg-[#FF6A00] px-6 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black transition disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? 'Submitting...' : 'Request Withdrawal'}
@@ -266,6 +271,30 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${deposit.status === 'approved' ? 'bg-[#022c0b] text-[#22C55E]' : deposit.status === 'rejected' ? 'bg-[#3d1c1c] text-[#EF4444]' : 'bg-[#2A2A2A] text-[#F59E0B]'}`}>{deposit.status}</span>
                 </div>
                 <div className="mt-2 text-xs text-[#A1A1A1]">Requested: {new Date(deposit.requestedAt).toLocaleString()}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Withdrawal History */}
+      <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6">
+        <h2 className="text-xl font-semibold text-white mb-4">Withdrawal History</h2>
+        {withdrawals.length === 0 ? (
+          <div className="text-[#A1A1A1] text-center py-6">No withdrawal requests yet</div>
+        ) : (
+          <div className="space-y-3">
+            {withdrawals.map((withdrawal) => (
+              <div key={withdrawal._id} className="rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-white font-semibold">₹{Number(withdrawal.amount).toLocaleString()}</div>
+                    <div className="text-xs text-[#A1A1A1]">UPI: {withdrawal.upi || '—'}</div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${withdrawal.status === 'approved' ? 'bg-[#022c0b] text-[#22C55E]' : withdrawal.status === 'rejected' ? 'bg-[#3d1c1c] text-[#EF4444]' : 'bg-[#2A2A2A] text-[#F59E0B]'}`}>{withdrawal.status}</span>
+                </div>
+                <div className="mt-2 text-xs text-[#A1A1A1]">Requested: {new Date(withdrawal.requestedAt || withdrawal.createdAt).toLocaleString()}</div>
+                {withdrawal.processedAt && <div className="text-xs text-[#A1A1A1]">Processed: {new Date(withdrawal.processedAt).toLocaleString()}</div>}
               </div>
             ))}
           </div>

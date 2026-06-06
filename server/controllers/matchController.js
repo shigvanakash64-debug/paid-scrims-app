@@ -1230,8 +1230,10 @@ const { amount, upi } = req.body;
     return res.status(400).json({ error: "UPI ID is required" });
   }
 
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: "Valid amount is required" });
+    const parsedAmount = Number(amount);
+
+  if (!Number.isFinite(parsedAmount) || parsedAmount < 100) {
+      return res.status(400).json({ error: "Minimum withdrawal amount is ₹100" });
     }
 
     const user = await User.findById(userId);
@@ -1239,13 +1241,13 @@ const { amount, upi } = req.body;
       return res.status(404).json({ error: "User not found" });
     }
 
-    if (user.wallet.balance < amount) {
+    if (user.wallet.balance < parsedAmount) {
       return res.status(400).json({ error: "Insufficient balance" });
     }
 
     // Create pending withdrawal
     const withdrawal = {
-      amount: parseFloat(amount),
+      amount: parsedAmount,
       upi: upi.trim(),
       status: 'pending',
       requestedAt: new Date()

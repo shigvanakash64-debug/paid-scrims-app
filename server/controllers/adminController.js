@@ -917,12 +917,14 @@ export const getAllWithdrawals = async (req, res) => {
   try {
     const { status = 'pending', page = 1, limit = 20 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
+    const statusFilter = status === 'all'
+      ? { $in: ['pending', 'approved', 'rejected'] }
+      : status;
 
-    // Aggregate to get users with pending withdrawals
     const withdrawals = await User.aggregate([
       {
         $match: {
-          'wallet.pendingWithdrawals.status': status
+          'wallet.pendingWithdrawals.status': statusFilter
         }
       },
       {
@@ -930,7 +932,7 @@ export const getAllWithdrawals = async (req, res) => {
       },
       {
         $match: {
-          'wallet.pendingWithdrawals.status': status
+          'wallet.pendingWithdrawals.status': statusFilter
         }
       },
       {
@@ -961,7 +963,7 @@ export const getAllWithdrawals = async (req, res) => {
     const total = await User.aggregate([
       {
         $match: {
-          'wallet.pendingWithdrawals.status': status
+          'wallet.pendingWithdrawals.status': statusFilter
         }
       },
       {
@@ -969,7 +971,7 @@ export const getAllWithdrawals = async (req, res) => {
       },
       {
         $match: {
-          'wallet.pendingWithdrawals.status': status
+          'wallet.pendingWithdrawals.status': statusFilter
         }
       },
       {

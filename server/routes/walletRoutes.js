@@ -8,6 +8,7 @@ import {
   confirmDeposit,
   submitDepositRequest,
   getDepositHistory,
+  getWithdrawalHistory,
 } from '../controllers/walletController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
@@ -34,6 +35,7 @@ router.get('/balance', getWalletBalance);
  */
 router.post('/deposit-request', submitDepositRequest);
 router.get('/deposits', getDepositHistory);
+router.get('/withdrawals', getWithdrawalHistory);
 router.post('/deposit-order', createDepositOrder);
 
 /**

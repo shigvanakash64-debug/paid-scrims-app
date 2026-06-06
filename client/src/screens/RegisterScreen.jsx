@@ -16,13 +16,13 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
         <div className="auth-sub">Create your Clutch Zone account</div>
         <form onSubmit={handleSubmit} className="auth-form">
           <label className="auth-field">
-            <span className="auth-label">Username</span>
+            <span className="auth-label">In Game Name</span>
             <input
               className="auth-input"
               type="text"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              placeholder="Choose a username"
+              placeholder="Enter your in-game name"
               required
             />
           </label>
