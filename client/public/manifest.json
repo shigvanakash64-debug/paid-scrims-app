@@ -15,21 +15,21 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/favicon.svg",
+      "src": "/favicon.png",
       "sizes": "any",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/favicon.svg",
+      "src": "/favicon.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/favicon.svg",
+      "src": "/favicon.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
@@ -41,7 +41,7 @@
       "url": "/?action=create-match",
       "icons": [
         {
-          "src": "/favicon.svg",
+          "src": "/favicon.png",
           "sizes": "96x96"
         }
       ]
@@ -53,7 +53,7 @@
       "url": "/?action=my-matches",
       "icons": [
         {
-          "src": "/favicon.svg",
+          "src": "/favicon.png",
           "sizes": "96x96"
         }
       ]
@@ -61,15 +61,15 @@
   ],
   "screenshots": [
     {
-      "src": "/favicon.svg",
+      "src": "/favicon.png",
       "sizes": "540x720",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "form_factor": "narrow"
     },
     {
-      "src": "/favicon.svg",
+      "src": "/favicon.png",
       "sizes": "1280x720",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "form_factor": "wide"
     }
   ]

@@ -28,7 +28,7 @@ const validateRazorpayConfig = (res) => {
  */
 export const requestWithdrawal = async (req, res) => {
   try {
-    const { userId } = req.user;
+    const userId = req.userId;
     const { amount, upi } = req.body;
 
     // Validation
@@ -124,7 +124,7 @@ export const requestWithdrawal = async (req, res) => {
  */
 export const getWalletBalance = async (req, res) => {
   try {
-    const { userId } = req.user;
+    const userId = req.userId;
 
     const user = await User.findById(userId).select('wallet');
     if (!user) {
@@ -148,7 +148,7 @@ export const getWalletBalance = async (req, res) => {
 export const submitDepositRequest = async (req, res) => {
   try {
     const { amount, utr, mobileLast4 } = req.body;
-    const { userId } = req.user;
+    const userId = req.userId;
 
     if (!amount || Number(amount) <= 0) {
       return res.status(400).json({ error: 'Invalid deposit amount' });
@@ -202,7 +202,7 @@ export const submitDepositRequest = async (req, res) => {
 
 export const getDepositHistory = async (req, res) => {
   try {
-    const { userId } = req.user;
+    const userId = req.userId;
     const user = await User.findById(userId).select('wallet.pendingDeposits');
     if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -249,7 +249,7 @@ export const createDepositOrder = async (req, res) => {
 export const confirmDeposit = async (req, res) => {
   try {
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature, amount } = req.body;
-    const { userId } = req.user;
+    const userId = req.userId;
 
     if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !amount) {
       return res.status(400).json({ error: 'Payment confirmation data is required' });
@@ -384,7 +384,7 @@ export const addBalance = async (req, res) => {
  */
 export const getTransactionHistory = async (req, res) => {
   try {
-    const { userId } = req.user;
+    const userId = req.userId;
     const { limit = 20, skip = 0 } = req.query;
 
     const user = await User.findById(userId).select('wallet');
