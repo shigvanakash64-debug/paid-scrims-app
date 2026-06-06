@@ -240,7 +240,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
 
       <div className="btn-cta-wrap">
         <button className="btn-primary" type="button" onClick={handleFindMatch}>
-          FIND MATCH
+          CREATE MATCH
         </button>
       </div>
     </div>

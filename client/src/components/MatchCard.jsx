@@ -55,7 +55,7 @@ export const MatchCard = ({ match, onJoin, user }) => {
           onClick={() => onJoin(match)}
           disabled={!user}
         >
-          {match.opponent ? 'Accept Match' : 'Find Match'}
+          {match.opponent ? 'Accept Match' : 'Create Match'}
         </button>
       </div>
     </Card>
