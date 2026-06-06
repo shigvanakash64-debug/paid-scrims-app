@@ -39,6 +39,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const [error, setError] = useState('');
   const [paying, setPaying] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [showPaymentStep, setShowPaymentStep] = useState(false);
   const [localRoomId, setLocalRoomId] = useState('');
   const [localPassword, setLocalPassword] = useState('');
 
@@ -184,12 +185,19 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       await refreshMatch(matchId);
+      setShowPaymentStep(true);
       alert(response.data.message || 'Wallet payment completed.');
     } catch (err) {
       alert(err.response?.data?.error || 'Could not pay with wallet');
     } finally {
       setPaying(false);
     }
+  };
+
+  const handleConfirmEntry = async () => {
+    if (!matchId) return;
+    setShowPaymentStep(true);
+    await handlePayWithWallet();
   };
 
   const handleVerifyPlayer = async (playerId) => {
@@ -337,14 +345,32 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
           </div>
         )}
 
-        <PaymentCard
-          amount={currentMatch.entry}
-          walletBalance={currentUser?.wallet?.balance || user?.wallet?.balance || 0}
-          deadline={deadlineLabel}
-          onPayWithWallet={handlePayWithWallet}
-          isPaid={currentMatch?.paidUsers?.includes(user?.id)}
-          paymentStatus={currentStatusLabel}
-        />
+        {!showPaymentStep && (
+          <section className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-5 text-white">
+            <p className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1]">Confirm your entry</p>
+            <h2 className="mt-2 text-xl font-semibold">You are about to join this match.</h2>
+            <p className="mt-2 text-sm text-[#A1A1A1]">Tap confirm to proceed to the entry fee payment step for ₹{currentMatch?.entry || 0}.</p>
+            <button
+              type="button"
+              onClick={handleConfirmEntry}
+              disabled={paying || currentMatch?.paidUsers?.includes(user?.id)}
+              className="mt-4 w-full rounded-3xl bg-[#FF6A00] px-5 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-[#e65b00] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {paying ? 'Processing…' : 'Confirm'}
+            </button>
+          </section>
+        )}
+
+        {showPaymentStep && (
+          <PaymentCard
+            amount={currentMatch.entry}
+            walletBalance={currentUser?.wallet?.balance || user?.wallet?.balance || 0}
+            deadline={deadlineLabel}
+            onPayWithWallet={handlePayWithWallet}
+            isPaid={currentMatch?.paidUsers?.includes(user?.id)}
+            paymentStatus={currentStatusLabel}
+          />
+        )}
 
         <PlayerStatusList players={playerStatuses} />
 
