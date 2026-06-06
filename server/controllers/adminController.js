@@ -997,11 +997,14 @@ export const getAllDeposits = async (req, res) => {
   try {
     const { status = 'pending', page = 1, limit = 20 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
+    const statusFilter = status === 'all'
+      ? { $in: ['pending', 'approved', 'rejected'] }
+      : status;
 
     const deposits = await User.aggregate([
-      { $match: { 'wallet.pendingDeposits.status': status } },
+      { $match: { 'wallet.pendingDeposits.status': statusFilter } },
       { $unwind: '$wallet.pendingDeposits' },
-      { $match: { 'wallet.pendingDeposits.status': status } },
+      { $match: { 'wallet.pendingDeposits.status': statusFilter } },
       {
         $project: {
           _id: 0,
@@ -1024,9 +1027,9 @@ export const getAllDeposits = async (req, res) => {
     ]);
 
     const total = await User.aggregate([
-      { $match: { 'wallet.pendingDeposits.status': status } },
+      { $match: { 'wallet.pendingDeposits.status': statusFilter } },
       { $unwind: '$wallet.pendingDeposits' },
-      { $match: { 'wallet.pendingDeposits.status': status } },
+      { $match: { 'wallet.pendingDeposits.status': statusFilter } },
       { $count: 'total' },
     ]);
 

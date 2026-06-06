@@ -38,7 +38,7 @@ const sampleMatches = [
     type: 'Bodyshot',
     skillSetting: 'Skill On',
     entryFee: 100,
-    prizePool: 160,
+    prizePool: 170,
     creator: 'Riya_09',
     trustScore: 74,
     status: 'Waiting for opponent',

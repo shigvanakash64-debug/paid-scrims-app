@@ -506,7 +506,7 @@ export const createMatch = async (req, res) => {
     const prizePoolTable = {
       30: 50,
       50: 80,
-      100: 160,
+      100: 170,
       200: 340,
       500: 850,
       1000: 1700,

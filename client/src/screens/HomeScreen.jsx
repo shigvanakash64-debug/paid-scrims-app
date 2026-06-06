@@ -217,7 +217,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
           ))}
         </div>
         <div className="fee-note">
-          Choose any entry fee to preview the prize pool. Players pay manually in the match lobby.
+          Choose any entry fee to preview the prize pool. Deposit money into your wallet first, then pay the entry fee directly from wallet when joining a match.
         </div>
       </div>
 
