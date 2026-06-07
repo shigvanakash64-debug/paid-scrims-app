@@ -8,16 +8,23 @@ export const DepositsPanel = () => {
   const [filterStatus, setFilterStatus] = useState('pending');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [depositUpiInfo, setDepositUpiInfo] = useState({ upi: '', upis: [] });
   const [error, setError] = useState('');
 
   const fetchDeposits = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('clutchzone_token');
-      const response = await axios.get(`${API_BASE}/admin/deposits?status=${filterStatus}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const [response, upiResponse] = await Promise.all([
+        axios.get(`${API_BASE}/admin/deposits?status=${filterStatus}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API_BASE}/wallet/deposit-upi`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
       setDeposits(response.data.deposits || []);
+      setDepositUpiInfo({ upi: upiResponse.data.upi || '', upis: upiResponse.data.upis || [] });
     } catch (err) {
       console.error('Failed to fetch deposits', err);
       setError('Failed to fetch deposit requests');
@@ -68,9 +75,14 @@ export const DepositsPanel = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-white">Deposit Requests</h1>
-        <p className="text-sm text-[#A1A1A1] mt-2">Approve manual wallet deposits using UTR + last 4 digits.</p>
+        <p className="text-sm text-[#A1A1A1] mt-2">Approve manual wallet deposits using UTR + payer name. Current payment UPI rotates after every approval.</p>
       </div>
       {error && <div className="text-red-400">{error}</div>}
+      <div className="rounded-2xl border border-[#1F1F1F] bg-[#111111] p-4 text-sm text-[#E5E7EB] space-y-1">
+        <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Current Deposit UPI</div>
+        <div className="text-base font-semibold text-white">{depositUpiInfo.upi || 'Loading...'}</div>
+        <div className="text-xs text-[#A1A1A1]">Available IDs: {depositUpiInfo.upis.join(' • ')}</div>
+      </div>
       <div className="flex gap-2 overflow-x-auto pb-2">
         {['pending', 'approved', 'rejected', 'all'].map((status) => (
           <button key={status} onClick={() => setFilterStatus(status)} className={`px-4 py-2 rounded-lg font-semibold text-sm ${filterStatus === status ? 'bg-[#FF6A00] text-black' : 'border border-[#1F1F1F] text-[#A1A1A1]'}`}>
@@ -93,7 +105,7 @@ export const DepositsPanel = () => {
             <div className="grid grid-cols-2 gap-3 text-sm text-[#E5E7EB]">
               <div><span className="text-[#A1A1A1]">Amount:</span> ₹{Number(item.amount).toLocaleString()}</div>
               <div><span className="text-[#A1A1A1]">UTR:</span> {item.utr}</div>
-              <div><span className="text-[#A1A1A1]">Last 4:</span> ****{item.mobileLast4}</div>
+              <div><span className="text-[#A1A1A1]">Payer:</span> {item.payerName || 'N/A'}</div>
               <div><span className="text-[#A1A1A1]">Submitted:</span> {new Date(item.requestedAt).toLocaleString()}</div>
             </div>
             {item.status === 'pending' && (

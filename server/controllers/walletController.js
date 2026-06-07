@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
 import User from '../models/User.js';
+import { getCurrentDepositUpi, getDepositUpis, getDepositUpiConfig } from '../config/depositUpi.js';
 import { sendNotification } from '../services/notificationService.js';
 
 const getRazorpayInstance = () => {
@@ -132,9 +133,24 @@ export const getWalletBalance = async (req, res) => {
   }
 };
 
+export const getDepositUpiDetails = async (req, res) => {
+  try {
+    const config = getDepositUpiConfig();
+    res.status(200).json({
+      success: true,
+      upi: getCurrentDepositUpi(),
+      upis: getDepositUpis(),
+      currentIndex: config.currentIndex || 0,
+    });
+  } catch (error) {
+    console.error('Get Deposit UPI Error:', error);
+    res.status(500).json({ error: 'Failed to fetch deposit UPI details' });
+  }
+};
+
 export const submitDepositRequest = async (req, res) => {
   try {
-    const { amount, utr, mobileLast4 } = req.body;
+    const { amount, utr, mobileLast4, payerName } = req.body;
     const userId = req.userId;
 
     if (!amount || Number(amount) <= 0) {
@@ -142,14 +158,19 @@ export const submitDepositRequest = async (req, res) => {
     }
 
     const normalizedUtr = String(utr || '').trim().toUpperCase();
+    const normalizedName = String(payerName || '').trim();
     const normalizedMobile = String(mobileLast4 || '').trim();
 
     if (!normalizedUtr || normalizedUtr.length < 6) {
       return res.status(400).json({ error: 'Please enter a valid UTR number' });
     }
 
+    if (!normalizedName) {
+      return res.status(400).json({ error: 'Please enter the payer full name' });
+    }
+
     if (!normalizedMobile || normalizedMobile.length < 4) {
-      return res.status(400).json({ error: 'Please enter the last 4 digits of the payer mobile number' });
+      return res.status(400).json({ error: 'Please enter the payer mobile number last 4 digits' });
     }
 
     const user = await User.findById(userId);
@@ -169,6 +190,7 @@ export const submitDepositRequest = async (req, res) => {
     user.wallet.pendingDeposits.unshift({
       amount: Number(amount),
       utr: normalizedUtr,
+      payerName: normalizedName,
       mobileLast4: normalizedMobile,
       status: 'pending',
       requestedAt: new Date(),
@@ -421,6 +443,7 @@ export default {
   addBalance,
   getTransactionHistory,
   submitDepositRequest,
+  getDepositUpiDetails,
   getDepositHistory,
   getWithdrawalHistory,
   createDepositOrder,

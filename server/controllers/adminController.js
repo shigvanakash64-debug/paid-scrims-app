@@ -7,6 +7,7 @@ import TrustScoreEngine from "../utils/trustScore.js";
 import ScreenshotValidator from "../utils/screenshotValidation.js";
 import User from "../models/User.js";
 import Match from "../models/Match.js";
+import { rotateDepositUpi } from "../config/depositUpi.js";
 
 /**
  * Admin endpoint to manually trigger match timeout resolution
@@ -1017,6 +1018,7 @@ export const getAllDeposits = async (req, res) => {
           username: '$username',
           amount: '$wallet.pendingDeposits.amount',
           utr: '$wallet.pendingDeposits.utr',
+          payerName: '$wallet.pendingDeposits.payerName',
           mobileLast4: '$wallet.pendingDeposits.mobileLast4',
           status: '$wallet.pendingDeposits.status',
           requestedAt: '$wallet.pendingDeposits.requestedAt',
@@ -1083,6 +1085,7 @@ export const approveDeposit = async (req, res) => {
     });
 
     await user.save();
+    rotateDepositUpi();
 
     res.status(200).json({ success: true, message: 'Deposit approved successfully' });
   } catch (error) {

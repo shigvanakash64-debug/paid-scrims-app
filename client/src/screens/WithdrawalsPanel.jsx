@@ -102,6 +102,7 @@ export const WithdrawalsPanel = () => {
           {withdrawals.filter((w) => w.status === 'pending').length} pending •{' '}
           {withdrawals.filter((w) => w.status === 'approved').length} approved
         </p>
+        <p className="text-xs text-[#F59E0B] mt-1">Minimum withdrawal is ₹100.</p>
       </div>
 
       {/* Filter */}

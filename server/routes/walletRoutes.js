@@ -7,6 +7,7 @@ import {
   createDepositOrder,
   confirmDeposit,
   submitDepositRequest,
+  getDepositUpiDetails,
   getDepositHistory,
   getWithdrawalHistory,
 } from '../controllers/walletController.js';
@@ -34,6 +35,7 @@ router.get('/balance', getWalletBalance);
  * Create a Razorpay order for wallet deposit
  */
 router.post('/deposit-request', submitDepositRequest);
+router.get('/deposit-upi', getDepositUpiDetails);
 router.get('/deposits', getDepositHistory);
 router.get('/withdrawals', getWithdrawalHistory);
 router.post('/deposit-order', createDepositOrder);

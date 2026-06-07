@@ -11,7 +11,8 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const [withdrawalUpi, setWithdrawalUpi] = useState('');
   const [depositAmount, setDepositAmount] = useState('');
   const [depositUtr, setDepositUtr] = useState('');
-  const [depositMobileLast4, setDepositMobileLast4] = useState('');
+  const [payerName, setPayerName] = useState('');
+  const [depositUpiInfo, setDepositUpiInfo] = useState({ upi: '', upis: [] });
   const [depositLoading, setDepositLoading] = useState(false);
   const [deposits, setDeposits] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
@@ -25,16 +26,18 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const fetchWalletData = async () => {
     try {
       const token = localStorage.getItem('clutchzone_token');
-      const [meResponse, depositResponse, withdrawalResponse] = await Promise.all([
+      const [meResponse, depositResponse, withdrawalResponse, upiResponse] = await Promise.all([
         axios.get(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API_BASE}/wallet/deposits`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API_BASE}/wallet/withdrawals`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_BASE}/wallet/deposit-upi`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const userData = meResponse.data.user;
       setBalance(userData.wallet?.balance || 0);
       setTransactions(userData.wallet?.transactions || []);
       setDeposits(depositResponse.data.deposits || []);
       setWithdrawals(withdrawalResponse.data.withdrawals || []);
+      setDepositUpiInfo({ upi: upiResponse.data.upi || '', upis: upiResponse.data.upis || [] });
       onUserUpdate(userData);
     } catch (error) {
       console.error('Failed to fetch wallet data:', error);
@@ -94,8 +97,8 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       setMessage('Please enter a valid UTR number');
       return;
     }
-    if (!depositMobileLast4.trim() || depositMobileLast4.trim().length < 4) {
-      setMessage('Please enter the last 4 digits of the payer mobile number');
+    if (!payerName.trim()) {
+      setMessage('Please enter the payer full name');
       return;
     }
 
@@ -106,13 +109,14 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       await axios.post(`${API_BASE}/wallet/deposit-request`, {
         amount,
         utr: depositUtr.trim(),
-        mobileLast4: depositMobileLast4.trim(),
+        payerName: payerName.trim(),
+        mobileLast4: '',
       }, { headers: { Authorization: `Bearer ${token}` } });
 
       setMessage('✅ Deposit request submitted. Admin will verify it and credit your wallet.');
       setDepositAmount('');
       setDepositUtr('');
-      setDepositMobileLast4('');
+      setPayerName('');
       fetchWalletData();
     } catch (error) {
       setMessage(error.response?.data?.error || 'Failed to submit deposit request.');
@@ -185,6 +189,11 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                 min="1"
               />
             </div>
+            <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4 text-sm text-[#E5E7EB] space-y-2">
+              <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Current Deposit UPI</div>
+              <div className="text-base font-semibold text-white">{depositUpiInfo.upi || 'Loading...'}</div>
+              <div className="text-xs text-[#A1A1A1]">Available UPI IDs: {depositUpiInfo.upis.join(' • ')}</div>
+            </div>
             <div>
               <label className="block text-sm text-[#A1A1A1] mb-2">UTR Number</label>
               <input
@@ -196,12 +205,12 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               />
             </div>
             <div>
-              <label className="block text-sm text-[#A1A1A1] mb-2">Last 4 Digits of Payer Mobile</label>
+              <label className="block text-sm text-[#A1A1A1] mb-2">Full Name of Payer</label>
               <input
                 type="text"
-                value={depositMobileLast4}
-                onChange={(e) => setDepositMobileLast4(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                placeholder="5678"
+                value={payerName}
+                onChange={(e) => setPayerName(e.target.value)}
+                placeholder="Enter payer full name"
                 className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
               />
             </div>
@@ -214,7 +223,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               {depositLoading ? 'Submitting...' : 'Submit Deposit Request'}
             </button>
 
-            <div className="text-xs text-[#A1A1A1]">Admin verifies UTR, amount, and last 4 digits before your wallet is credited.</div>
+            <div className="text-xs text-[#A1A1A1]">Admin verifies UTR, amount, and the payer name before your wallet is credited.</div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -249,7 +258,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               {loading ? 'Submitting...' : 'Request Withdrawal'}
             </button>
 
-            <div className="mt-2 text-xs text-[#A1A1A1]">Note: Withdrawals require admin approval and may take 24-48 hours.</div>
+            <div className="mt-2 text-xs text-[#A1A1A1]">Note: Minimum withdrawal is ₹100. Withdrawals require admin approval and may take 24-48 hours.</div>
           </div>
         )}
       </div>
@@ -266,7 +275,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-white font-semibold">₹{Number(deposit.amount).toLocaleString()}</div>
-                    <div className="text-xs text-[#A1A1A1]">UTR: {deposit.utr} • Mobile: ****{deposit.mobileLast4}</div>
+                    <div className="text-xs text-[#A1A1A1]">UTR: {deposit.utr} • Payer: {deposit.payerName || 'N/A'}</div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${deposit.status === 'approved' ? 'bg-[#022c0b] text-[#22C55E]' : deposit.status === 'rejected' ? 'bg-[#3d1c1c] text-[#EF4444]' : 'bg-[#2A2A2A] text-[#F59E0B]'}`}>{deposit.status}</span>
                 </div>
