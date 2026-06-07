@@ -60,10 +60,15 @@ const userSchema = new mongoose.Schema({
         trim: true,
         uppercase: true
       },
+      payerName: {
+        type: String,
+        trim: true,
+        default: ''
+      },
       mobileLast4: {
         type: String,
-        required: true,
-        trim: true
+        trim: true,
+        default: ''
       },
       status: {
         type: String,
