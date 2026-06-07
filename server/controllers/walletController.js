@@ -150,7 +150,7 @@ export const getDepositUpiDetails = async (req, res) => {
 
 export const submitDepositRequest = async (req, res) => {
   try {
-    const { amount, utr, mobileLast4, payerName } = req.body;
+    const { amount, utr, payerName } = req.body;
     const userId = req.userId;
 
     if (!amount || Number(amount) <= 0) {
@@ -159,7 +159,6 @@ export const submitDepositRequest = async (req, res) => {
 
     const normalizedUtr = String(utr || '').trim().toUpperCase();
     const normalizedName = String(payerName || '').trim();
-    const normalizedMobile = String(mobileLast4 || '').trim();
 
     if (!normalizedUtr || normalizedUtr.length < 6) {
       return res.status(400).json({ error: 'Please enter a valid UTR number' });
@@ -167,10 +166,6 @@ export const submitDepositRequest = async (req, res) => {
 
     if (!normalizedName) {
       return res.status(400).json({ error: 'Please enter the payer full name' });
-    }
-
-    if (!normalizedMobile || normalizedMobile.length < 4) {
-      return res.status(400).json({ error: 'Please enter the payer mobile number last 4 digits' });
     }
 
     const user = await User.findById(userId);
@@ -191,7 +186,6 @@ export const submitDepositRequest = async (req, res) => {
       amount: Number(amount),
       utr: normalizedUtr,
       payerName: normalizedName,
-      mobileLast4: normalizedMobile,
       status: 'pending',
       requestedAt: new Date(),
     });

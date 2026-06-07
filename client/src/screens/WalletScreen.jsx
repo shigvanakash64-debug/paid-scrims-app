@@ -110,7 +110,6 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         amount,
         utr: depositUtr.trim(),
         payerName: payerName.trim(),
-        mobileLast4: '',
       }, { headers: { Authorization: `Bearer ${token}` } });
 
       setMessage('✅ Deposit request submitted. Admin will verify it and credit your wallet.');
@@ -192,7 +191,6 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
             <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4 text-sm text-[#E5E7EB] space-y-2">
               <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Current Deposit UPI</div>
               <div className="text-base font-semibold text-white">{depositUpiInfo.upi || 'Loading...'}</div>
-              <div className="text-xs text-[#A1A1A1]">Available UPI IDs: {depositUpiInfo.upis.join(' • ')}</div>
             </div>
             <div>
               <label className="block text-sm text-[#A1A1A1] mb-2">UTR Number</label>
