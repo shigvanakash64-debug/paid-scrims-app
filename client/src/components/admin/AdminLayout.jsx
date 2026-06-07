@@ -4,12 +4,14 @@ import { AdminDashboard } from '../../screens/AdminDashboard';
 import { UsersPanel } from '../../screens/UsersPanel';
 import { WithdrawalsPanel } from '../../screens/WithdrawalsPanel';
 import { DepositsPanel } from '../../screens/DepositsPanel';
+import { DisputesPanel } from '../../screens/DisputesPanel';
 
 const SCREENS = {
   DASHBOARD: 'dashboard',
   USERS: 'users',
   DEPOSITS: 'deposits',
   WITHDRAWALS: 'withdrawals',
+  DISPUTES: 'disputes',
 };
 
 export const AdminLayout = () => {
@@ -26,6 +28,8 @@ export const AdminLayout = () => {
         return <DepositsPanel />;
       case SCREENS.WITHDRAWALS:
         return <WithdrawalsPanel />;
+      case SCREENS.DISPUTES:
+        return <DisputesPanel />;
       default:
         return <AdminDashboard />;
     }

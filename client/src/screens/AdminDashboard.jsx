@@ -93,7 +93,7 @@ export const AdminDashboard = ({ onNavigate }) => {
           💳 Review Deposit Requests
         </button>
         <button
-          onClick={() => onNavigate?.('requests')}
+          onClick={() => onNavigate?.('disputes')}
           className="border border-[#EF4444] text-[#EF4444] px-6 py-4 rounded-lg font-semibold hover:bg-[#3d1c1c] transition"
         >
           ⚠️ Resolve Disputes

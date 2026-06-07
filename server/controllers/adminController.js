@@ -263,8 +263,10 @@ export const getDashboardStats = async (req, res) => {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+    const activeStatuses = ['ongoing', 'matched', 'verified', 'in-progress', 'result_pending', 'payment_pending'];
+
     const [activeMatches, totalUsers, pendingPayments, disputes] = await Promise.all([
-      Match.countDocuments({ status: { $in: ['ongoing', 'matched', 'verified'] } }),
+      Match.countDocuments({ status: { $in: activeStatuses } }),
       User.countDocuments({ isBanned: false }),
       Match.countDocuments({ status: 'payment_pending' }),
       Match.countDocuments({ status: 'disputed' })
