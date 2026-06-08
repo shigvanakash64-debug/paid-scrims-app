@@ -18,6 +18,11 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [expandedSections, setExpandedSections] = useState({
+    deposits: false,
+    withdrawals: false,
+    transactions: false,
+  });
 
   useEffect(() => {
     fetchWalletData();
@@ -42,6 +47,21 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     } catch (error) {
       console.error('Failed to fetch wallet data:', error);
     }
+  };
+
+  const sortByDateDesc = (items, dateKey) =>
+    [...items].sort((a, b) => new Date(b[dateKey] || b.createdAt || b.timestamp || 0) - new Date(a[dateKey] || a.createdAt || a.timestamp || 0));
+
+  const sortedDeposits = sortByDateDesc(deposits, 'requestedAt');
+  const sortedWithdrawals = sortByDateDesc(withdrawals, 'requestedAt');
+  const sortedTransactions = sortByDateDesc(transactions, 'timestamp').filter(Boolean);
+
+  const visibleDeposits = expandedSections.deposits ? sortedDeposits.slice(0, 50) : sortedDeposits.slice(0, 10);
+  const visibleWithdrawals = expandedSections.withdrawals ? sortedWithdrawals.slice(0, 50) : sortedWithdrawals.slice(0, 10);
+  const visibleTransactions = expandedSections.transactions ? sortedTransactions.slice(0, 100) : sortedTransactions.slice(0, 10);
+
+  const toggleSection = (section) => {
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
   const handleWithdrawalRequest = async () => {
@@ -264,11 +284,11 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       {/* Deposit History */}
       <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6">
         <h2 className="text-xl font-semibold text-white mb-4">Deposit History</h2>
-        {deposits.length === 0 ? (
+        {sortedDeposits.length === 0 ? (
           <div className="text-[#A1A1A1] text-center py-6">No deposit requests yet</div>
         ) : (
           <div className="space-y-3">
-            {deposits.map((deposit) => (
+            {visibleDeposits.map((deposit) => (
               <div key={deposit._id || deposit.depositId} className="rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -280,6 +300,15 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                 <div className="mt-2 text-xs text-[#A1A1A1]">Requested: {new Date(deposit.requestedAt).toLocaleString()}</div>
               </div>
             ))}
+            {sortedDeposits.length > 10 && (
+              <button
+                type="button"
+                onClick={() => toggleSection('deposits')}
+                className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-sm font-semibold text-[#FF6A00]"
+              >
+                {expandedSections.deposits ? 'Show less' : 'See more'}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -287,11 +316,11 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       {/* Withdrawal History */}
       <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6">
         <h2 className="text-xl font-semibold text-white mb-4">Withdrawal History</h2>
-        {withdrawals.length === 0 ? (
+        {sortedWithdrawals.length === 0 ? (
           <div className="text-[#A1A1A1] text-center py-6">No withdrawal requests yet</div>
         ) : (
           <div className="space-y-3">
-            {withdrawals.map((withdrawal) => (
+            {visibleWithdrawals.map((withdrawal) => (
               <div key={withdrawal._id} className="rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -304,6 +333,15 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                 {withdrawal.processedAt && <div className="text-xs text-[#A1A1A1]">Processed: {new Date(withdrawal.processedAt).toLocaleString()}</div>}
               </div>
             ))}
+            {sortedWithdrawals.length > 10 && (
+              <button
+                type="button"
+                onClick={() => toggleSection('withdrawals')}
+                className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-sm font-semibold text-[#FF6A00]"
+              >
+                {expandedSections.withdrawals ? 'Show less' : 'See more'}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -312,12 +350,12 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6">
         <h2 className="text-xl font-semibold text-white mb-4">Transaction History</h2>
 
-        {transactions.length === 0 ? (
+        {sortedTransactions.length === 0 ? (
           <div className="text-[#A1A1A1] text-center py-8">No transactions yet</div>
         ) : (
           <div className="space-y-3">
-            {transactions.slice().reverse().map((transaction, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-[#0B0B0B]">
+            {visibleTransactions.map((transaction, index) => (
+              <div key={`${transaction.type}-${transaction.timestamp || transaction.date || index}`} className="flex items-center justify-between p-3 rounded-lg bg-[#0B0B0B]">
                 <div>
                   <div className="text-sm text-white capitalize">
                     {transaction.type.replace('_', ' ')}
@@ -336,6 +374,15 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                 </div>
               </div>
             ))}
+            {sortedTransactions.length > 10 && (
+              <button
+                type="button"
+                onClick={() => toggleSection('transactions')}
+                className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-sm font-semibold text-[#FF6A00]"
+              >
+                {expandedSections.transactions ? 'Show less' : 'See more'}
+              </button>
+            )}
           </div>
         )}
       </div>
