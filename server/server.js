@@ -70,15 +70,31 @@ const notificationLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-// CORS configuration for production and local development
-app.use(cors({
-  origin: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+const allowedOrigins = [
+  "https://www.clutchzone.in",
+  "https://clutchzone.in",
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://paid-scrims-app.onrender.com",
+];
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   credentials: true,
-  optionsSuccessStatus: 204
-}));
-app.options(/.*/, cors());
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
