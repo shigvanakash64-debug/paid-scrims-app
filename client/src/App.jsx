@@ -162,7 +162,8 @@ function App() {
         } else {
           console.log('⏭️ Skipping player ID registration - already attempted recently');
         }
-      } catch {
+      } catch (error) {
+        console.warn('Failed to restore session', error);
         localStorage.removeItem(TOKEN_KEY);
       } finally {
         setLoadingAuth(false);

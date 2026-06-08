@@ -70,19 +70,15 @@ const notificationLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-// CORS configuration for production
+// CORS configuration for production and local development
 app.use(cors({
-  origin: [
-    "https://www.clutchzone.in",
-    "https://clutchzone.in",
-    "https://paid-scrims-phoj44i5a-shigvanakash64-debugs-projects.vercel.app",
-    "https://paid-scrims-app.vercel.app",
-    "http://localhost:5173"
-  ],
+  origin: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  credentials: true,
+  optionsSuccessStatus: 204
 }));
+app.options(/.*/, cors());
 app.use(express.json());
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 

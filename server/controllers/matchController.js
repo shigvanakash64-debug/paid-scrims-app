@@ -205,11 +205,21 @@ export const submitResult = async (req, res) => {
           });
         }
       } else {
-        match.status = 'result_pending';
+        match.status = 'disputed';
         match.result.decidedAt = new Date();
+        match.disputes = match.disputes || [];
+        if (!match.disputes.some((dispute) => dispute.reason === 'wrong_result' && dispute.status === 'pending')) {
+          match.disputes.push({
+            raisedBy: userId,
+            reason: 'wrong_result',
+            description: 'Both players submitted different winner claims. Admin review is required before any payout is released.',
+            status: 'pending',
+            createdAt: new Date(),
+          });
+        }
         match.adminMessages.push({
           sender: 'system',
-          text: 'Both players submitted different winner claims. Admin review is required before any payout is released.',
+          text: 'Both players submitted different winner claims. The match has been moved to dispute for admin review.',
         });
 
         await TrustScoreEngine.onConflictSubmission(userId);

@@ -28,7 +28,7 @@ export const MatchProvider = ({ children }) => {
     if (storedMatch) {
       try {
         const parsedMatch = JSON.parse(storedMatch);
-        const inactiveStatuses = ['completed', 'cancelled', 'disputed'];
+        const inactiveStatuses = ['completed', 'cancelled'];
         if (parsedMatch && inactiveStatuses.includes(parsedMatch.status)) {
           localStorage.removeItem('clutchzone_currentMatch');
           localStorage.removeItem('clutchzone_currentMatchId');
@@ -69,7 +69,8 @@ export const MatchProvider = ({ children }) => {
       const storedMatch = localStorage.getItem('clutchzone_currentMatch');
       try {
         return storedMatch ? JSON.parse(storedMatch) : null;
-      } catch {
+      } catch (error) {
+        console.warn('Failed to parse stored match', error);
         return null;
       }
     };
@@ -110,7 +111,7 @@ export const MatchProvider = ({ children }) => {
       localStorage.setItem('clutchzone_currentMatchId', updatedMatch.id || updatedMatch._id || '');
 
       // If match is completed, cancelled, or disputed, stop polling
-      if (['completed', 'cancelled', 'disputed'].includes(updatedMatch.status)) {
+      if (['completed', 'cancelled'].includes(updatedMatch.status)) {
         setMatchPolling(false);
       }
 
@@ -145,7 +146,7 @@ export const MatchProvider = ({ children }) => {
     setLastMatchUpdate(new Date());
 
     // Start or stop polling based on match status
-    if (match && !['completed', 'cancelled', 'disputed'].includes(match.status)) {
+    if (match && !['completed', 'cancelled'].includes(match.status)) {
       setMatchPolling(true);
     } else {
       setMatchPolling(false);

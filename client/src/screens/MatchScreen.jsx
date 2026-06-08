@@ -151,7 +151,8 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     try {
       await navigator.clipboard.writeText(upiToShow);
       addLocalMessage('system', 'UPI ID copied to clipboard.');
-    } catch {
+    } catch (error) {
+      console.warn('Copy to clipboard failed', error);
       addLocalMessage('system', 'Copy failed. Please copy manually.');
     }
   };
@@ -161,7 +162,8 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     try {
       await navigator.clipboard.writeText(text);
       addLocalMessage('system', 'Room credentials copied to clipboard.');
-    } catch {
+    } catch (error) {
+      console.warn('Copy room credentials failed', error);
       addLocalMessage('system', 'Copy failed. Please copy room credentials manually.');
     }
   };
