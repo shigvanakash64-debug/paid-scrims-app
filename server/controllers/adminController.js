@@ -715,6 +715,8 @@ export const getAllDisputes = async (req, res) => {
 
     const disputes = await Match.find({ status: 'disputed' })
       .populate('players', 'username trustScore')
+      .populate('paymentScreenshots.user', 'username')
+      .populate('result.screenshots.user', 'username')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));

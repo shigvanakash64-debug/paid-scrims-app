@@ -18,6 +18,7 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
   const matchId = match?.id || match?._id;
   const playersLabel = match?.players?.map((player) => player?.username || player).join(' vs ') || 'Unknown players';
   const statusLabel = match?.status?.toUpperCase() || 'UNKNOWN';
+  const canSubmitResult = ['ongoing', 'result_pending', 'disputed'].includes(match?.status);
 
   useEffect(() => {
     if (!selectedFile) {
@@ -138,8 +139,14 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
     <div id="screen-result" className="screen-result">
       <div className="hero">
         <div className="screen-title">SUBMIT RESULT</div>
-        <div className="screen-sub">Winner screenshot proof is mandatory. Upload it within 15 minutes.</div>
+        <div className="screen-sub">Winner screenshot proof is mandatory. Upload it only after the match is ongoing.</div>
       </div>
+
+      {!canSubmitResult && (
+        <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-4 text-sm text-[#FDE68A]">
+          Result submission is locked until the match status becomes ONGOING. Please wait for the room to start before uploading your proof.
+        </div>
+      )}
 
       <div className="result-match-card rounded-3xl border border-[#1F1F1F] bg-[#111111] p-5 mb-6">
         <div className="flex items-center justify-between gap-4 mb-4">
@@ -167,7 +174,12 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
         </div>
       </div>
 
-      <div className="upload-zone" role="button" tabIndex={0} onClick={handleChooseFile}>
+      <div
+        className="upload-zone"
+        role="button"
+        tabIndex={canSubmitResult ? 0 : -1}
+        onClick={canSubmitResult ? handleChooseFile : undefined}
+      >
         <input
           type="file"
           ref={fileInputRef}
@@ -214,7 +226,7 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
         <button
           type="button"
           className="btn-primary"
-          disabled={!winner || !selectedFile || isSubmitting}
+          disabled={!canSubmitResult || !winner || !selectedFile || isSubmitting}
           onClick={handleSubmit}
         >
           {isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}

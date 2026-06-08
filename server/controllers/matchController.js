@@ -62,6 +62,14 @@ export const submitResult = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    // Result submissions are only allowed after the match has started and both players are in play.
+    const allowedResultStatuses = ['ongoing', 'result_pending', 'disputed'];
+    if (!allowedResultStatuses.includes(match.status)) {
+      return res.status(400).json({
+        error: 'Result submission opens only after the match becomes ongoing. Please wait until the match starts.',
+      });
+    }
+
     // Validate user is a participant
     const isParticipant = match.players.some(
       (p) => p.toString() === userId.toString()

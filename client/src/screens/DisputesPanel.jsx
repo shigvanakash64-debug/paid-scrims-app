@@ -50,8 +50,10 @@ export const DisputesPanel = () => {
   const visibleDisputes = disputes.map((match) => {
     const playerA = match.players?.[0]?.username || 'Player A';
     const playerB = match.players?.[1]?.username || 'Player B';
-    const screenshotA = match.paymentScreenshots?.[0]?.image || '';
-    const screenshotB = match.paymentScreenshots?.[1]?.image || '';
+    const paymentProofs = match.paymentScreenshots || [];
+    const resultProofs = match.result?.screenshots || [];
+    const screenshotA = paymentProofs[0]?.image || resultProofs[0]?.image || '';
+    const screenshotB = paymentProofs[1]?.image || resultProofs[1]?.image || '';
     return {
       id: match._id,
       matchId: match._id,
