@@ -1,4 +1,5 @@
 import Match from "../models/Match.js";
+import { processPayout } from "./payout.js";
 import { refundPlayers } from "./refund.js";
 
 /**
@@ -51,26 +52,43 @@ export const autoResolveMatch = async (match, userModel) => {
         const winnerId = match.result.submittedBy[0];
         console.log(`[AUTO-RESOLVE] Match ${match._id}: Single submission - Winner: ${winnerId}`);
 
-        const updatedMatch = await Match.findByIdAndUpdate(
-          match._id,
-          {
-            $set: {
-              "result.winner": winnerId,
-              "result.decidedAt": now,
-              status: "completed",
-              isPaid: false, // Will be paid by payout service
-            },
-          },
-          { new: true }
-        );
+        try {
+          const payoutInfo = await processPayout(match._id, winnerId, userModel);
 
-        return {
-          resolved: true,
-          reason: "Single submission - auto-resolved",
-          matchId: match._id,
-          winner: winnerId,
-          action: "declared_winner",
-        };
+          return {
+            resolved: true,
+            reason: "Single submission - auto-resolved",
+            matchId: match._id,
+            winner: winnerId,
+            action: "declared_winner",
+            payoutInfo,
+          };
+        } catch (payoutError) {
+          console.error(`[AUTO-RESOLVE] Match ${match._id}: payout failed`, payoutError);
+
+          const updatedMatch = await Match.findByIdAndUpdate(
+            match._id,
+            {
+              $set: {
+                "result.winner": winnerId,
+                "result.decidedAt": now,
+                status: "completed",
+                isPaid: false,
+              },
+            },
+            { new: true }
+          );
+
+          return {
+            resolved: true,
+            reason: "Single submission - auto-resolved with fallback",
+            matchId: match._id,
+            winner: winnerId,
+            action: "declared_winner",
+            payoutInfo: null,
+            fallbackMatch: updatedMatch,
+          };
+        }
       }
 
       // CASE 3: No players submitted → refund both players

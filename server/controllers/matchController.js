@@ -15,6 +15,7 @@ const PAYMENT_UPIS = [
   '8261047808@fam',
   '8261047808@mbk',
 ];
+const RESULT_DEADLINE_MS = 30 * 60 * 1000;
 
 const getNextPaymentUpi = async () => {
   const lastMatch = await Match.findOne({ paymentUpi: { $exists: true, $ne: null } })
@@ -47,8 +48,12 @@ export const submitResult = async (req, res) => {
         .json({ error: "matchId and winner are required" });
     }
 
-    if (!req.file) {
-      return res.status(400).json({ error: "Screenshot is required" });
+    if (winner !== 'win' && winner !== 'lose') {
+      return res.status(400).json({ error: 'Winner must be "win" or "lose"' });
+    }
+
+    if (winner === 'win' && !req.file) {
+      return res.status(400).json({ error: "Screenshot is required when you choose I WON" });
     }
 
     // Fetch match and user
@@ -92,55 +97,53 @@ export const submitResult = async (req, res) => {
         .json({ error: "You have already submitted a result for this match" });
     }
 
-    // Validate screenshot
-    const validation = await ScreenshotValidator.validateScreenshot(
-      req.file.buffer,
-      userId,
-      matchId
-    );
-
-    if (!validation.valid) {
-      return res.status(400).json({ error: validation.reason });
-    }
-
-    // Upload screenshot to Cloudinary
-    let screenshotUrl;
-    try {
-      screenshotUrl = await uploadToCloudinary(
-        req.file.buffer,
-        req.file.originalname
-      );
-    } catch (uploadError) {
-      return res.status(500).json({ error: `Upload failed: ${uploadError.message}` });
-    }
-
-    // Add screenshot hash to prevent duplicates
-    match.addScreenshotHash(validation.hash);
-
     const opponentId = match.players.find((p) => p.toString() !== userId.toString());
+
+    let screenshotUrl = null;
+    if (req.file) {
+      // Validate screenshot
+      const validation = await ScreenshotValidator.validateScreenshot(
+        req.file.buffer,
+        userId,
+        matchId
+      );
+
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.reason });
+      }
+
+      // Upload screenshot to Cloudinary
+      try {
+        screenshotUrl = await uploadToCloudinary(
+          req.file.buffer,
+          req.file.originalname
+        );
+      } catch (uploadError) {
+        return res.status(500).json({ error: `Upload failed: ${uploadError.message}` });
+      }
+
+      // Add screenshot hash to prevent duplicates
+      match.addScreenshotHash(validation.hash);
+
+      match.result.screenshots.push({
+        user: userId,
+        image: screenshotUrl,
+        uploadedAt: validation.metadata.uploadedAt,
+        metadata: {
+          fileSize: validation.metadata.fileSize,
+          mimeType: validation.metadata.mimeType,
+          dimensions: await ScreenshotValidator.getImageDimensions(req.file.buffer)
+        }
+      });
+    }
+
+    // Set result deadline if not already set (30 minutes from first submission)
+    if (!match.resultDeadline) {
+      match.resultDeadline = new Date(Date.now() + RESULT_DEADLINE_MS);
+    }
 
     // Update match with submission
     match.result.submittedBy.push(userId);
-    match.result.screenshots.push({
-      user: userId,
-      image: screenshotUrl,
-      uploadedAt: validation.metadata.uploadedAt,
-      metadata: {
-        fileSize: validation.metadata.fileSize,
-        mimeType: validation.metadata.mimeType,
-        dimensions: await ScreenshotValidator.getImageDimensions(req.file.buffer)
-      }
-    });
-
-    // Set result deadline if not already set (5 minutes from first submission)
-    if (!match.resultDeadline) {
-      const DEADLINE_MS = 5 * 60 * 1000; // 5 minutes
-      match.resultDeadline = new Date(Date.now() + DEADLINE_MS);
-    }
-
-    if (winner !== 'win' && winner !== 'lose') {
-      return res.status(400).json({ error: 'Winner must be "win" or "lose"' });
-    }
 
     if (!opponentId) {
       return res.status(400).json({ error: 'This match does not have an opponent to review.' });

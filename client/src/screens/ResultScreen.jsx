@@ -48,8 +48,13 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
   };
 
   const handleSubmit = async () => {
-    if (!matchId || !selectedFile || !winner) {
-      setError('Please select a result and upload your screenshot first.');
+    if (!matchId || !winner) {
+      setError('Please choose whether you won or lost first.');
+      return;
+    }
+
+    if (winner === 'win' && !selectedFile) {
+      setError('Please upload your screenshot proof because you chose I WON.');
       return;
     }
 
@@ -61,7 +66,9 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
       const formData = new FormData();
       formData.append('matchId', matchId);
       formData.append('winner', winner);
-      formData.append('screenshot', selectedFile);
+      if (selectedFile) {
+        formData.append('screenshot', selectedFile);
+      }
 
       const response = await axios.post(`${API_BASE}/match/submit-result`, formData, {
         headers: {
@@ -139,7 +146,7 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
     <div id="screen-result" className="screen-result">
       <div className="hero">
         <div className="screen-title">SUBMIT RESULT</div>
-        <div className="screen-sub">Winner screenshot proof is mandatory. Upload it only after the match is ongoing.</div>
+        <div className="screen-sub">Choose your result first. Screenshot proof is required only when you claim I WON.</div>
       </div>
 
       {!canSubmitResult && (
@@ -174,32 +181,6 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
         </div>
       </div>
 
-      <div
-        className="upload-zone"
-        role="button"
-        tabIndex={canSubmitResult ? 0 : -1}
-        onClick={canSubmitResult ? handleChooseFile : undefined}
-      >
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          accept="image/*"
-          onChange={handleFileChange}
-        />
-        <div className="upload-icon">+</div>
-        <div className="upload-label">Upload Winner Screenshot</div>
-        <div className="upload-sub">
-          {selectedFile ? selectedFile.name : 'Required proof for winner claim'}
-        </div>
-      </div>
-
-      {previewUrl && (
-        <div className="rounded-3xl border border-[#1F1F1F] bg-[#0B0B0B] p-3 mt-4">
-          <img src={previewUrl} alt="Selected screenshot preview" className="w-full rounded-xl object-cover" />
-        </div>
-      )}
-
       <div className="section mt-6">
         <div className="section-label">Select Outcome</div>
         <div className="winner-sel">
@@ -220,13 +201,43 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
         </div>
       </div>
 
+      {winner === 'win' && (
+        <>
+          <div
+            className="upload-zone mt-4"
+            role="button"
+            tabIndex={canSubmitResult ? 0 : -1}
+            onClick={canSubmitResult ? handleChooseFile : undefined}
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*"
+              onChange={handleFileChange}
+            />
+            <div className="upload-icon">+</div>
+            <div className="upload-label">Upload Winner Screenshot</div>
+            <div className="upload-sub">
+              {selectedFile ? selectedFile.name : 'Required proof for your win claim'}
+            </div>
+          </div>
+
+          {previewUrl && (
+            <div className="rounded-3xl border border-[#1F1F1F] bg-[#0B0B0B] p-3 mt-4">
+              <img src={previewUrl} alt="Selected screenshot preview" className="w-full rounded-xl object-cover" />
+            </div>
+          )}
+        </>
+      )}
+
       {error && <div className="mt-4 text-sm text-[#EF4444]">{error}</div>}
 
       <div className="btn-cta-wrap">
         <button
           type="button"
           className="btn-primary"
-          disabled={!canSubmitResult || !winner || !selectedFile || isSubmitting}
+          disabled={!canSubmitResult || !winner || (winner === 'win' && !selectedFile) || isSubmitting}
           onClick={handleSubmit}
         >
           {isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}
