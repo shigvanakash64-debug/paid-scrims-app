@@ -119,10 +119,11 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
     }
   };
 
-  const resultDeadlineValue = match?.resultDeadline
-    || (match?.status === 'result_pending' && match?.startedAt
+  const resultDeadlineValue = match?.status === 'result_pending'
+    ? (match?.resultDeadline || (match?.startedAt
       ? new Date(new Date(match.startedAt).getTime() + 5 * 60 * 1000)
-      : null);
+      : null))
+    : null;
   const resultDeadline = resultDeadlineValue ? new Date(resultDeadlineValue).toLocaleString() : null;
 
   if (!match) {

@@ -49,7 +49,7 @@ const sampleMatches = [
     type: 'Only One Tap',
     skillSetting: 'Skill On',
     entryFee: 200,
-    prizePool: 340,
+    prizePool: 360,
     creator: 'ShadowKing',
     trustScore: 88,
     status: 'Waiting for opponents',

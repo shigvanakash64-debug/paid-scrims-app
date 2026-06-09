@@ -84,10 +84,19 @@ const getPlayersCount = (mode) => {
 };
 
 const getPrizePool = (entryFee) => {
-  if (entryFee <= 30) return 50;
-  if (entryFee === 50) return 80;
-  if (entryFee <= 100) return Math.floor(entryFee * 1.7);
-  return Math.floor(entryFee * 1.8);
+  const prizePoolTable = {
+    30: 50,
+    50: 80,
+    100: 170,
+    200: 360,
+    500: 900,
+    1000: 1800,
+  };
+
+  return prizePoolTable[entryFee] ?? Object.entries(prizePoolTable)
+    .map(([fee, pool]) => [Number(fee), pool])
+    .sort((a, b) => a[0] - b[0])
+    .find(([fee]) => entryFee <= fee)?.[1] ?? 0;
 };
 
 export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) => {

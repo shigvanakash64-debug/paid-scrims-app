@@ -7,6 +7,7 @@ import TrustScoreEngine from "../utils/trustScore.js";
 import ScreenshotValidator from "../utils/screenshotValidation.js";
 import User from "../models/User.js";
 import Match from "../models/Match.js";
+import { processPayout } from "../utils/payout.js";
 import { rotateDepositUpi } from "../config/depositUpi.js";
 
 /**
@@ -767,39 +768,23 @@ export const resolveDispute = async (req, res) => {
       return res.status(400).json({ error: 'Invalid winner selection' });
     }
 
-    const prize = match.entry * 2;
+    const payoutInfo = await processPayout(matchId, winnerId, User);
 
-    // Pay winner and update match stats
-    const winnerUser = await User.findById(winnerId);
-    if (winnerUser) {
-      winnerUser.wallet.balance += prize;
-      winnerUser.matchesPlayed = (winnerUser.matchesPlayed || 0) + 1;
-      winnerUser.matchesWon = (winnerUser.matchesWon || 0) + 1;
-      await winnerUser.save();
-    }
-
-    const loserIds = match.players
-      ? match.players.map((player) => player.toString()).filter((playerId) => playerId !== winnerId.toString())
-      : [];
-
-    if (loserIds.length > 0) {
-      await User.updateMany(
-        { _id: { $in: loserIds } },
-        { $inc: { matchesPlayed: 1, matchesLost: 1 } }
-      );
-    }
-
-    // Update match
+    // Update match metadata for admin resolution
     match.status = 'completed';
     match.result.winner = winnerId;
     match.result.resolvedBy = 'admin';
+    match.result.decidedAt = new Date();
     match.completedAt = new Date();
+    match.isPaid = true;
+    match.result.paidOut = true;
 
     await match.save();
 
     res.status(200).json({
       success: true,
       message: `Dispute resolved in favor of Player ${winner}`,
+      payoutInfo,
       match
     });
   } catch (error) {
