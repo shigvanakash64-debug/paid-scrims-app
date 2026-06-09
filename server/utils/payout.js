@@ -11,6 +11,22 @@ const calculateCommission = (entryFee) => {
   return entryFee * 0.3;
 };
 
+const getOfficialPrizePool = (entryFee) => {
+  const prizePoolTable = {
+    30: 50,
+    50: 80,
+    100: 170,
+    200: 340,
+    500: 900,
+    1000: 1800,
+  };
+
+  return prizePoolTable[entryFee] || Object.entries(prizePoolTable)
+    .map(([fee, pool]) => [Number(fee), pool])
+    .sort((a, b) => a[0] - b[0])
+    .find(([fee]) => entryFee <= fee)?.[1] || 0;
+};
+
 /**
  * Process payout for match winner
  * - Prevents duplicate payouts with atomic update using isPaid flag
@@ -49,10 +65,18 @@ export const processPayout = async (matchId, winnerId, userModel) => {
       throw new Error("Winner must be a participant in the match");
     }
 
-    // Calculate payout
-    const totalPool = match.entry * match.players.length;
-    const platformFee = calculateCommission(match.entry);
-    const winnerAmount = totalPool - platformFee;
+    const officialPrizePool = getOfficialPrizePool(match.entry);
+    const effectivePrizePool = officialPrizePool || Number(match.prizePool || 0) || 0;
+
+    if (match.prizePool !== effectivePrizePool) {
+      await Match.findByIdAndUpdate(matchId, {
+        $set: { prizePool: effectivePrizePool },
+      });
+    }
+
+    const winnerAmount = effectivePrizePool;
+    const totalPool = effectivePrizePool;
+    const platformFee = Math.max(0, totalPool - winnerAmount);
 
     console.log(`[PAYOUT] Processing payout for match ${matchId}. Winner: ${winnerId}, Amount: ${winnerAmount}`);
 
