@@ -40,8 +40,12 @@ const pageConfig = {
         body: 'This policy may change over time. Continued use = acceptance of updates.',
       },
       {
-        heading: '8. Contact',
-        body: 'For privacy concerns, contact support via the app.\n\nBy using Clutch Zone, you agree to this Privacy Policy.',
+        heading: '8. Contact Email',
+        body: 'Support Email: supportclutchzone@gmail.com\n\nFor privacy concerns, contact support via the app or email us directly.',
+      },
+      {
+        heading: '9. Agreement',
+        body: 'By using Clutch Zone, you agree to this Privacy Policy.',
       },
     ],
   },
@@ -59,6 +63,18 @@ const pageConfig = {
       {
         heading: '2. Eligibility',
         body: 'You must be legally allowed to participate in online skill-based competitions in your region.',
+      },
+      {
+        heading: 'Age Requirement',
+        body: 'Users must be at least 18 years old or the minimum legal age required in their jurisdiction to participate on Clutch Zone.',
+      },
+      {
+        heading: 'Skill-Based Disclaimer',
+        body: 'Clutch Zone is a skill-based competitive platform. Match outcomes are determined by player performance, strategy, and skill.',
+      },
+      {
+        heading: 'Wallet Clause',
+        body: 'Wallet balances are platform credits. Clutch Zone reserves the right to verify transactions, suspend suspicious activity, and review withdrawals before processing.',
       },
       {
         heading: '3. User Conduct',
@@ -114,11 +130,19 @@ const pageConfig = {
         body: '* Matches cannot be cancelled once started\n* Pre-match cancellation depends on lobby status',
       },
       {
-        heading: '5. Withdrawal',
+        heading: '5. Withdrawal Processing',
+        body: 'Withdrawal requests are typically processed within 1–7 business days after verification.',
+      },
+      {
+        heading: '6. Minimum Withdrawal',
+        body: 'Clutch Zone may set minimum withdrawal limits and verification requirements.',
+      },
+      {
+        heading: '7. Withdrawal Notes',
         body: '* Users can withdraw available wallet balance\n* Processing time may vary',
       },
       {
-        heading: '6. Dispute-Based Refunds',
+        heading: '8. Dispute-Based Refunds',
         body: 'Refunds in disputes are subject to admin review.\n\nAll decisions are final.\n\nBy using Clutch Zone, you agree to these.',
       },
     ],
@@ -176,8 +200,8 @@ const pageConfig = {
         body: '* No abuse, harassment, or toxic behavior',
       },
       {
-        heading: '5. Proof-Based System',
-        body: 'In disputes:\n\n* Valid proof = decision\n* No proof = no claim',
+        heading: '5. Evidence Clause',
+        body: 'Screenshots, screen recordings, match results, and other supporting evidence may be required during disputes.',
       },
       {
         heading: '6. Admin Authority',
@@ -186,6 +210,15 @@ const pageConfig = {
       {
         heading: '7. Repeated Violations',
         body: 'May lead to permanent removal from platform.\n\nPlay fair. Win real.\n\nBy using Clutch Zone, you agree to these.',
+      },
+    ],
+  },
+  'responsible-gaming': {
+    title: 'Responsible Gaming Policy',
+    content: [
+      {
+        heading: 'Responsible Gaming Policy',
+        body: 'Play responsibly.\n\nDo not spend more than you can afford to lose.\nTake regular breaks.\nDo not participate under pressure or financial stress.\nUsers may request account restrictions or account closure.',
       },
     ],
   },

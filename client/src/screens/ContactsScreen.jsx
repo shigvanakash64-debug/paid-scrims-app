@@ -49,6 +49,17 @@ export const ContactsScreen = () => {
               </a>
             </div>
           </div>
+          <div className="contact-row">
+            <div>
+              <div className="contact-label">Official Email</div>
+              <div className="contact-value">supportclutchzone@gmail.com</div>
+            </div>
+            <div className="contact-actions">
+              <a className="contact-btn" href="mailto:supportclutchzone@gmail.com">
+                Send Email
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>

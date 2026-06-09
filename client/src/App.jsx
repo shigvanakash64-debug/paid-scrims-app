@@ -133,7 +133,7 @@ function App() {
         const restoredUser = response.data.user;
         updateUser(restoredUser);
 
-        const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts'];
+        const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'raise-ticket', 'fair-play', 'responsible-gaming'];
         const targetScreen = validScreens.includes(savedScreen) ? savedScreen : 'home';
         if (targetScreen === 'admin' && !restoredUser?.isAdmin && restoredUser?.role !== 'admin') {
           setCurrentScreen('home');
@@ -391,6 +391,8 @@ function App() {
         return <InfoScreen page="raise-ticket" />;
       case 'fair-play':
         return <InfoScreen page="fair-play" />;
+      case 'responsible-gaming':
+        return <InfoScreen page="responsible-gaming" />;
       case 'instructions':
         return <InstructionsScreen />;
       case 'notification-test':

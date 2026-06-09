@@ -54,6 +54,9 @@ export const Header = ({ user, onNavigate, onLogout }) => {
                 <button className="menu-item" type="button" onClick={() => handleNavigate('fair-play')}>
                   Fair Play Policy
                 </button>
+                <button className="menu-item" type="button" onClick={() => handleNavigate('responsible-gaming')}>
+                  Responsible Gaming Policy
+                </button>
                 <button className="menu-item" type="button" onClick={() => handleNavigate('contacts')}>
                   Contacts
                 </button>
