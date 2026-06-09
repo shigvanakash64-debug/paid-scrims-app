@@ -178,6 +178,8 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const activeMatchCreatorId = activeMatch?.creator?.id || activeMatch?.creator?._id || activeMatch?.creator;
   const isMatchCreator = currentUser && activeMatchCreatorId && (currentUser.id === activeMatchCreatorId || currentUser._id === activeMatchCreatorId);
   const showOpponentJoinedDot = isMatchCreator && activeMatch?.players?.length > 1;
+  const hasBothPaid = (activeMatch?.paidUsers?.length || 0) >= (activeMatch?.players?.length || 0);
+  const canCancelMatch = Boolean(activeMatch) && !['ongoing', 'completed', 'cancelled'].includes(String(activeMatch?.status || '').toLowerCase()) && !hasBothPaid;
   const isLiveMatch = (status) => {
     const value = String(status || '').toLowerCase();
     return !['ongoing', 'completed', 'cancelled'].includes(value);
@@ -304,8 +306,8 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                 <button className="btn-outline" type="button" onClick={() => onScreenChange('match')}>
                   View Match
                 </button>
-                <button className="btn-outline" type="button" onClick={handleCancelMatch}>
-                  Cancel Match
+                <button className="btn-outline" type="button" onClick={handleCancelMatch} disabled={!canCancelMatch}>
+                  {canCancelMatch ? 'Cancel Match' : 'Cancel Locked'}
                 </button>
               </div>
             </div>

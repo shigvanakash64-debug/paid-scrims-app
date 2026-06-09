@@ -52,6 +52,8 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const isMatchActive = activeMatch?.status === 'ongoing' || activeMatch?.status === 'completed';
   const isCancelled = activeMatch?.status === 'cancelled';
   const isFinalStatus = ['completed', 'cancelled', 'disputed'].includes(activeMatch?.status);
+  const hasBothPaid = (activeMatch?.paidUsers?.length || 0) >= (activeMatch?.players?.length || 0);
+  const canCancelMatch = !isMatchActive && !isCancelled && !hasBothPaid;
 
   const players = useMemo(() => {
     return (activeMatch?.players || []).map((player, index) => {
@@ -235,7 +237,10 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   };
 
   const handleCancelMatch = async () => {
-    if (isMatchActive || isCancelled) return;
+    if (!canCancelMatch) {
+      alert('Cancellation is locked after both players have paid.');
+      return;
+    }
     try {
       const token = localStorage.getItem(TOKEN_KEY);
       await axios.post(
