@@ -10,7 +10,7 @@ let cronJobInstance = null;
 let broadcastNotificationJobInstance = null;
 let retentionNotificationJobInstance = null;
 
-const RESULT_DEADLINE_MS = 30 * 60 * 1000;
+const RESULT_DEADLINE_MS = 5 * 60 * 1000;
 
 const ensureResultDeadlines = async () => {
   const now = new Date();

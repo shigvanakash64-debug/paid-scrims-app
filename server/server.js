@@ -55,7 +55,7 @@ const adminLimiter = rateLimit({
 
 const matchLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 120,
+  max: 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many match actions, please slow down.' }

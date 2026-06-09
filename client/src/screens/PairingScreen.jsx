@@ -71,7 +71,7 @@ const sampleMatches = [
     type: 'Only AWM Bodyshot',
     skillSetting: 'Skill Off',
     entryFee: 500,
-    prizePool: 850,
+    prizePool: 900,
     creator: 'AlphaRider',
     trustScore: 91,
     status: 'Waiting for teammates',

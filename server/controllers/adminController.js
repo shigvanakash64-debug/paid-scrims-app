@@ -654,9 +654,6 @@ export const startMatch = async (req, res) => {
     match.roomId = roomId;
     match.roomPassword = password;
     match.startedAt = new Date();
-    if (!match.resultDeadline) {
-      match.resultDeadline = new Date(Date.now() + 30 * 60 * 1000);
-    }
 
     await match.save();
 

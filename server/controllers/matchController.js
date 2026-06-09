@@ -15,7 +15,7 @@ const PAYMENT_UPIS = [
   '8261047808@fam',
   '8261047808@mbk',
 ];
-const RESULT_DEADLINE_MS = 30 * 60 * 1000;
+const RESULT_DEADLINE_MS = 5 * 60 * 1000;
 
 const getNextPaymentUpi = async () => {
   const lastMatch = await Match.findOne({ paymentUpi: { $exists: true, $ne: null } })
@@ -137,7 +137,7 @@ export const submitResult = async (req, res) => {
       });
     }
 
-    // Set result deadline if not already set (30 minutes from first submission)
+    // Set result deadline if not already set (5 minutes from first result submission)
     if (!match.resultDeadline) {
       match.resultDeadline = new Date(Date.now() + RESULT_DEADLINE_MS);
     }
@@ -532,8 +532,8 @@ export const createMatch = async (req, res) => {
       50: 80,
       100: 170,
       200: 340,
-      500: 850,
-      1000: 1700,
+      500: 900,
+      1000: 1800,
     };
 
     let prizePool = prizePoolTable[parsedEntry] ?? null;
@@ -922,9 +922,6 @@ export const startMatch = async (req, res) => {
     };
     match.status = 'ongoing';
     match.startedAt = new Date();
-    if (!match.resultDeadline) {
-      match.resultDeadline = new Date(Date.now() + RESULT_DEADLINE_MS);
-    }
     match.adminMessages.push({
       sender: 'system',
       text: 'Room created',
