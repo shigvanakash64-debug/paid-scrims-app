@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -19,9 +19,10 @@ export const MatchProvider = ({ children }) => {
   const [matchPolling, setMatchPolling] = useState(false);
   const [lastMatchUpdate, setLastMatchUpdate] = useState(null);
   const [previousPlayerCount, setPreviousPlayerCount] = useState(0);
+  const refreshInFlightRef = useRef(false);
 
-  // Polling interval for active matches (every 3 seconds)
-  const POLLING_INTERVAL = 3000;
+  // Polling interval for active matches (every 30 seconds to avoid backend rate limiting)
+  const POLLING_INTERVAL = 30000;
 
   useEffect(() => {
     const storedMatch = localStorage.getItem('clutchzone_currentMatch');
@@ -75,9 +76,13 @@ export const MatchProvider = ({ children }) => {
       }
     };
 
+    if (refreshInFlightRef.current) return null;
+
     const latestMatch = getLatestState();
     const id = matchId || latestMatch?.id || latestMatch?._id;
-    if (!id) return;
+    if (!id) return null;
+
+    refreshInFlightRef.current = true;
 
     try {
       const token = localStorage.getItem(TOKEN_KEY);
@@ -119,6 +124,8 @@ export const MatchProvider = ({ children }) => {
     } catch (error) {
       console.error('Failed to refresh match:', error);
       return null;
+    } finally {
+      refreshInFlightRef.current = false;
     }
   }, [sendNotification]);
 

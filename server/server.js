@@ -68,8 +68,6 @@ const notificationLimiter = rateLimit({
   message: { error: 'Too many notification requests, please try again later.' }
 });
 
-app.use(globalLimiter);
-
 const allowedOrigins = [
   "https://www.clutchzone.in",
   "https://clutchzone.in",
@@ -94,7 +92,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
+app.use(globalLimiter);
 app.use(express.json());
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
