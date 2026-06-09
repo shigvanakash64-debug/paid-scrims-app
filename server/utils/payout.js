@@ -65,6 +65,7 @@ export const processPayout = async (matchId, winnerId, userModel) => {
           "result.paidOut": true, // SECONDARY safety flag
           "result.winner": winnerId,
           "result.decidedAt": new Date(),
+          completedAt: new Date(),
           status: "completed",
         },
       },

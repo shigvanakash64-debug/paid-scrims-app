@@ -10,7 +10,7 @@
 
 **Check your deployment URL:**
 ```
-https://paid-scrims-app.onrender.com ✅ (good)
+your deployed production domain ✅ (good)
 http://app.example.com ❌ (won't work on Android)
 ```
 
@@ -39,7 +39,7 @@ Settings → Apps → Chrome → Clear Data
 **Step 2: Open Your App**
 ```
 1. Open Chrome on Android
-2. Go to: https://paid-scrims-app.onrender.com
+2. Go to: your deployed production domain
 3. Allow notifications when prompted ✅
 4. KEEP TAB OPEN (don't close)
 ```

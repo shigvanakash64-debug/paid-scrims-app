@@ -119,8 +119,11 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
     }
   };
 
-  const resultDeadline = match?.resultDeadline ? new Date(match.resultDeadline).toLocaleString() : null;
-  const resultDeadlineValue = match?.resultDeadline || null;
+  const fallbackResultDeadline = match?.startedAt
+    ? new Date(new Date(match.startedAt).getTime() + 30 * 60 * 1000)
+    : null;
+  const resultDeadlineValue = match?.resultDeadline || fallbackResultDeadline || null;
+  const resultDeadline = resultDeadlineValue ? new Date(resultDeadlineValue).toLocaleString() : null;
 
   if (!match) {
     return (

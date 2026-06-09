@@ -6,7 +6,7 @@
 
 #### 1️⃣ **HTTPS Check** (Most Common)
 ```
-✅ Correct:   https://paid-scrims-app.onrender.com
+✅ Correct:   your deployed production domain
 ❌ Wrong:     http://app.example.com
 ⚠️  Local:     http://localhost:3000 (OK for desktop only)
 

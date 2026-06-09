@@ -5,7 +5,7 @@
 ### 1. ✅ Verify HTTPS Deployment
 ```bash
 # Check your production URL is HTTPS
-https://paid-scrims-app.onrender.com ✅ (correct)
+your deployed production domain ✅ (correct)
 http://localhost:3000 ⚠️ (localhost only for dev)
 ```
 
@@ -112,7 +112,7 @@ On PC:
 **Step 3: Open App in Chrome Mobile**
 ```
 1. Open Chrome
-2. Navigate to: https://paid-scrims-app.onrender.com
+2. Navigate to: your deployed production domain
 3. Wait for OneSignal to load (check console in inspect)
 4. You should see notification permission prompt
 5. Click ALLOW (do NOT click Deny or Skip)

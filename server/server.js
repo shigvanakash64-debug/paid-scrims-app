@@ -17,6 +17,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
 import ticketRoutes from "./routes/ticketRoutes.js";
+import User from "./models/User.js";
 import { initializeCronJobs, stopCronJobs } from "./utils/cronJobs.js";
 
 console.log("Server starting with updated code - force redeploy");
@@ -73,7 +74,6 @@ const allowedOrigins = [
   "https://clutchzone.in",
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://paid-scrims-app.onrender.com",
 ];
 
 const corsOptions = {
@@ -292,17 +292,8 @@ mongoose.connect(process.env.MONGO_URI)
  */
 async function initializeCronJobsWithUserModel(app) {
   try {
-    // Dynamic import to ensure it happens after DB connection
-    // You'll need to create a User model file if it doesn't exist
-    // import User from "./models/User.js";
-    // initializeCronJobs(User);
-    
-    console.log("[INIT] Cron job initialization deferred - User model needed");
-    console.log("[INIT] Add this to your code when User model is available:");
-    console.log("  import User from './models/User.js';");
-    console.log("  initializeCronJobs(User);");
-    console.log("  // From adminController: app.locals.User = User;");
-    console.log("  // From adminController: app.locals.Match = Match;");
+    initializeCronJobs(User);
+    console.log("[INIT] Match timeout and auto-resolution cron jobs started");
   } catch (error) {
     console.error("Error initializing cron jobs:", error);
   }

@@ -72,6 +72,7 @@ export const autoResolveMatch = async (match, userModel) => {
               $set: {
                 "result.winner": winnerId,
                 "result.decidedAt": now,
+                completedAt: now,
                 status: "completed",
                 isPaid: false,
               },

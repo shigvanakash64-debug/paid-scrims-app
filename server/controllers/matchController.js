@@ -171,6 +171,7 @@ export const submitResult = async (req, res) => {
         const confirmedWinnerId = claims[0].claimedWinner;
         match.result.winner = confirmedWinnerId;
         match.result.decidedAt = new Date();
+        match.completedAt = new Date();
         match.status = 'completed';
 
         await TrustScoreEngine.onValidMatchCompletion(userId);

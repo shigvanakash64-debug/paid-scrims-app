@@ -264,7 +264,7 @@ export const getDashboardStats = async (req, res) => {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    const activeStatuses = ['ongoing', 'matched', 'verified', 'in-progress', 'result_pending', 'payment_pending'];
+    const activeStatuses = ['ongoing', 'result_pending', 'disputed'];
 
     const [activeMatches, totalUsers, pendingPayments, disputes] = await Promise.all([
       Match.countDocuments({ status: { $in: activeStatuses } }),
@@ -278,8 +278,13 @@ export const getDashboardStats = async (req, res) => {
 
     const todayMatches = await Match.find({
       status: 'completed',
-      completedAt: { $gte: todayStart }
-    }).select('entry');
+      $or: [
+        { completedAt: { $gte: todayStart } },
+        { updatedAt: { $gte: todayStart } },
+        { createdAt: { $gte: todayStart } },
+      ],
+    }).select('entry completedAt updatedAt createdAt');
+
     const todayRevenue = todayMatches.reduce((sum, match) => sum + calculateCommission(match.entry), 0);
 
     res.status(200).json({

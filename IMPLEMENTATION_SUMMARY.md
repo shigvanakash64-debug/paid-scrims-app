@@ -259,13 +259,13 @@ Same as above, but:
 1. **Check HTTPS**
    ```bash
    # URL should start with https://
-   curl -I https://paid-scrims-app.onrender.com
+   curl -I https://your-production-domain
    ```
 
 2. **Check Manifest**
    ```bash
    # Should return JSON manifest
-   curl https://paid-scrims-app.onrender.com/manifest.json | jq .
+   curl https://your-production-domain/manifest.json | jq .
    ```
 
 3. **Check Service Worker**
