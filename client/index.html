@@ -199,8 +199,6 @@
 
           // Listen for permission changes
           if (OneSignal.Notifications?.addEventListener) {
-          // Listen for permission changes
-          if (OneSignal.Notifications?.addEventListener) {
             OneSignal.Notifications.addEventListener('permissionChange', async (permissionChange) => {
               console.log('🔔 Permission changed:', permissionChange);
               if (permissionChange.to === 'granted') {
