@@ -636,7 +636,7 @@ export const acceptMatch = async (req, res) => {
         '⚡ Player Joined',
         `${opponentUsername} has joined your match. Complete wallet payment to start the match.`,
         {
-          url: `https://paid-scrims-app.vercel.app/match/${match._id}`,
+          url: `https://www.clutchzone.in/match/${match._id}`,
           matchId: match._id,
           type: 'success',
           priority: 10,
@@ -664,7 +664,7 @@ export const acceptMatch = async (req, res) => {
           '🎮 Match Ready',
           'Match is ready and waiting for wallet payments from both players.',
           {
-            url: `https://paid-scrims-app.vercel.app/match/${match._id}`,
+            url: `https://www.clutchzone.in/match/${match._id}`,
             matchId: match._id,
             type: 'success',
             priority: 10,

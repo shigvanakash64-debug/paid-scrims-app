@@ -380,7 +380,7 @@ export const testNotification = async (req, res) => {
       '🧪 Test Notification',
       'This is a test notification to verify your setup is working!',
       {
-        url: 'https://paid-scrims-app.vercel.app/',
+        url: 'https://www.clutchzone.in/',
         type: 'info',
         priority: 5,
         data: {
