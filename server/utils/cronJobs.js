@@ -10,6 +10,24 @@ let cronJobInstance = null;
 let broadcastNotificationJobInstance = null;
 let retentionNotificationJobInstance = null;
 
+const RESULT_DEADLINE_MS = 30 * 60 * 1000;
+
+const ensureResultDeadlines = async () => {
+  const now = new Date();
+  const matches = await Match.find({
+    status: { $in: ['ongoing', 'result_pending', 'pending'] },
+    resultDeadline: { $exists: false },
+  });
+
+  for (const match of matches) {
+    const startedAt = match.startedAt || now;
+    match.resultDeadline = new Date(startedAt.getTime() + RESULT_DEADLINE_MS);
+    await match.save();
+  }
+
+  return matches.length;
+};
+
 const cancelPaymentTimeouts = async () => {
   const now = new Date();
   const matches = await Match.find({
@@ -54,6 +72,11 @@ export const initializeCronJobs = (userModel, options = {}) => {
     try {
       const now = new Date();
       console.log(`\n[CRON] Starting match timeout resolution at ${now.toISOString()}`);
+
+      const deadlineBackfills = await ensureResultDeadlines();
+      if (deadlineBackfills > 0) {
+        console.log(`[CRON] Backfilled result deadlines for ${deadlineBackfills} ongoing matches`);
+      }
 
       // Handle payment timeouts for matches awaiting proof
       const paymentTimeouts = await cancelPaymentTimeouts();
@@ -205,6 +228,7 @@ export const manualTriggerResolution = async (userModel) => {
 
     const now = new Date();
 
+    await ensureResultDeadlines();
     const paymentTimeouts = await cancelPaymentTimeouts();
     const matchesToProcess = await Match.find({
       status: { $in: ["result_pending", "ongoing", "pending"] },

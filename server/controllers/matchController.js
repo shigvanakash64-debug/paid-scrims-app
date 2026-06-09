@@ -919,6 +919,9 @@ export const startMatch = async (req, res) => {
     };
     match.status = 'ongoing';
     match.startedAt = new Date();
+    if (!match.resultDeadline) {
+      match.resultDeadline = new Date(Date.now() + RESULT_DEADLINE_MS);
+    }
     match.adminMessages.push({
       sender: 'system',
       text: 'Room created',
