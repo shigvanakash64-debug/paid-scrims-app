@@ -209,19 +209,18 @@ const rulesData = {
     content: (
       <div className="rules-content">
         <p>🔥 Skill ON</p>
-        <p>👉 Abilities allowed</p>
+        <p>👉 All Abilities allowed</p>
         <ul>
-          <li>Active skills</li>
-          <li>Character powers</li>
+          <li>All Active skills</li>
+          <li>All Character powers</li>
         </ul>
         <p>❄️ Skill OFF</p>
         <p>👉 No abilities at all</p>
-        <h4>❌ Banned</h4>
         <ul>
-          <li>Character skills</li>
-          <li>Passive boosts</li>
+          <li>No Character skills</li>
+          <li>No Passive boosts</li>
         </ul>
-        <p>👉 Pure gun skill gameplay</p>
+        <p>👉 Pure skill gameplay</p>
       </div>
     )
   }
