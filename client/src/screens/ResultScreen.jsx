@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import { Timer } from '../components/Timer';
 import { useMatch } from '../contexts/MatchContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -119,6 +120,7 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
   };
 
   const resultDeadline = match?.resultDeadline ? new Date(match.resultDeadline).toLocaleString() : null;
+  const resultDeadlineValue = match?.resultDeadline || null;
 
   if (!match) {
     return (
@@ -174,8 +176,19 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
             <span className="text-[#FFFFFF] font-semibold">Players:</span> {playersLabel}
           </div>
           {resultDeadline && (
-            <div>
-              <span className="text-[#FFFFFF] font-semibold">Result deadline:</span> {resultDeadline}
+            <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-3">
+              <div className="text-xs uppercase tracking-[0.22em] text-[#A1A1A1]">Result deadline</div>
+              <div className="mt-2 text-sm text-[#E5E7EB]">{resultDeadline}</div>
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-[#1F1F1F] bg-[#111111] p-3">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Live countdown</div>
+                  <div className="mt-1 text-xs text-[#FDE68A]">Auto-resolution starts after the timer ends if no final result is confirmed.</div>
+                </div>
+                <Timer
+                  deadline={resultDeadlineValue}
+                  onExpire={() => refreshMatch(matchId)}
+                />
+              </div>
             </div>
           )}
         </div>

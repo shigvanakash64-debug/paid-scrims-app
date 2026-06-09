@@ -414,6 +414,8 @@ const serializeMatch = (match) => {
     paidUsers: (record.paidUsers || []).map((u) => u.toString()),
     verifiedUsers: (record.verifiedUsers || []).map((u) => u.toString()),
     paymentDueAt: record.paymentDueAt,
+    resultDeadline: record.resultDeadline || null,
+    startedAt: record.startedAt || null,
     paymentUpi: record.paymentUpi || null,
     roomDetails: record.roomDetails || null,
     paymentScreenshots: (record.paymentScreenshots || []).map((item) => ({
