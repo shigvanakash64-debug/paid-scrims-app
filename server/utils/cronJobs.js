@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import Match from "../models/Match.js";
 import { batchAutoResolveMatches } from "./autoResolveMatch.js";
+import { cleanupExpiredUploads } from "./cleanupExpiredUploads.js";
 import {
   sendBroadcastNotification,
   sendRetentionNotification,
@@ -65,7 +66,7 @@ export const initializeCronJobs = (userModel, options = {}) => {
     return;
   }
 
-  const cronExpression = options.cronExpression || "*/5 * * * *"; // Every 5 minutes
+  const cronExpression = options.cronExpression || "*/1 * * * *"; // Every 1 minute
   const batchSize = options.batchSize || 100; // Process up to 100 matches per run
 
   cronJobInstance = cron.schedule(cronExpression, async () => {
@@ -75,7 +76,12 @@ export const initializeCronJobs = (userModel, options = {}) => {
 
       const deadlineBackfills = await ensureResultDeadlines();
       if (deadlineBackfills > 0) {
-        console.log(`[CRON] Backfilled result deadlines for ${deadlineBackfills} ongoing matches`);
+        console.log(`[CRON] Backfilled result deadlines for ${deadlineBackfills} result_pending matches`);
+      }
+
+      const cleanupResult = await cleanupExpiredUploads();
+      if (cleanupResult.deletedCount > 0) {
+        console.log(`[CRON] Removed ${cleanupResult.deletedCount} expired screenshots older than 48 hours`);
       }
 
       // Handle payment timeouts for matches awaiting proof
@@ -123,7 +129,7 @@ export const initializeCronJobs = (userModel, options = {}) => {
     }
   });
 
-  console.log(`[CRON] Initialized - Running every minute`);
+  console.log(`[CRON] Initialized - Running every minute for deadline checks and auto-resolution`);
 
   // Initialize broadcast notification job (Every 10 minutes) only when explicitly enabled.
   if (process.env.ENABLE_NOTIFICATION_JOBS === 'true') {
@@ -232,6 +238,7 @@ export const manualTriggerResolution = async (userModel) => {
     const now = new Date();
 
     await ensureResultDeadlines();
+    const cleanupResult = await cleanupExpiredUploads();
     const paymentTimeouts = await cancelPaymentTimeouts();
     const matchesToProcess = await Match.find({
       status: 'result_pending',
@@ -245,6 +252,7 @@ export const manualTriggerResolution = async (userModel) => {
         success: true,
         processed: 0,
         cancelled: paymentTimeouts.length,
+        cleanup: cleanupResult,
         results: [],
       };
     }
@@ -260,6 +268,7 @@ export const manualTriggerResolution = async (userModel) => {
       success: true,
       processed: matchesToProcess.length,
       cancelled: paymentTimeouts.length,
+      cleanup: cleanupResult,
       resolved,
       failed,
       results,

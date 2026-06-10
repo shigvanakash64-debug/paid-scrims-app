@@ -56,13 +56,6 @@ export const MatchProvider = ({ children }) => {
     }
   }, []);
 
-  // Request notification permission
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
-
   // Force refresh match data
   const refreshMatch = useCallback(async (matchId = null) => {
     // Get latest state from a getter function to avoid adding to deps

@@ -275,6 +275,27 @@ export const AdminRequests = () => {
     }
   };
 
+  const handleFlagScreenshot = async (screenshotUserId) => {
+    if (!selectedMatchId || !screenshotUserId) return;
+    if (!window.confirm('Flag this screenshot as fake for fraud review?')) return;
+
+    setActionLoading(true);
+    try {
+      await axios.post(
+        `${API_BASE}/match/flag-screenshot`,
+        { matchId: selectedMatchId, userId: screenshotUserId },
+        { headers }
+      );
+      await refresh();
+      alert('Screenshot flagged as fake and marked for review.');
+    } catch (err) {
+      console.error('handleFlagScreenshot error', err);
+      alert(err.response?.data?.error || 'Failed to flag screenshot');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleStartMatch = async () => {
     if (!selectedMatchId || !roomId.trim() || !password.trim()) return;
     setActionLoading(true);
@@ -488,20 +509,29 @@ export const AdminRequests = () => {
                                     />
                                   </div>
                                   {!proofVerified && playerId && (
-                                    <div className="mt-3 flex gap-2">
+                                    <div className="mt-3 flex flex-col gap-2">
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={() => handleVerifyProof(playerId)}
+                                          disabled={actionLoading}
+                                          className="flex-1 rounded-full bg-[#22C55E] px-3 py-2 text-sm font-semibold text-black hover:opacity-90 transition disabled:opacity-50"
+                                        >
+                                          {actionLoading ? 'Working…' : 'Verify'}
+                                        </button>
+                                        <button
+                                          onClick={() => handleRejectProof(playerId)}
+                                          disabled={actionLoading}
+                                          className="flex-1 rounded-full border border-[#EF4444] bg-[#3D121A] px-3 py-2 text-sm font-semibold text-[#EF4444] hover:bg-[#4C1A24] transition disabled:opacity-50"
+                                        >
+                                          {actionLoading ? 'Working…' : 'Reject'}
+                                        </button>
+                                      </div>
                                       <button
-                                        onClick={() => handleVerifyProof(playerId)}
+                                        onClick={() => handleFlagScreenshot(playerId)}
                                         disabled={actionLoading}
-                                        className="flex-1 rounded-full bg-[#22C55E] px-3 py-2 text-sm font-semibold text-black hover:opacity-90 transition disabled:opacity-50"
+                                        className="rounded-full border border-[#F59E0B] bg-[#2A220F] px-3 py-2 text-sm font-semibold text-[#FCD34D] hover:bg-[#3A3117] transition disabled:opacity-50"
                                       >
-                                        {actionLoading ? 'Working…' : 'Verify'}
-                                      </button>
-                                      <button
-                                        onClick={() => handleRejectProof(playerId)}
-                                        disabled={actionLoading}
-                                        className="flex-1 rounded-full border border-[#EF4444] bg-[#3D121A] px-3 py-2 text-sm font-semibold text-[#EF4444] hover:bg-[#4C1A24] transition disabled:opacity-50"
-                                      >
-                                        {actionLoading ? 'Working…' : 'Reject'}
+                                        {actionLoading ? 'Working…' : 'Flag as fake'}
                                       </button>
                                     </div>
                                   )}
@@ -533,19 +563,31 @@ export const AdminRequests = () => {
                           <p className="mt-3 text-sm text-[#A1A1A1]">No result submission screenshots are available yet.</p>
                         ) : (
                           <div className="grid gap-3 sm:grid-cols-2 mt-4">
-                            {resultScreenshots.map((proof, index) => (
-                              <div key={index} className="rounded-2xl border border-[#1F1F1F] bg-[#111111] p-3">
-                                <p className="text-xs text-[#A1A1A1]">{getPlayerName(proof.user) || `Submission ${index + 1}`}</p>
-                                <div className="mt-3 aspect-video overflow-hidden rounded-xl border border-[#1F1F1F] bg-[#0B0B0B]">
-                                  <img
-                                    src={proof.image}
-                                    alt={`Result proof ${index + 1}`}
-                                    className="h-full w-full object-cover cursor-pointer"
-                                    onClick={() => setLightboxImage(proof.image)}
-                                  />
+                            {resultScreenshots.map((proof, index) => {
+                              const proofUserId = proof.user?.id || proof.user?._id || proof.user;
+                              return (
+                                <div key={index} className="rounded-2xl border border-[#1F1F1F] bg-[#111111] p-3">
+                                  <p className="text-xs text-[#A1A1A1]">{getPlayerName(proof.user) || `Submission ${index + 1}`}</p>
+                                  <div className="mt-3 aspect-video overflow-hidden rounded-xl border border-[#1F1F1F] bg-[#0B0B0B]">
+                                    <img
+                                      src={proof.image}
+                                      alt={`Result proof ${index + 1}`}
+                                      className="h-full w-full object-cover cursor-pointer"
+                                      onClick={() => setLightboxImage(proof.image)}
+                                    />
+                                  </div>
+                                  {proofUserId && (
+                                    <button
+                                      onClick={() => handleFlagScreenshot(proofUserId)}
+                                      disabled={actionLoading}
+                                      className="mt-3 w-full rounded-full border border-[#F59E0B] bg-[#2A220F] px-3 py-2 text-sm font-semibold text-[#FCD34D] hover:bg-[#3A3117] transition disabled:opacity-50"
+                                    >
+                                      {actionLoading ? 'Working…' : 'Flag as fake'}
+                                    </button>
+                                  )}
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>
