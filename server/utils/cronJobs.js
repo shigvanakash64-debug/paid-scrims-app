@@ -15,7 +15,7 @@ const RESULT_DEADLINE_MS = 5 * 60 * 1000;
 const ensureResultDeadlines = async () => {
   const now = new Date();
   const matches = await Match.find({
-    status: { $in: ['ongoing', 'result_pending', 'pending'] },
+    status: 'result_pending',
     resultDeadline: { $exists: false },
   });
 
@@ -85,7 +85,7 @@ export const initializeCronJobs = (userModel, options = {}) => {
       }
 
       const matchesToProcess = await Match.find({
-        status: { $in: ['result_pending', 'ongoing', 'pending'] },
+        status: 'result_pending',
         resultDeadline: { $exists: true, $lte: now },
         isPaid: false,
       })
@@ -234,7 +234,7 @@ export const manualTriggerResolution = async (userModel) => {
     await ensureResultDeadlines();
     const paymentTimeouts = await cancelPaymentTimeouts();
     const matchesToProcess = await Match.find({
-      status: { $in: ["result_pending", "ongoing", "pending"] },
+      status: 'result_pending',
       resultDeadline: { $exists: true, $lte: now },
       isPaid: false,
     }).lean();

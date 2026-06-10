@@ -50,10 +50,22 @@ export const DisputesPanel = () => {
   const visibleDisputes = disputes.map((match) => {
     const playerA = match.players?.[0]?.username || 'Player A';
     const playerB = match.players?.[1]?.username || 'Player B';
+    const playerAId = (match.players?.[0]?._id || match.players?.[0]?.id || match.players?.[0])?.toString();
+    const playerBId = (match.players?.[1]?._id || match.players?.[1]?.id || match.players?.[1])?.toString();
     const paymentProofs = match.paymentScreenshots || [];
     const resultProofs = match.result?.screenshots || [];
-    const screenshotA = paymentProofs[0]?.image || resultProofs[0]?.image || '';
-    const screenshotB = paymentProofs[1]?.image || resultProofs[1]?.image || '';
+
+    const proofMap = new Map();
+    [...resultProofs, ...paymentProofs].forEach((proof) => {
+      const userId = (proof?.user?._id || proof?.user?.id || proof?.user)?.toString();
+      if (userId) {
+        proofMap.set(userId, proof.image);
+      }
+    });
+
+    const screenshotA = proofMap.get(playerAId) || resultProofs.find((proof) => (proof?.user?._id || proof?.user?.id || proof?.user)?.toString() === playerAId)?.image || paymentProofs.find((proof) => (proof?.user?._id || proof?.user?.id || proof?.user)?.toString() === playerAId)?.image || resultProofs[0]?.image || paymentProofs[0]?.image || '';
+    const screenshotB = proofMap.get(playerBId) || resultProofs.find((proof) => (proof?.user?._id || proof?.user?.id || proof?.user)?.toString() === playerBId)?.image || paymentProofs.find((proof) => (proof?.user?._id || proof?.user?.id || proof?.user)?.toString() === playerBId)?.image || resultProofs[1]?.image || paymentProofs[1]?.image || '';
+
     return {
       id: match._id,
       matchId: match._id,
