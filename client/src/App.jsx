@@ -117,6 +117,16 @@ function App() {
       const token = localStorage.getItem(TOKEN_KEY);
       const savedScreen = localStorage.getItem('clutchzone_currentScreen');
       const savedMatchId = localStorage.getItem('clutchzone_currentMatchId');
+      const cachedUser = (() => {
+        try {
+          return JSON.parse(localStorage.getItem('clutchzone_cached_user') || 'null');
+        } catch (error) {
+          return null;
+        }
+      })();
+
+      const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'raise-ticket', 'fair-play', 'responsible-gaming'];
+      const targetScreen = validScreens.includes(savedScreen) ? savedScreen : 'home';
 
       if (!token) {
         setCurrentScreen(savedScreen || 'login');
@@ -124,25 +134,41 @@ function App() {
         return;
       }
 
+      if (cachedUser) {
+        updateUser(cachedUser);
+        setCurrentScreen(targetScreen);
+        setLoadingAuth(false);
+      } else {
+        setCurrentScreen(targetScreen);
+      }
+
+      const timeoutMs = 3500;
+      void axios.get(`${API_BASE}/health`, { timeout: 4000 }).catch(() => undefined);
+
+      const authRequest = axios.get(`${API_BASE}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: timeoutMs,
+      });
+      const timeoutRequest = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Session verification timeout')), timeoutMs);
+      });
+
       try {
-        const response = await axios.get(`${API_BASE}/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await Promise.race([authRequest, timeoutRequest]);
         const restoredUser = response.data.user;
         updateUser(restoredUser);
 
-        const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'raise-ticket', 'fair-play', 'responsible-gaming'];
-        const targetScreen = validScreens.includes(savedScreen) ? savedScreen : 'home';
         if (targetScreen === 'admin' && !restoredUser?.isAdmin && restoredUser?.role !== 'admin') {
           setCurrentScreen('home');
-        } else {
-          setCurrentScreen(targetScreen);
         }
 
         if (savedMatchId) {
-          const refreshed = await refreshMatch(savedMatchId);
+          const refreshPromise = Promise.race([
+            refreshMatch(savedMatchId),
+            new Promise((resolve) => setTimeout(() => resolve(null), 2000)),
+          ]);
+
+          const refreshed = await refreshPromise;
           if (refreshed) {
             setMatch(refreshed);
           } else {
@@ -150,23 +176,20 @@ function App() {
           }
         }
 
-        // Register OneSignal player ID after restoring session (with debounce to prevent rate limiting)
         const lastRegistrationTime = localStorage.getItem('clutchzone_last_player_id_registration');
         const now = Date.now();
         const timeSinceLastRegistration = lastRegistrationTime ? now - parseInt(lastRegistrationTime) : Infinity;
-        
-        // Only attempt registration if it's been more than 5 minutes since last attempt
+
         if (timeSinceLastRegistration > 5 * 60 * 1000) {
           localStorage.setItem('clutchzone_last_player_id_registration', now.toString());
           registerOneSignalPlayerId(token);
-        } else {
-          console.log('⏭️ Skipping player ID registration - already attempted recently');
         }
       } catch (error) {
-        console.warn('Failed to restore session', error);
-        localStorage.removeItem(TOKEN_KEY);
+        console.warn('Session restore completed with cached fallback:', error.message || error);
       } finally {
-        setLoadingAuth(false);
+        if (!cachedUser) {
+          setLoadingAuth(false);
+        }
       }
     };
 
