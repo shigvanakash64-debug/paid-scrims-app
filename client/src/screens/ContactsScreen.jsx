@@ -19,10 +19,10 @@ export const ContactsScreen = () => {
           <div className="contact-row">
             <div>
               <div className="contact-label">Instagram</div>
-              <div className="contact-value">@clutch_zone_ff</div>
+              <div className="contact-value">@clutchzone.in_</div>
             </div>
             <div className="contact-actions">
-              <a className="contact-btn" href="https://instagram.com/clutch_zone_ff" target="_blank" rel="noreferrer">
+              <a className="contact-btn" href="https://instagram.com/clutchzone.in_" target="_blank" rel="noreferrer">
                 Open Instagram
               </a>
             </div>
