@@ -149,7 +149,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
           <div>
             <div className="game-pill">
               <div className="game-dot"></div>
-              <span>Free Fire</span>
+              <span>All Battle Royale</span>
             </div>
             <div className="screen-title">CLUTCH ZONE</div>
             <div className="screen-sub">Compete. Win. Get Paid.</div>
