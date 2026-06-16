@@ -40,17 +40,6 @@ export const ContactsScreen = () => {
           </div>
           <div className="contact-row">
             <div>
-              <div className="contact-label">Telegram</div>
-              <div className="contact-value">t.me/clutchzoneff</div>
-            </div>
-            <div className="contact-actions">
-              <a className="contact-btn" href="https://t.me/clutchzoneff" target="_blank" rel="noreferrer">
-                Open Telegram
-              </a>
-            </div>
-          </div>
-          <div className="contact-row">
-            <div>
               <div className="contact-label">Official Email</div>
               <div className="contact-value">supportclutchzone@gmail.com</div>
             </div>
