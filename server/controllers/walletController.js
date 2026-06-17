@@ -157,6 +157,10 @@ export const submitDepositRequest = async (req, res) => {
       return res.status(400).json({ error: 'Invalid deposit amount' });
     }
 
+    if (Number(amount) < 5) {
+      return res.status(400).json({ error: 'Minimum deposit amount is ₹5' });
+    }
+
     const normalizedUtr = String(utr || '').trim().toUpperCase();
     const normalizedName = String(payerName || '').trim();
 

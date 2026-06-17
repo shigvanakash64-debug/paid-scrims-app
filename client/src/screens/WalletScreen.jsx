@@ -109,8 +109,8 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       setMessage('Please enter a valid deposit amount');
       return;
     }
-    if (amount < 30) {
-      setMessage('Minimum deposit amount is ₹30');
+    if (amount < 5) {
+      setMessage('Minimum deposit amount is ₹5');
       return;
     }
     if (!depositUtr.trim() || depositUtr.trim().length < 6) {
@@ -198,7 +198,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                   <button key={amt} onClick={() => setDepositAmount(String(amt))} className="px-3 py-2 rounded-lg bg-[#0B0B0B] border border-[#2A2A2A] text-sm text-white">₹{amt}</button>
                 ))}
               </div>
-              <p className="text-xs text-[#A1A1A1] mb-2">Minimum: ₹30</p>
+              <p className="text-xs text-[#A1A1A1] mb-2">Minimum: ₹5</p>
               <input
                 type="number"
                 value={depositAmount}
