@@ -12,13 +12,17 @@ const typeOptions = [
   'Normal Headshot',
   'Bodyshot',
   'Only One Tap',
+  'Only Punch',
+  'Only Desert',
+  'Only Melee Weapon',
+  'Only Knife Throw',
   'Only SMG Headshot',
   'Only AR Headshot',
   'Only AWM Bodyshot',
   'Only Grenade',
   'Rank Clash Squad',
 ];
-const entryOptions = [0, 30, 50, 100, 200, 500, 1000];
+const entryOptions = [0, 5, 10, 20, 30, 50, 100, 200, 500, 1000];
 
 const sampleMatches = [
   {

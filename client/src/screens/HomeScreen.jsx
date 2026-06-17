@@ -31,6 +31,26 @@ const typeOptions = [
     info: 'Both users can only fire 1 bullet.'
   },
   { 
+    label: 'Only Punch', 
+    sub: 'Special',
+    info: 'Only punch kills are allowed.'
+  },
+  { 
+    label: 'Only Desert', 
+    sub: 'Special',
+    info: 'Only Desert Eagle kills are allowed.'
+  },
+  { 
+    label: 'Only Melee Weapon', 
+    sub: 'Special',
+    info: 'Only melee weapon kills are allowed.'
+  },
+  { 
+    label: 'Only Knife Throw', 
+    sub: 'Special',
+    info: 'Only knife throw kills are allowed.'
+  },
+  { 
     label: 'Only SMG Headshot', 
     sub: 'Special',
     info: 'Both users can only use SMG guns here.'
@@ -62,7 +82,7 @@ const skillOptions = [
   { label: 'Skill Off', sub: 'Disabled' }
 ];
 
-const entryFees = [30, 50, 100, 200, 500, 1000];
+const entryFees = [5, 10, 20, 30, 50, 100, 200, 500, 1000];
 
 const calculateCommission = (entryFee) => {
   if (entryFee <= 30) return entryFee / 3;
@@ -85,6 +105,9 @@ const getPlayersCount = (mode) => {
 
 const getPrizePool = (entryFee) => {
   const prizePoolTable = {
+    5: 7,
+    10: 15,
+    20: 35,
     30: 50,
     50: 80,
     100: 170,

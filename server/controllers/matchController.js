@@ -528,6 +528,9 @@ export const createMatch = async (req, res) => {
 
     // Prize pool is fixed per entry amount using the official tier table.
     const prizePoolTable = {
+      5: 7,
+      10: 15,
+      20: 35,
       30: 50,
       50: 80,
       100: 170,
