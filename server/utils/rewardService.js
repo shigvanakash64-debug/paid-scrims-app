@@ -27,10 +27,8 @@ const addWalletTransaction = async (userId, { type, amount, description, matchId
 
 export const generateReferralCode = async (username) => {
   const base = String(username || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '');
-  const settings = await getSettings();
-  const suffix = (settings.referralCodeSuffix || 'CZ').toUpperCase().replace(/[^A-Z0-9]+/g, '');
   const prefix = base || 'PLAYER';
-  const candidate = `${prefix}${suffix}`;
+  const candidate = `${prefix}CZ`;
 
   const existing = await User.findOne({ 'wallet.referralCode': candidate });
   if (!existing) return candidate;

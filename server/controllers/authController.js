@@ -85,12 +85,14 @@ export const register = async (req, res) => {
       await applyReferralCode({ userId: user._id, referralCode });
     }
 
+    const freshUser = await User.findById(user._id);
+
     console.log("CREATING TOKEN");
     const token = createToken({ userId: user._id.toString() });
     console.log("TOKEN CREATED, LENGTH:", token.length);
 
     console.log("SANITIZING USER");
-    const sanitized = sanitizeUser(user);
+    const sanitized = sanitizeUser(freshUser);
     console.log("SANITIZED USER:", sanitized);
 
     return res.status(201).json({ user: sanitized, token });
@@ -123,13 +125,16 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const isValid = await bcrypt.compare(password + user.passwordSalt, user.password);
+    await ensureReferralCodeForUser(user._id, user.username);
+    const refreshedUser = await User.findById(user._id);
+
+    const isValid = await bcrypt.compare(password + refreshedUser.passwordSalt, refreshedUser.password);
     if (!isValid) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const token = createToken({ userId: user._id.toString() });
-    return res.json({ user: sanitizeUser(user), token });
+    const token = createToken({ userId: refreshedUser._id.toString() });
+    return res.json({ user: sanitizeUser(refreshedUser), token });
   } catch (error) {
     return sendError(res, 500, 'Login failed', error);
   }
@@ -141,7 +146,9 @@ export const getMe = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    return res.json({ user: sanitizeUser(user) });
+    await ensureReferralCodeForUser(user._id, user.username);
+    const refreshedUser = await User.findById(req.userId);
+    return res.json({ user: sanitizeUser(refreshedUser) });
   } catch (error) {
     return sendError(res, 500, 'Could not load user', error);
   }

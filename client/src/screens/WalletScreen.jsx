@@ -109,10 +109,17 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     }
   };
 
+  const getDisplayReferralCode = () => {
+    if (referralCode) return referralCode;
+    const username = String(user?.username || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '');
+    return username ? `${username}CZ` : '';
+  };
+
   const copyReferralCode = async () => {
-    if (!referralCode) return;
+    const code = getDisplayReferralCode();
+    if (!code) return;
     try {
-      await navigator.clipboard.writeText(referralCode);
+      await navigator.clipboard.writeText(code);
       setMessage('Referral code copied');
     } catch (error) {
       setMessage('Unable to copy referral code');
@@ -186,7 +193,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
           </div>
           <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Code</div>
-            <div className="mt-2 text-lg font-semibold text-white">{referralCode || 'Generating...'}</div>
+            <div className="mt-2 text-lg font-semibold text-white">{getDisplayReferralCode() || 'Generating...'}</div>
             <button className="mt-3 text-sm font-semibold text-[#FF6A00]" type="button" onClick={copyReferralCode}>Copy</button>
           </div>
         </div>
