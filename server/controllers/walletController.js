@@ -48,10 +48,12 @@ export const requestWithdrawal = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (user.wallet.balance < parsedAmount) {
+    const totalWithdrawableBalance = Number(user.wallet.balance || 0) + Number(user.wallet.referralEarningsBalance || 0);
+
+    if (totalWithdrawableBalance < parsedAmount) {
       return res.status(400).json({
         error: 'Insufficient balance for withdrawal',
-        currentBalance: user.wallet.balance,
+        currentBalance: totalWithdrawableBalance,
       });
     }
 
@@ -122,6 +124,9 @@ export const getWalletBalance = async (req, res) => {
     res.status(200).json({
       success: true,
       balance: user.wallet.balance,
+      bonusBalance: user.wallet.bonusBalance || 0,
+      referralEarningsBalance: user.wallet.referralEarningsBalance || 0,
+      totalWithdrawableBalance: Number(user.wallet.balance || 0) + Number(user.wallet.referralEarningsBalance || 0),
       pendingWithdrawals: user.wallet.pendingWithdrawals.filter(
         w => w.status === 'pending'
       ),

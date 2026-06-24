@@ -10,6 +10,7 @@ import {
   sendMatchEventNotification,
   updateLastActivity,
 } from "../services/notificationService.js";
+import { creditCashback, creditWelcomeBonus, creditReferralCommission, markCompletedPaidMatch, updateReferralStatus } from "../utils/rewardService.js";
 
 const PAYMENT_UPIS = [
   '8261047808@fam',
@@ -187,6 +188,26 @@ export const submitResult = async (req, res) => {
         await match.save();
         try {
           payoutInfo = await processPayout(match._id, confirmedWinnerId, User);
+          const feeAmount = Number(payoutInfo?.fee || 0);
+          if (feeAmount > 0) {
+            for (const participantId of match.players) {
+              const participant = await User.findById(participantId);
+              if (!participant) continue;
+              participant.wallet.totalPlatformFeesCollected = (participant.wallet?.totalPlatformFeesCollected || 0) + feeAmount / match.players.length;
+              await participant.save();
+            }
+          }
+          for (const participantId of match.players) {
+            const participant = await User.findById(participantId);
+            if (!participant) continue;
+            await creditCashback({ userId: participant._id, matchEntryFee: match.entry, matchId: match._id });
+            await creditWelcomeBonus({ userId: participant._id, matchId: match._id });
+            await markCompletedPaidMatch(participant._id);
+            await updateReferralStatus({ referredUserId: participant._id, status: 'active', matchId: match._id });
+            if (participant._id.toString() !== confirmedWinnerId.toString()) {
+              await creditReferralCommission({ referredUserId: participant._id, platformFee: feeAmount / match.players.length, matchId: match._id });
+            }
+          }
         } catch (payoutError) {
           console.error('PAYOUT ERROR:', payoutError.message);
         }

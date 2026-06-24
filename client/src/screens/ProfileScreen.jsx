@@ -1,15 +1,36 @@
 ﻿import { useEffect, useState } from 'react';
+import axios from 'axios';
 import { useUser } from '../contexts/UserContext';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
   const { user: currentUser } = useUser();
   const [uid, setUid] = useState(currentUser?.ffUid || '');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [referralData, setReferralData] = useState(null);
 
   useEffect(() => {
     setUid(currentUser?.ffUid || '');
   }, [currentUser?.ffUid]);
+
+  useEffect(() => {
+    const fetchReferralData = async () => {
+      if (!currentUser) return;
+      try {
+        const token = localStorage.getItem('clutchzone_token');
+        const response = await axios.get(`${API_BASE}/rewards/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setReferralData(response.data);
+      } catch (err) {
+        console.error('Failed to load referral data', err);
+      }
+    };
+
+    fetchReferralData();
+  }, [currentUser]);
 
   if (!currentUser) {
     return (
@@ -29,6 +50,16 @@ export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
   };
 
   const history = currentUser?.history || [];
+
+  const copyReferralCode = async () => {
+    if (!referralData?.referralCode) return;
+    try {
+      await navigator.clipboard.writeText(referralData.referralCode);
+      setMessage('Referral code copied');
+    } catch (err) {
+      setError('Unable to copy referral code');
+    }
+  };
 
   const handleSaveUid = async () => {
     setError('');
@@ -84,6 +115,12 @@ export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
         </div>
       </div>
       <div className="profile-form">
+        <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4 mb-4">
+          <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Code</div>
+          <div className="mt-2 text-lg font-semibold text-white">{referralData?.referralCode || currentUser.wallet?.referralCode || 'Generating...'}</div>
+          <div className="mt-2 text-sm text-[#A1A1A1]">Share this code to earn rewards when your friends complete paid matches.</div>
+          <button className="btn-outline mt-3" type="button" onClick={copyReferralCode} disabled={!referralData?.referralCode && !currentUser.wallet?.referralCode}>COPY CODE</button>
+        </div>
         <label className="form-group">
           <span className="form-label">Free Fire UID</span>
           <input

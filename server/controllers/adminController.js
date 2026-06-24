@@ -9,6 +9,7 @@ import User from "../models/User.js";
 import Match from "../models/Match.js";
 import { processPayout } from "../utils/payout.js";
 import { rotateDepositUpi } from "../config/depositUpi.js";
+import { markFirstDeposit, updateReferralStatus, getRewardDashboard } from "../utils/rewardService.js";
 
 /**
  * Admin endpoint to manually trigger match timeout resolution
@@ -276,6 +277,7 @@ export const getDashboardStats = async (req, res) => {
 
     const completedMatches = await Match.find({ status: 'completed' }).select('entry');
     const systemBalance = completedMatches.reduce((sum, match) => sum + calculateCommission(match.entry), 0);
+    const rewardAnalytics = await getRewardDashboard();
 
     const todayMatches = await Match.find({
       status: 'completed',
@@ -297,6 +299,7 @@ export const getDashboardStats = async (req, res) => {
         disputes,
         systemBalance,
         todayRevenue,
+        rewardAnalytics,
         timestamp: now
       }
     });
@@ -1069,6 +1072,8 @@ export const approveDeposit = async (req, res) => {
     deposit.adminNote = adminNote || 'Approved by admin';
 
     user.wallet.balance += deposit.amount;
+    await markFirstDeposit(user._id, deposit.amount);
+    await updateReferralStatus({ referredUserId: user._id, status: 'deposited' });
     user.wallet.transactions.push({
       type: 'deposit',
       amount: deposit.amount,
@@ -1138,7 +1143,8 @@ export const approveWithdrawal = async (req, res) => {
       return res.status(404).json({ error: "Withdrawal not found" });
     }
 
-    if (user.wallet.balance < withdrawal.amount) {
+    const totalWithdrawableBalance = Number(user.wallet.balance || 0) + Number(user.wallet.referralEarningsBalance || 0);
+    if (totalWithdrawableBalance < withdrawal.amount) {
       return res.status(400).json({ error: "Insufficient balance for withdrawal" });
     }
 
@@ -1147,8 +1153,17 @@ export const approveWithdrawal = async (req, res) => {
     withdrawal.processedAt = new Date();
     withdrawal.adminNote = adminNote;
 
-    // Deduct from balance
-    user.wallet.balance -= withdrawal.amount;
+    let remainingAmount = withdrawal.amount;
+    if (user.wallet.balance >= remainingAmount) {
+      user.wallet.balance -= remainingAmount;
+      remainingAmount = 0;
+    } else {
+      remainingAmount -= user.wallet.balance;
+      user.wallet.balance = 0;
+      if (remainingAmount > 0) {
+        user.wallet.referralEarningsBalance = Math.max(0, Number(user.wallet.referralEarningsBalance || 0) - remainingAmount);
+      }
+    }
 
     // Add transaction record
     user.wallet.transactions.push({

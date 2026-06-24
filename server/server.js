@@ -17,6 +17,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
 import ticketRoutes from "./routes/ticketRoutes.js";
+import rewardRoutes from "./routes/rewardRoutes.js";
 import User from "./models/User.js";
 import { initializeCronJobs, stopCronJobs } from "./utils/cronJobs.js";
 
@@ -254,6 +255,7 @@ app.use("/api/auth", authLimiter, authRoutes);
 app.use("/auth", authLimiter, authRoutes); // Alias for simpler deployed URL usage
 app.use("/api/match", matchLimiter, matchRoutes);
 app.use("/api/wallet", matchLimiter, walletRoutes);
+app.use("/api/rewards", matchLimiter, rewardRoutes);
 app.use("/api/admin", adminLimiter, adminRoutes);
 
 const PORT = process.env.PORT || 5000;

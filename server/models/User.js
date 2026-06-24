@@ -21,6 +21,58 @@ const userSchema = new mongoose.Schema({
       default: 0,
       min: 0
     },
+    bonusBalance: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    referralEarningsBalance: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    referralCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: null,
+    },
+    usedReferralCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: null,
+    },
+    referralAppliedAt: Date,
+    firstDepositAmount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    completedPaidMatches: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    welcomeBonusClaimed: {
+      type: Boolean,
+      default: false,
+    },
+    totalBonusEarned: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    totalWelcomeBonusEarned: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    totalPlatformFeesCollected: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
     pendingWithdrawals: [{
       _id: {
         type: mongoose.Schema.Types.ObjectId,
@@ -86,7 +138,7 @@ const userSchema = new mongoose.Schema({
     transactions: [{
       type: {
         type: String,
-        enum: ['deposit', 'withdrawal', 'match_win', 'match_loss', 'refund', 'fee'],
+        enum: ['deposit', 'withdrawal', 'match_win', 'match_loss', 'refund', 'fee', 'bonus', 'referral'],
         required: true
       },
       amount: {

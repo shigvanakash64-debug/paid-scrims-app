@@ -5,6 +5,9 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const WalletScreen = ({ user, onUserUpdate }) => {
   const [balance, setBalance] = useState(user?.wallet?.balance || 0);
+  const [bonusBalance, setBonusBalance] = useState(user?.wallet?.bonusBalance || 0);
+  const [referralEarningsBalance, setReferralEarningsBalance] = useState(user?.wallet?.referralEarningsBalance || 0);
+  const [referralCode, setReferralCode] = useState(user?.wallet?.referralCode || '');
   const [transactions, setTransactions] = useState([]);
   const [activeTab, setActiveTab] = useState('deposit');
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
@@ -39,6 +42,9 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       ]);
       const userData = meResponse.data.user;
       setBalance(userData.wallet?.balance || 0);
+      setBonusBalance(userData.wallet?.bonusBalance || 0);
+      setReferralEarningsBalance(userData.wallet?.referralEarningsBalance || 0);
+      setReferralCode(userData.wallet?.referralCode || '');
       setTransactions(userData.wallet?.transactions || []);
       setDeposits(depositResponse.data.deposits || []);
       setWithdrawals(withdrawalResponse.data.withdrawals || []);
@@ -103,6 +109,16 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     }
   };
 
+  const copyReferralCode = async () => {
+    if (!referralCode) return;
+    try {
+      await navigator.clipboard.writeText(referralCode);
+      setMessage('Referral code copied');
+    } catch (error) {
+      setMessage('Unable to copy referral code');
+    }
+  };
+
   const handleDeposit = async () => {
     const amount = parseFloat(depositAmount);
     if (!depositAmount || amount <= 0) {
@@ -158,6 +174,21 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
           <div className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1] mb-2">Current Balance</div>
           <div className="text-4xl font-bold text-[#FF6A00] mb-4">₹{balance.toLocaleString()}</div>
           <div className="text-sm text-[#A1A1A1]">Available for withdrawal</div>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
+            <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Bonus Balance</div>
+            <div className="mt-2 text-lg font-semibold text-white">₹{bonusBalance.toLocaleString()}</div>
+          </div>
+          <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
+            <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Earnings</div>
+            <div className="mt-2 text-lg font-semibold text-white">₹{referralEarningsBalance.toLocaleString()}</div>
+          </div>
+          <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
+            <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Code</div>
+            <div className="mt-2 text-lg font-semibold text-white">{referralCode || 'Generating...'}</div>
+            <button className="mt-3 text-sm font-semibold text-[#FF6A00]" type="button" onClick={copyReferralCode}>Copy</button>
+          </div>
         </div>
       </div>
 

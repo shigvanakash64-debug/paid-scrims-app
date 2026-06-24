@@ -2,6 +2,7 @@ import User from "../models/User.js";
 import { createToken, generateSalt, hashPassword } from "../utils/authUtils.js";
 import bcrypt from "bcrypt";
 import { sendNotification } from "../services/notificationService.js";
+import { ensureReferralCodeForUser, applyReferralCode } from "../utils/rewardService.js";
 
 const sendError = (res, status, message, error) => {
   console.error(`[AUTH ERROR] ${message}:`, error);
@@ -20,6 +21,10 @@ const sanitizeUser = (user) => ({
   ffUid: user.ffUid || "",
   wallet: {
     balance: user.wallet?.balance || 0,
+    bonusBalance: user.wallet?.bonusBalance || 0,
+    referralEarningsBalance: user.wallet?.referralEarningsBalance || 0,
+    referralCode: user.wallet?.referralCode || null,
+    usedReferralCode: user.wallet?.usedReferralCode || null,
     transactions: user.wallet?.transactions || [],
     pendingWithdrawals: user.wallet?.pendingWithdrawals || [],
     pendingDeposits: user.wallet?.pendingDeposits || [],
@@ -46,7 +51,7 @@ export const register = async (req, res) => {
   try {
     console.log("REGISTER BODY:", req.body);
 
-    let { username, password } = req.body;
+    let { username, password, referralCode } = req.body;
     username = username || req.body.name || req.body.userName || req.body.user;
 
     if (!username || !password) {
@@ -74,6 +79,11 @@ export const register = async (req, res) => {
       passwordSalt: salt,
     });
     console.log("USER CREATED:", user._id, user.username);
+
+    const generatedReferralCode = await ensureReferralCodeForUser(user._id, user.username);
+    if (referralCode && generatedReferralCode) {
+      await applyReferralCode({ userId: user._id, referralCode });
+    }
 
     console.log("CREATING TOKEN");
     const token = createToken({ userId: user._id.toString() });

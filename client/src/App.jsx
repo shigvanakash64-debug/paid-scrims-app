@@ -302,12 +302,13 @@ function App() {
     }
   };
 
-  const handleRegister = async ({ username, password }) => {
+  const handleRegister = async ({ username, password, referralCode }) => {
     try {
       const normalizedUsername = username.trim().toLowerCase();
       const response = await axios.post(`${API_BASE}/auth/register`, {
         username: normalizedUsername,
         password,
+        referralCode,
       });
       setSession(response.data.user, response.data.token);
     } catch (error) {

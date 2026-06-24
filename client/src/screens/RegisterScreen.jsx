@@ -3,10 +3,11 @@ import { useState } from 'react';
 export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    onRegister({ username: username.trim(), password });
+    onRegister({ username: username.trim(), password, referralCode: referralCode.trim() });
   };
 
   return (
@@ -35,6 +36,16 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Create a password"
               required
+            />
+          </label>
+          <label className="auth-field">
+            <span className="auth-label">Referral Code (Optional)</span>
+            <input
+              className="auth-input"
+              type="text"
+              value={referralCode}
+              onChange={(event) => setReferralCode(event.target.value.toUpperCase())}
+              placeholder="Enter referral code"
             />
           </label>
           <div className="auth-actions">
