@@ -49,9 +49,8 @@ const referralSchema = new mongoose.Schema({
   },
 });
 
-referralSchema.pre('save', function(next) {
+referralSchema.pre('save', function() {
   this.updatedAt = new Date();
-  next();
 });
 
 export default mongoose.model('Referral', referralSchema);

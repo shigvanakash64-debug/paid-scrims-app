@@ -104,9 +104,8 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-app.get("/health", async (req, res) => {
+app.get(["/health", "/api/health"], async (req, res) => {
   try {
-    // Test database connection
     const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
     res.json({ 
       status: "ok", 

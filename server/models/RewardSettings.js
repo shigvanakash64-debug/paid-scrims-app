@@ -63,9 +63,8 @@ const rewardSettingsSchema = new mongoose.Schema({
   },
 });
 
-rewardSettingsSchema.pre('save', function(next) {
+rewardSettingsSchema.pre('save', function() {
   this.updatedAt = new Date();
-  next();
 });
 
 export default mongoose.model('RewardSettings', rewardSettingsSchema);
