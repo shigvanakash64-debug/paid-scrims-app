@@ -128,18 +128,22 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
   const [selectedType, setSelectedType] = useState('Normal Headshot');
   const [selectedSkill, setSelectedSkill] = useState('Skill On');
   const [selectedFee, setSelectedFee] = useState(50);
+  const [isCreatingMatch, setIsCreatingMatch] = useState(false);
 
   const playersCount = getPlayersCount(selectedMode);
   const platformFee = calculateCommission(selectedFee);
   const prizePool = getPrizePool(selectedFee);
 
   const handleFindMatch = async () => {
+    if (isCreatingMatch) return;
+
     if (currentMatch && !['completed', 'cancelled', 'disputed'].includes(currentMatch.status)) {
       alert('You already have an active match. Complete it first before creating a new one.');
       return;
     }
 
     try {
+      setIsCreatingMatch(true);
       const token = localStorage.getItem(TOKEN_KEY);
       const response = await axios.post(
         `${API_BASE}/match/create`,
@@ -160,6 +164,8 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
       onScreenChange('pairing');
     } catch (error) {
       alert(error.response?.data?.error || 'API error while creating match');
+    } finally {
+      setIsCreatingMatch(false);
     }
   };
 
@@ -271,8 +277,8 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
       </div>
 
       <div className="btn-cta-wrap">
-        <button className="btn-primary" type="button" onClick={handleFindMatch}>
-          CREATE MATCH
+        <button className="btn-primary" type="button" onClick={handleFindMatch} disabled={isCreatingMatch}>
+          {isCreatingMatch ? 'CREATING...' : 'CREATE MATCH'}
         </button>
       </div>
     </div>
