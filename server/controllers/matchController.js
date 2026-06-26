@@ -189,11 +189,12 @@ export const submitResult = async (req, res) => {
         try {
           payoutInfo = await processPayout(match._id, confirmedWinnerId, User);
           const feeAmount = Number(payoutInfo?.fee || 0);
+          const perPlayerPlatformFee = feeAmount / Math.max(1, match.players.length);
           if (feeAmount > 0) {
             for (const participantId of match.players) {
               const participant = await User.findById(participantId);
               if (!participant) continue;
-              participant.wallet.totalPlatformFeesCollected = (participant.wallet?.totalPlatformFeesCollected || 0) + feeAmount / match.players.length;
+              participant.wallet.totalPlatformFeesCollected = (participant.wallet?.totalPlatformFeesCollected || 0) + perPlayerPlatformFee;
               await participant.save();
             }
           }
@@ -204,9 +205,7 @@ export const submitResult = async (req, res) => {
             await creditWelcomeBonus({ userId: participant._id, matchId: match._id });
             await markCompletedPaidMatch(participant._id);
             await updateReferralStatus({ referredUserId: participant._id, status: 'active', matchId: match._id });
-            if (participant._id.toString() !== confirmedWinnerId.toString()) {
-              await creditReferralCommission({ referredUserId: participant._id, platformFee: feeAmount / match.players.length, matchId: match._id });
-            }
+            await creditReferralCommission({ referredUserId: participant._id, platformFee: perPlayerPlatformFee, matchId: match._id });
           }
         } catch (payoutError) {
           console.error('PAYOUT ERROR:', payoutError.message);
@@ -323,6 +322,11 @@ export const approveResult = async (req, res) => {
     await match.save();
 
     const payoutInfo = await processPayout(matchId, winner._id, User);
+    const perPlayerPlatformFee = Number(payoutInfo?.fee || 0) / Math.max(1, match.players.length);
+
+    for (const player of match.players) {
+      await creditReferralCommission({ referredUserId: player._id, platformFee: perPlayerPlatformFee, matchId });
+    }
 
     const loser = match.players.find((player) => player._id.toString() !== winner._id.toString());
     await User.findByIdAndUpdate(winner._id, {

@@ -70,6 +70,7 @@ export const processPayout = async (matchId, winnerId, userModel) => {
 
     const officialPrizePool = getOfficialPrizePool(match.entry);
     const effectivePrizePool = officialPrizePool || Number(match.prizePool || 0) || 0;
+    const totalCollection = Number(match.entry || 0) * Math.max(1, match.players?.length || 1);
 
     if (match.prizePool !== effectivePrizePool) {
       await Match.findByIdAndUpdate(matchId, {
@@ -79,7 +80,7 @@ export const processPayout = async (matchId, winnerId, userModel) => {
 
     const winnerAmount = effectivePrizePool;
     const totalPool = effectivePrizePool;
-    const platformFee = Math.max(0, totalPool - winnerAmount);
+    const platformFee = Math.max(0, totalCollection - totalPool);
 
     console.log(`[PAYOUT] Processing payout for match ${matchId}. Winner: ${winnerId}, Amount: ${winnerAmount}`);
 
