@@ -30,7 +30,7 @@ const validateRazorpayConfig = (res) => {
 export const requestWithdrawal = async (req, res) => {
   try {
     const userId = req.userId;
-    const { amount, upi } = req.body;
+    const { amount, upi, wallet } = req.body;
 
     const parsedAmount = Number(amount);
 
@@ -48,12 +48,16 @@ export const requestWithdrawal = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const totalWithdrawableBalance = Number(user.wallet.balance || 0) + Number(user.wallet.referralEarningsBalance || 0);
+    const selectedWallet = wallet === 'referral' ? 'referral' : 'main';
+    const availableBalance = selectedWallet === 'referral'
+      ? Number(user.wallet.referralEarningsBalance || 0)
+      : Number(user.wallet.balance || 0);
 
-    if (totalWithdrawableBalance < parsedAmount) {
+    if (availableBalance < parsedAmount) {
       return res.status(400).json({
         error: 'Insufficient balance for withdrawal',
-        currentBalance: totalWithdrawableBalance,
+        currentBalance: availableBalance,
+        selectedWallet,
       });
     }
 
@@ -62,6 +66,7 @@ export const requestWithdrawal = async (req, res) => {
       status: 'pending',
       requestedAt: new Date(),
       upi: upi.trim(),
+      source: selectedWallet,
     };
 
     user.wallet.pendingWithdrawals.push(withdrawalRequest);

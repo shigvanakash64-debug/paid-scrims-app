@@ -12,6 +12,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const [activeTab, setActiveTab] = useState('deposit');
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [withdrawalUpi, setWithdrawalUpi] = useState('');
+  const [withdrawalWallet, setWithdrawalWallet] = useState('main');
   const [depositAmount, setDepositAmount] = useState('');
   const [depositUtr, setDepositUtr] = useState('');
   const [payerName, setPayerName] = useState('');
@@ -83,8 +84,10 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       return;
     }
 
-    if (amount > balance) {
-      setMessage('Insufficient balance');
+    const selectedBalance = withdrawalWallet === 'referral' ? referralEarningsBalance : balance;
+
+    if (amount > selectedBalance) {
+      setMessage(`Insufficient ${withdrawalWallet === 'referral' ? 'referral earnings' : 'main wallet'} balance`);
       return;
     }
 
@@ -94,6 +97,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       await axios.post(`${API_BASE}/wallet/withdraw`, {
         amount,
         upi: withdrawalUpi.trim(),
+        wallet: withdrawalWallet,
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -101,6 +105,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       setMessage('Withdrawal request submitted successfully. Admin approval required.');
       setWithdrawalAmount('');
       setWithdrawalUpi('');
+      setWithdrawalWallet('main');
       fetchWalletData(); // Refresh data
     } catch (error) {
       setMessage(error.response?.data?.error || 'Failed to submit withdrawal request');
@@ -284,6 +289,27 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         ) : (
           <div className="space-y-4">
             <div>
+              <label className="block text-sm text-[#A1A1A1] mb-2">Select Wallet</label>
+              <div className="grid gap-2 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setWithdrawalWallet('main')}
+                  className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${withdrawalWallet === 'main' ? 'border-[#FF6A00] bg-[#1a0c00] text-white' : 'border-[#2A2A2A] bg-[#0B0B0B] text-[#A1A1A1]'}`}
+                >
+                  Main Wallet
+                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">₹{balance.toLocaleString()}</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWithdrawalWallet('referral')}
+                  className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${withdrawalWallet === 'referral' ? 'border-[#FF6A00] bg-[#1a0c00] text-white' : 'border-[#2A2A2A] bg-[#0B0B0B] text-[#A1A1A1]'}`}
+                >
+                  Referral Wallet
+                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">₹{referralEarningsBalance.toLocaleString()}</div>
+                </button>
+              </div>
+            </div>
+            <div>
               <label className="block text-sm text-[#A1A1A1] mb-2">UPI ID</label>
               <input
                 type="text"
@@ -308,13 +334,13 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
 
             <button
               onClick={handleWithdrawalRequest}
-              disabled={loading || !withdrawalUpi || !withdrawalAmount || parseFloat(withdrawalAmount) < 100 || parseFloat(withdrawalAmount) > balance}
+              disabled={loading || !withdrawalUpi || !withdrawalAmount || parseFloat(withdrawalAmount) < 100 || parseFloat(withdrawalAmount) > (withdrawalWallet === 'referral' ? referralEarningsBalance : balance)}
               className="w-full rounded-3xl bg-[#FF6A00] px-6 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black transition disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? 'Submitting...' : 'Request Withdrawal'}
             </button>
 
-            <div className="mt-2 text-xs text-[#A1A1A1]">Note: Minimum withdrawal is ₹100. Withdrawals require admin approval and may take 24-48 hours.</div>
+            <div className="mt-2 text-xs text-[#A1A1A1]">Note: Minimum withdrawal is ₹100 for either wallet. Withdrawals require admin approval and may take 24-48 hours.</div>
           </div>
         )}
       </div>
