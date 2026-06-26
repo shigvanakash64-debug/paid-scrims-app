@@ -13,6 +13,20 @@ export const Header = ({ user, onNavigate, onLogout }) => {
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.isAdmin === true;
 
+  const menuItems = [
+    { key: 'profile', label: 'Profile', screen: 'profile' },
+    { key: 'inbox', label: `Inbox${currentUser?.notifications?.some((n) => !n.read) ? ` (${currentUser.notifications.filter((n) => !n.read).length})` : ''}`, screen: 'inbox' },
+    { key: 'settings', label: 'Settings', screen: 'settings' },
+    { key: 'privacy-policy', label: 'Privacy Policy', screen: 'privacy-policy' },
+    { key: 'terms-conditions', label: 'Terms & Conditions', screen: 'terms-conditions' },
+    { key: 'refund-policy', label: 'Refund Policy', screen: 'refund-policy' },
+    { key: 'raise-ticket', label: 'Raise Ticket', screen: 'raise-ticket' },
+    { key: 'fair-play', label: 'Fair Play Policy', screen: 'fair-play' },
+    { key: 'responsible-gaming', label: 'Responsible Gaming Policy', screen: 'responsible-gaming' },
+    { key: 'contacts', label: 'Contacts', screen: 'contacts' },
+    { key: 'instructions', label: 'Instructions', screen: 'instructions' },
+  ];
+
   return (
     <header className="topbar">
       <div className="logo">
@@ -30,51 +44,25 @@ export const Header = ({ user, onNavigate, onLogout }) => {
             </button>
             {menuOpen && (
               <div className="menu-popup">
-                <button className="menu-item" type="button" onClick={() => handleNavigate('profile')}>
-                  Profile
-                </button>
-                <button className="menu-item" type="button" onClick={() => handleNavigate('inbox')}>
-                  Inbox{currentUser?.notifications?.some((n) => !n.read) ? ` (${currentUser.notifications.filter((n) => !n.read).length})` : ''}
-                </button>
-                <button className="menu-item" type="button" onClick={() => handleNavigate('settings')}>
-                  Settings
-                </button>
-                <button className="menu-item" type="button" onClick={() => handleNavigate('privacy-policy')}>
-                  Privacy Policy
-                </button>
-                <button className="menu-item" type="button" onClick={() => handleNavigate('terms-conditions')}>
-                  Terms & Conditions
-                </button>
-                <button className="menu-item" type="button" onClick={() => handleNavigate('refund-policy')}>
-                  Refund Policy
-                </button>
-                <button className="menu-item" type="button" onClick={() => handleNavigate('raise-ticket')}>
-                  Raise Ticket
-                </button>
-                <button className="menu-item" type="button" onClick={() => handleNavigate('fair-play')}>
-                  Fair Play Policy
-                </button>
-                <button className="menu-item" type="button" onClick={() => handleNavigate('responsible-gaming')}>
-                  Responsible Gaming Policy
-                </button>
-                <button className="menu-item" type="button" onClick={() => handleNavigate('contacts')}>
-                  Contacts
-                </button>
-                <button className="menu-item" type="button" onClick={() => handleNavigate('instructions')}>
-                  Instructions
-                </button>
-                {isAdmin && (
-                  <>
-                    <div className="menu-divider" />
-                    <button className="menu-item" type="button" onClick={() => handleNavigate('admin')} style={{ color: '#FF6A00', fontWeight: 'bold' }}>
-                      Admin Dashboard
+                <div className="menu-list">
+                  {menuItems.map((item) => (
+                    <button key={item.key} className="menu-item" type="button" onClick={() => handleNavigate(item.screen)}>
+                      {item.label}
                     </button>
-                  </>
-                )}
-                <div className="menu-divider" />
-                <button className="menu-item" type="button" onClick={() => { setMenuOpen(false); if (onLogout) onLogout(); }}>
-                  Logout
-                </button>
+                  ))}
+                  {isAdmin && (
+                    <>
+                      <div className="menu-divider" />
+                      <button className="menu-item" type="button" onClick={() => handleNavigate('admin')} style={{ color: '#FF6A00', fontWeight: 'bold' }}>
+                        Admin Dashboard
+                      </button>
+                    </>
+                  )}
+                  <div className="menu-divider" />
+                  <button className="menu-item" type="button" onClick={() => { setMenuOpen(false); if (onLogout) onLogout(); }}>
+                    Logout
+                  </button>
+                </div>
               </div>
             )}
           </>
