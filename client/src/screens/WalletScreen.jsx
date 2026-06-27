@@ -235,13 +235,13 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         {activeTab === 'deposit' ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-[#A1A1A1] mb-2">Amount (INR)</label>
+              <label className="block text-sm text-[#A1A1A1] mb-2">Amount 1 CZ = to 1 RS</label>
               <div className="flex gap-2 mb-2">
                 {[30,50,150,300].map((amt) => (
                   <button key={amt} onClick={() => setDepositAmount(String(amt))} className="px-3 py-2 rounded-lg bg-[#0B0B0B] border border-[#2A2A2A] text-sm text-white">CZ - {amt}</button>
                 ))}
               </div>
-              <p className="text-xs text-[#A1A1A1] mb-2">Minimum: CZ5</p>
+              <p className="text-xs text-[#A1A1A1] mb-2">Minimum: CZ - 5</p>
               <input
                 type="number"
                 value={depositAmount}
