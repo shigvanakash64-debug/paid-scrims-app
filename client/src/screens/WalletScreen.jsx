@@ -180,27 +180,43 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         <p className="text-sm text-[#A1A1A1] mt-2">Manage your earnings and redemptions</p>
       </div>
 
-      {/* Balance Card */}
-      <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6">
-        <div className="text-center">
+      <div className="wallet-top-cards">
+        <div className="wallet-small-card wallet-small-card--success">
+          <div className="wallet-small-card-label">2% CASHBACK</div>
+          <div className="wallet-small-card-title">Get 2% cashback on every match entry</div>
+          <div className="wallet-small-card-action">Use cashback to play more matches</div>
+        </div>
+        <div className="wallet-small-card wallet-small-card--accent">
+          <div className="wallet-small-card-label">REFER & EARN</div>
+          <div className="wallet-small-card-title">Refer your friends and earn 20% commission</div>
+          <div className="wallet-small-card-action">On lifetime platform fees</div>
+        </div>
+      </div>
+
+      <div className="wallet-balance-card rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6">
+        <div className="wallet-balance-card-top text-center">
           <div className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1] mb-2">Current Balance</div>
-          <div className="text-4xl font-bold text-[#FF6A00] mb-4">CZ - {balance.toLocaleString()}</div>
+          <div className="text-5xl font-bold text-[#FF6A00] mb-3">CZ - {balance.toLocaleString()}</div>
           <div className="text-sm text-[#A1A1A1]">Available for redemption</div>
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
+
+        <div className="wallet-balance-grid mt-6">
+          <div className="wallet-balance-metric">
             <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Bonus Balance</div>
             <div className="mt-2 text-lg font-semibold text-white">CZ - {bonusBalance.toLocaleString()}</div>
           </div>
-          <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
+          <div className="wallet-balance-metric">
             <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Earnings</div>
             <div className="mt-2 text-lg font-semibold text-white">CZ - {referralEarningsBalance.toLocaleString()}</div>
           </div>
-          <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
+        </div>
+
+        <div className="wallet-referral-card mt-5">
+          <div>
             <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Code</div>
             <div className="mt-2 text-lg font-semibold text-white">{getDisplayReferralCode() || 'Generating...'}</div>
-            <button className="mt-3 text-sm font-semibold text-[#FF6A00]" type="button" onClick={copyReferralCode}>Copy</button>
           </div>
+          <button className="wallet-copy-btn" type="button" onClick={copyReferralCode}>COPY</button>
         </div>
       </div>
 
