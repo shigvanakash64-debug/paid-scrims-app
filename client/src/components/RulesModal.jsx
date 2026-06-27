@@ -178,6 +178,62 @@ const rulesData = {
       </div>
     )
   },
+  onlyDesert: {
+    title: 'ONLY DESERT EAGLE',
+    content: (
+      <div className="rules-content">
+        <p>🧠 Rule</p>
+        <h4>❌ Weapon Restriction</h4>
+        <ul>
+          <li>Only the Desert Eagle is allowed.</li>
+          <li>No other weapons may be used.</li>
+          <li>Using any other weapon results in an instant loss.</li>
+        </ul>
+      </div>
+    )
+  },
+  onlyMeleeWeapon: {
+    title: 'ONLY MELEE WEAPON',
+    content: (
+      <div className="rules-content">
+        <p>🧠 Rule</p>
+        <h4>❌ Weapon Restriction</h4>
+        <ul>
+          <li>Only melee weapons (katana, pan, scythe) are allowed.</li>
+          <li>Guns, grenades, and throwable damage are prohibited.</li>
+          <li>Using any firearm results in an instant loss.</li>
+        </ul>
+      </div>
+    )
+  },
+  onlyKnifeThrow: {
+    title: 'ONLY KNIFE THROW',
+    content: (
+      <div className="rules-content">
+        <p>🧠 Rule</p>
+        <h4>❌ Weapon Restriction</h4>
+        <ul>
+          <li>Only throwable knives are allowed.</li>
+          <li>No guns, melee attacks, grenades, or other utilities can be used.</li>
+          <li>Any other method of elimination is invalid.</li>
+        </ul>
+      </div>
+    )
+  },
+  onlyPunch: {
+    title: 'ONLY PUNCH',
+    content: (
+      <div className="rules-content">
+        <p>🧠 Rule</p>
+        <h4>❌ Weapon Restriction</h4>
+        <ul>
+          <li>Only fists are allowed.</li>
+          <li>No weapons, grenades, or utilities can be used.</li>
+          <li>Using any weapon results in an instant loss.</li>
+        </ul>
+      </div>
+    )
+  },
   rankClashSquad: {
     title: 'RANK CLASH SQUAD',
     content: (
@@ -301,6 +357,30 @@ export const RulesModal = () => {
                 onClick={() => setActiveTab('onlyGrenade')}
               >
                 Grenade
+              </button>
+              <button
+                className={`rules-tab ${activeTab === 'onlyDesert' ? 'active' : ''}`}
+                onClick={() => setActiveTab('onlyDesert')}
+              >
+                Only Desert
+              </button>
+              <button
+                className={`rules-tab ${activeTab === 'onlyMeleeWeapon' ? 'active' : ''}`}
+                onClick={() => setActiveTab('onlyMeleeWeapon')}
+              >
+                Only Melee
+              </button>
+              <button
+                className={`rules-tab ${activeTab === 'onlyKnifeThrow' ? 'active' : ''}`}
+                onClick={() => setActiveTab('onlyKnifeThrow')}
+              >
+                Only Knife Throw
+              </button>
+              <button
+                className={`rules-tab ${activeTab === 'onlyPunch' ? 'active' : ''}`}
+                onClick={() => setActiveTab('onlyPunch')}
+              >
+                Only Punch
               </button>
               <button
                 className={`rules-tab ${activeTab === 'rankClashSquad' ? 'active' : ''}`}
