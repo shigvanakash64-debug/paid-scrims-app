@@ -250,7 +250,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
               className={`fee-btn ${selectedFee === fee ? 'active' : ''}`}
               onClick={() => setSelectedFee(fee)}
             >
-              CZ{fee}
+              CZ - {fee}
             </button>
           ))}
         </div>
@@ -263,7 +263,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
         <div className="info-cell">
           <div className="info-val">
             <span className="accent">CZ</span>
-            <span>{prizePool}</span>
+            <span> - {prizePool}</span>
           </div>
           <div className="info-key">Prize Pool</div>
         </div>

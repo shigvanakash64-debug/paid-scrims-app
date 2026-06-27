@@ -184,17 +184,17 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6">
         <div className="text-center">
           <div className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1] mb-2">Current Balance</div>
-          <div className="text-4xl font-bold text-[#FF6A00] mb-4">CZ{balance.toLocaleString()}</div>
+          <div className="text-4xl font-bold text-[#FF6A00] mb-4">CZ - {balance.toLocaleString()}</div>
           <div className="text-sm text-[#A1A1A1]">Available for redemption</div>
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Bonus Balance</div>
-            <div className="mt-2 text-lg font-semibold text-white">CZ{bonusBalance.toLocaleString()}</div>
+            <div className="mt-2 text-lg font-semibold text-white">CZ - {bonusBalance.toLocaleString()}</div>
           </div>
           <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Earnings</div>
-            <div className="mt-2 text-lg font-semibold text-white">CZ{referralEarningsBalance.toLocaleString()}</div>
+            <div className="mt-2 text-lg font-semibold text-white">CZ - {referralEarningsBalance.toLocaleString()}</div>
           </div>
           <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Code</div>
@@ -238,7 +238,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               <label className="block text-sm text-[#A1A1A1] mb-2">Amount (INR)</label>
               <div className="flex gap-2 mb-2">
                 {[30,50,150,300].map((amt) => (
-                  <button key={amt} onClick={() => setDepositAmount(String(amt))} className="px-3 py-2 rounded-lg bg-[#0B0B0B] border border-[#2A2A2A] text-sm text-white">CZ{amt}</button>
+                  <button key={amt} onClick={() => setDepositAmount(String(amt))} className="px-3 py-2 rounded-lg bg-[#0B0B0B] border border-[#2A2A2A] text-sm text-white">CZ - {amt}</button>
                 ))}
               </div>
               <p className="text-xs text-[#A1A1A1] mb-2">Minimum: CZ5</p>
@@ -297,7 +297,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                   className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${withdrawalWallet === 'main' ? 'border-[#FF6A00] bg-[#1a0c00] text-white' : 'border-[#2A2A2A] bg-[#0B0B0B] text-[#A1A1A1]'}`}
                 >
                   Main Wallet
-                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">CZ{balance.toLocaleString()}</div>
+                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">CZ - {balance.toLocaleString()}</div>
                 </button>
                 <button
                   type="button"
@@ -305,7 +305,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                   className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${withdrawalWallet === 'referral' ? 'border-[#FF6A00] bg-[#1a0c00] text-white' : 'border-[#2A2A2A] bg-[#0B0B0B] text-[#A1A1A1]'}`}
                 >
                   Referral Wallet
-                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">CZ{referralEarningsBalance.toLocaleString()}</div>
+                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">CZ - {referralEarningsBalance.toLocaleString()}</div>
                 </button>
               </div>
             </div>
@@ -356,7 +356,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               <div key={deposit._id || deposit.depositId} className="rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-white font-semibold">CZ{Number(deposit.amount).toLocaleString()}</div>
+                    <div className="text-white font-semibold">CZ - {Number(deposit.amount).toLocaleString()}</div>
                     <div className="text-xs text-[#A1A1A1]">UTR: {deposit.utr} • Payer: {deposit.payerName || 'N/A'}</div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${deposit.status === 'approved' ? 'bg-[#022c0b] text-[#22C55E]' : deposit.status === 'rejected' ? 'bg-[#3d1c1c] text-[#EF4444]' : 'bg-[#2A2A2A] text-[#F59E0B]'}`}>{deposit.status}</span>
@@ -388,7 +388,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               <div key={withdrawal._id} className="rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-white font-semibold">CZ{Number(withdrawal.amount).toLocaleString()}</div>
+                    <div className="text-white font-semibold">CZ - {Number(withdrawal.amount).toLocaleString()}</div>
                     <div className="text-xs text-[#A1A1A1]">UPI: {withdrawal.upi || '—'}</div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${withdrawal.status === 'approved' ? 'bg-[#022c0b] text-[#22C55E]' : withdrawal.status === 'rejected' ? 'bg-[#3d1c1c] text-[#EF4444]' : 'bg-[#2A2A2A] text-[#F59E0B]'}`}>{withdrawal.status}</span>
@@ -434,7 +434,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                 <div className={`text-sm font-semibold ${
                   transaction.amount > 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'
                 }`}>
-                  {transaction.amount > 0 ? '+' : ''}CZ{Math.abs(transaction.amount)}
+                  {transaction.amount > 0 ? '+' : ''}CZ - {Math.abs(transaction.amount)}
                 </div>
               </div>
             ))}

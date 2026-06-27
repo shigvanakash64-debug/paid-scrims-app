@@ -320,6 +320,9 @@ export const InfoScreen = ({ page }) => {
             </button>
           </div>
         )}
+        <div className="info-footer" style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #2A2A2A', color: '#A1A1A1', fontSize: '0.9rem', lineHeight: 1.6 }}>
+          © 2026 Clutch Zone. All rights reserved. Clutch Zone is a platform for skill-based gaming and competitive matches.
+        </div>
       </div>
     </div>
   );

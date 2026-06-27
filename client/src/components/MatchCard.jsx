@@ -31,13 +31,13 @@ export const MatchCard = ({ match, onJoin, user }) => {
 
       <div className="match-details">
         <div className="entry-fee">
-          <span className="fee-amount">CZ{match.entry}</span>
+          <span className="fee-amount">CZ - {match.entry}</span>
           <span className="fee-label">Entry</span>
         </div>
 
         <div className="prize-pool">
           <Trophy size={16} />
-          <span>CZ{match.prizePool}</span>
+          <span>CZ - {match.prizePool}</span>
         </div>
       </div>
 

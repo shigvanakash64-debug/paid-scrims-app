@@ -426,7 +426,8 @@ function App() {
     }
   };
 
-  const showBottomNav = user && currentScreen !== 'admin';
+  const hideBottomNavScreens = ['admin', 'privacy-policy', 'terms-conditions', 'refund-policy', 'raise-ticket', 'fair-play', 'responsible-gaming'];
+  const showBottomNav = user && !hideBottomNavScreens.includes(currentScreen);
 
   return (
     <div className={`app ${currentScreen === 'admin' ? 'app-admin' : ''}`}>
