@@ -185,6 +185,13 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
           </div>
           <RulesModal />
         </div>
+        <div className="home-banner">
+          <div className="home-banner-icon">📣</div>
+          <div>
+            <div className="home-banner-title">Play more, earn more!</div>
+            <div className="home-banner-copy">Get 2% cashback on every match and refer your friends to earn 20% commission on platform fees.</div>
+          </div>
+        </div>
       </div>
 
       <div className="section">

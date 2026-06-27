@@ -37,6 +37,10 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .game-pill span{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:2px;color:var(--orange);text-transform:uppercase}
 .screen-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;letter-spacing:1px;line-height:1}
 .screen-sub{font-size:12px;color:var(--muted);margin-top:4px;margin-bottom:16px;letter-spacing:.3px}
+.home-banner{display:flex;align-items:center;gap:12px;background:rgba(255,106,0,.08);border:1px solid rgba(255,106,0,.22);border-radius:18px;padding:14px 16px;margin-top:14px}
+.home-banner-icon{width:46px;height:46px;display:flex;align-items:center;justify-content:center;background:#1a0c00;color:var(--orange);font-size:22px;border-radius:14px}
+.home-banner-title{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:#fff;margin-bottom:4px}
+.home-banner-copy{font-size:12px;line-height:1.5;color:var(--muted)}
 /* Hero Section */
 .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
 .hero-top > div{flex:1}
