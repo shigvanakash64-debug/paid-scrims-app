@@ -72,13 +72,13 @@ export const AdminDashboard = ({ onNavigate }) => {
         />
         <StatCard
           label="System Balance"
-          value={`₹${Number(stats.systemBalance || 0).toLocaleString()}`}
+          value={`CZ${Number(stats.systemBalance || 0).toLocaleString()}`}
           icon="💰"
           color="#22C55E"
         />
         <StatCard
           label="Today Revenue"
-          value={`₹${Number(stats.todayRevenue || 0).toLocaleString()}`}
+          value={`CZ${Number(stats.todayRevenue || 0).toLocaleString()}`}
           icon="📈"
           color="#FF6A00"
         />

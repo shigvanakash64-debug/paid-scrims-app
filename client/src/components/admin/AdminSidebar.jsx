@@ -3,7 +3,7 @@ export const AdminSidebar = ({ currentScreen, onScreenChange, isMobile }) => {
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'deposits', label: 'Deposits', icon: '💳' },
     { id: 'disputes', label: 'Disputes', icon: '⚠️' },
-    { id: 'withdrawals', label: 'Withdrawals', icon: '💸' },
+    { id: 'withdrawals', label: 'Redemptions', icon: '💸' },
     { id: 'users', label: 'Users', icon: '👤' },
   ];
 

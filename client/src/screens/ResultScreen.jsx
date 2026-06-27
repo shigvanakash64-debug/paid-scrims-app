@@ -174,7 +174,7 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
             <span className="text-[#FFFFFF] font-semibold">Match details:</span> {match?.mode} - {match?.type}
           </div>
           <div>
-            <span className="text-[#FFFFFF] font-semibold">Entry fee:</span> ₹{match?.entry}
+            <span className="text-[#FFFFFF] font-semibold">Entry fee:</span> CZ{match?.entry}
           </div>
           <div>
             <span className="text-[#FFFFFF] font-semibold">Players:</span> {playersLabel}

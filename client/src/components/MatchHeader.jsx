@@ -10,7 +10,7 @@ export const MatchHeader = ({ match, statusLabel }) => {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-semibold text-white">{match.mode} · {match.type}</h1>
-            <p className="text-sm text-[#A1A1A1]">Entry fee • ₹{match.entry}</p>
+            <p className="text-sm text-[#A1A1A1]">Entry fee • CZ{match.entry}</p>
           </div>
           <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-right">
             <div className="text-xs uppercase text-[#A1A1A1]">Players</div>

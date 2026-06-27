@@ -102,7 +102,7 @@ export const WithdrawalsPanel = () => {
           {withdrawals.filter((w) => w.status === 'pending').length} pending •{' '}
           {withdrawals.filter((w) => w.status === 'approved').length} approved
         </p>
-        <p className="text-xs text-[#F59E0B] mt-1">Minimum withdrawal is ₹100.</p>
+        <p className="text-xs text-[#F59E0B] mt-1">Minimum withdrawal is CZ100.</p>
       </div>
 
       {/* Filter */}
@@ -153,7 +153,7 @@ export const WithdrawalsPanel = () => {
         <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
           <p className="text-xs text-[#A1A1A1]">PENDING AMOUNT</p>
           <p className="text-2xl font-bold text-[#F59E0B] mt-2">
-            ₹{withdrawals
+            CZ{withdrawals
               .filter((w) => w.status === 'pending')
               .reduce((sum, w) => sum + w.amount, 0)}
           </p>
@@ -161,7 +161,7 @@ export const WithdrawalsPanel = () => {
         <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
           <p className="text-xs text-[#A1A1A1]">APPROVED TOTAL</p>
           <p className="text-2xl font-bold text-[#22C55E] mt-2">
-            ₹{withdrawals
+            CZ{withdrawals
               .filter((w) => w.status === 'approved')
               .reduce((sum, w) => sum + w.amount, 0)}
           </p>
@@ -169,7 +169,7 @@ export const WithdrawalsPanel = () => {
         <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
           <p className="text-xs text-[#A1A1A1]">REJECTED TOTAL</p>
           <p className="text-2xl font-bold text-[#EF4444] mt-2">
-            ₹{withdrawals
+            CZ{withdrawals
               .filter((w) => w.status === 'rejected')
               .reduce((sum, w) => sum + w.amount, 0)}
           </p>

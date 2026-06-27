@@ -260,8 +260,8 @@ export function AdminDashboardWithAPI() {
             <StatCard label="Active Matches" value={stats.activeMatches} icon="🎮" />
             <StatCard label="Pending Payments" value={stats.pendingPayments} icon="💳" />
             <StatCard label="Disputes" value={stats.disputes} icon="⚠️" />
-            <StatCard label="System Balance" value={`₹${stats.balance}`} icon="💰" />
-            <StatCard label="Today Revenue" value={`₹${stats.todayRevenue}`} icon="📈" />
+            <StatCard label="System Balance" value={`CZ${stats.balance}`} icon="💰" />
+            <StatCard label="Today Revenue" value={`CZ${stats.todayRevenue}`} icon="📈" />
           </>
         )}
       </div>

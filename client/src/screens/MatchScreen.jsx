@@ -356,7 +356,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
           <section className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-5 text-white">
             <p className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1]">Confirm your entry</p>
             <h2 className="mt-2 text-xl font-semibold">You are about to join this match.</h2>
-            <p className="mt-2 text-sm text-[#A1A1A1]">Tap confirm to proceed to the entry fee payment step for ₹{currentMatch?.entry || 0}.</p>
+            <p className="mt-2 text-sm text-[#A1A1A1]">Tap confirm to proceed to the entry fee payment step for CZ{currentMatch?.entry || 0}.</p>
             <button
               type="button"
               onClick={handleConfirmEntry}

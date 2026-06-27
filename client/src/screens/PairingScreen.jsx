@@ -234,7 +234,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
           <select className="pairing-select" value={entry} onChange={(e) => setEntry(Number(e.target.value))}>
             {entryOptions.map((option) => (
               <option key={option} value={option}>
-                {option === 0 ? 'All' : `₹${option}`}
+                {option === 0 ? 'All' : `CZ${option}`}
               </option>
             ))}
           </select>
@@ -289,7 +289,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                           }}
                         />
                       )}
-                      {activeMatch.mode} · {activeMatch.type} · ₹{activeMatch.entryFee}
+                      {activeMatch.mode} · {activeMatch.type} · CZ{activeMatch.entryFee}
                     </span>
                   </div>
                 </div>
@@ -304,7 +304,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
               )}
               <div className="match-meta-row">
                 <span>{activeMatch.status}</span>
-                <span>Prize Pool ₹{activeMatch.prizePool}</span>
+                <span>Prize Pool CZ{activeMatch.prizePool}</span>
               </div>
               <div className="match-actions">
                 <button className="btn-outline" type="button" onClick={() => onScreenChange('match')}>
@@ -350,7 +350,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                     <div className="match-card-header">
                       <div>
                         <div className="match-tag">{item.type}</div>
-                        <div className="match-title">{item.mode} · Entry ₹{item.entryFee || item.entry}</div>
+                        <div className="match-title">{item.mode} · Entry CZ{item.entryFee || item.entry}</div>
                       </div>
                       <div className={`trust-pill ${getTrustClass(item.trustScore)}`}>
                         {item.trustScore}
@@ -366,7 +366,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                       <span>Status: {item.status}</span>
                     </div>
                     <div className="match-card-footer">
-                      <span className="match-detail">Prize ₹{item.prizePool}</span>
+                      <span className="match-detail">Prize CZ{item.prizePool}</span>
                       <button
                         className="join-btn"
                         type="button"

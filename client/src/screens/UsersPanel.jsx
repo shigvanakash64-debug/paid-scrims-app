@@ -159,7 +159,7 @@ export const UsersPanel = () => {
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
             <p className="text-xs text-[#A1A1A1]">WALLET</p>
-            <p className="text-2xl font-bold text-[#FF6A00] mt-2">₹{selectedUser.walletBalance}</p>
+            <p className="text-2xl font-bold text-[#FF6A00] mt-2">CZ{selectedUser.walletBalance}</p>
           </div>
           <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
             <p className="text-xs text-[#A1A1A1]">TRUST SCORE</p>
@@ -200,7 +200,7 @@ export const UsersPanel = () => {
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2 text-sm text-[#A1A1A1]">
                     <span className="rounded-full bg-[#1F1F1F] px-2 py-1">Status: {match.status}</span>
-                    <span className="rounded-full bg-[#1F1F1F] px-2 py-1">Entry: ₹{match.entry || 0}</span>
+                    <span className="rounded-full bg-[#1F1F1F] px-2 py-1">Entry: CZ{match.entry || 0}</span>
                     {match.result?.winner && (
                       <span className="rounded-full bg-[#1F1F1F] px-2 py-1">Winner: {match.result.winner?.username || match.result.winner}</span>
                     )}

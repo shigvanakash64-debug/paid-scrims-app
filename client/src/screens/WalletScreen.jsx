@@ -10,16 +10,16 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const [referralCode, setReferralCode] = useState(user?.wallet?.referralCode || '');
   const [transactions, setTransactions] = useState([]);
   const [activeTab, setActiveTab] = useState('deposit');
-  const [withdrawalAmount, setWithdrawalAmount] = useState('');
-  const [withdrawalUpi, setWithdrawalUpi] = useState('');
-  const [withdrawalWallet, setWithdrawalWallet] = useState('main');
+  const [withdrawalAmount, setRedeemalAmount] = useState('');
+  const [withdrawalUpi, setRedeemalUpi] = useState('');
+  const [withdrawalWallet, setRedeemalWallet] = useState('main');
   const [depositAmount, setDepositAmount] = useState('');
   const [depositUtr, setDepositUtr] = useState('');
   const [payerName, setPayerName] = useState('');
   const [depositUpiInfo, setDepositUpiInfo] = useState({ upi: '', upis: [] });
   const [depositLoading, setDepositLoading] = useState(false);
   const [deposits, setDeposits] = useState([]);
-  const [withdrawals, setWithdrawals] = useState([]);
+  const [withdrawals, setRedeemals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [expandedSections, setExpandedSections] = useState({
@@ -48,7 +48,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       setReferralCode(userData.wallet?.referralCode || '');
       setTransactions(userData.wallet?.transactions || []);
       setDeposits(depositResponse.data.deposits || []);
-      setWithdrawals(withdrawalResponse.data.withdrawals || []);
+      setRedeemals(withdrawalResponse.data.withdrawals || []);
       setDepositUpiInfo({ upi: upiResponse.data.upi || '', upis: upiResponse.data.upis || [] });
       onUserUpdate(userData);
     } catch (error) {
@@ -60,18 +60,18 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     [...items].sort((a, b) => new Date(b[dateKey] || b.createdAt || b.timestamp || 0) - new Date(a[dateKey] || a.createdAt || a.timestamp || 0));
 
   const sortedDeposits = sortByDateDesc(deposits, 'requestedAt');
-  const sortedWithdrawals = sortByDateDesc(withdrawals, 'requestedAt');
+  const sortedRedeemals = sortByDateDesc(withdrawals, 'requestedAt');
   const sortedTransactions = sortByDateDesc(transactions, 'timestamp').filter(Boolean);
 
   const visibleDeposits = expandedSections.deposits ? sortedDeposits.slice(0, 50) : sortedDeposits.slice(0, 10);
-  const visibleWithdrawals = expandedSections.withdrawals ? sortedWithdrawals.slice(0, 50) : sortedWithdrawals.slice(0, 10);
+  const visibleRedeemals = expandedSections.withdrawals ? sortedRedeemals.slice(0, 50) : sortedRedeemals.slice(0, 10);
   const visibleTransactions = expandedSections.transactions ? sortedTransactions.slice(0, 100) : sortedTransactions.slice(0, 10);
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const handleWithdrawalRequest = async () => {
+  const handleRedeemalRequest = async () => {
     if (!withdrawalUpi?.trim()) {
       setMessage('Please enter your UPI ID');
       return;
@@ -80,7 +80,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     const amount = parseFloat(withdrawalAmount);
 
     if (!withdrawalAmount || amount < 100) {
-      setMessage('Minimum withdrawal amount is ₹100');
+      setMessage('Minimum redemption amount is CZ100');
       return;
     }
 
@@ -102,13 +102,13 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      setMessage('Withdrawal request submitted successfully. Admin approval required.');
-      setWithdrawalAmount('');
-      setWithdrawalUpi('');
-      setWithdrawalWallet('main');
+      setMessage('Redemption request submitted successfully. Admin approval required.');
+      setRedeemalAmount('');
+      setRedeemalUpi('');
+      setRedeemalWallet('main');
       fetchWalletData(); // Refresh data
     } catch (error) {
-      setMessage(error.response?.data?.error || 'Failed to submit withdrawal request');
+      setMessage(error.response?.data?.error || 'Failed to submit redemption request');
     } finally {
       setLoading(false);
     }
@@ -138,7 +138,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       return;
     }
     if (amount < 5) {
-      setMessage('Minimum deposit amount is ₹5');
+      setMessage('Minimum deposit amount is CZ5');
       return;
     }
     if (!depositUtr.trim() || depositUtr.trim().length < 6) {
@@ -177,24 +177,24 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white">Wallet</h1>
-        <p className="text-sm text-[#A1A1A1] mt-2">Manage your earnings and withdrawals</p>
+        <p className="text-sm text-[#A1A1A1] mt-2">Manage your earnings and redemptions</p>
       </div>
 
       {/* Balance Card */}
       <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6">
         <div className="text-center">
           <div className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1] mb-2">Current Balance</div>
-          <div className="text-4xl font-bold text-[#FF6A00] mb-4">₹{balance.toLocaleString()}</div>
-          <div className="text-sm text-[#A1A1A1]">Available for withdrawal</div>
+          <div className="text-4xl font-bold text-[#FF6A00] mb-4">CZ{balance.toLocaleString()}</div>
+          <div className="text-sm text-[#A1A1A1]">Available for redemption</div>
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Bonus Balance</div>
-            <div className="mt-2 text-lg font-semibold text-white">₹{bonusBalance.toLocaleString()}</div>
+            <div className="mt-2 text-lg font-semibold text-white">CZ{bonusBalance.toLocaleString()}</div>
           </div>
           <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Earnings</div>
-            <div className="mt-2 text-lg font-semibold text-white">₹{referralEarningsBalance.toLocaleString()}</div>
+            <div className="mt-2 text-lg font-semibold text-white">CZ{referralEarningsBalance.toLocaleString()}</div>
           </div>
           <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Code</div>
@@ -204,7 +204,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         </div>
       </div>
 
-      {/* Deposit / Withdrawal Tabs */}
+      {/* Deposit / Redemption Tabs */}
       <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-white">Wallet Actions</h2>
@@ -219,7 +219,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               onClick={() => setActiveTab('withdraw')}
               className={`px-4 py-2 rounded-full text-sm font-semibold ${activeTab === 'withdraw' ? 'bg-[#FF6A00] text-black' : 'text-[#A1A1A1]'}`}
             >
-              Withdraw
+              Redeem
             </button>
           </div>
         </div>
@@ -238,10 +238,10 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               <label className="block text-sm text-[#A1A1A1] mb-2">Amount (INR)</label>
               <div className="flex gap-2 mb-2">
                 {[30,50,150,300].map((amt) => (
-                  <button key={amt} onClick={() => setDepositAmount(String(amt))} className="px-3 py-2 rounded-lg bg-[#0B0B0B] border border-[#2A2A2A] text-sm text-white">₹{amt}</button>
+                  <button key={amt} onClick={() => setDepositAmount(String(amt))} className="px-3 py-2 rounded-lg bg-[#0B0B0B] border border-[#2A2A2A] text-sm text-white">CZ{amt}</button>
                 ))}
               </div>
-              <p className="text-xs text-[#A1A1A1] mb-2">Minimum: ₹5</p>
+              <p className="text-xs text-[#A1A1A1] mb-2">Minimum: CZ5</p>
               <input
                 type="number"
                 value={depositAmount}
@@ -293,19 +293,19 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               <div className="grid gap-2 md:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => setWithdrawalWallet('main')}
+                  onClick={() => setRedeemalWallet('main')}
                   className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${withdrawalWallet === 'main' ? 'border-[#FF6A00] bg-[#1a0c00] text-white' : 'border-[#2A2A2A] bg-[#0B0B0B] text-[#A1A1A1]'}`}
                 >
                   Main Wallet
-                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">₹{balance.toLocaleString()}</div>
+                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">CZ{balance.toLocaleString()}</div>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setWithdrawalWallet('referral')}
+                  onClick={() => setRedeemalWallet('referral')}
                   className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${withdrawalWallet === 'referral' ? 'border-[#FF6A00] bg-[#1a0c00] text-white' : 'border-[#2A2A2A] bg-[#0B0B0B] text-[#A1A1A1]'}`}
                 >
                   Referral Wallet
-                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">₹{referralEarningsBalance.toLocaleString()}</div>
+                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">CZ{referralEarningsBalance.toLocaleString()}</div>
                 </button>
               </div>
             </div>
@@ -314,7 +314,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               <input
                 type="text"
                 value={withdrawalUpi}
-                onChange={(e) => setWithdrawalUpi(e.target.value)}
+                onChange={(e) => setRedeemalUpi(e.target.value)}
                 placeholder="Enter UPI ID"
                 className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
               />
@@ -324,7 +324,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               <input
                 type="number"
                 value={withdrawalAmount}
-                onChange={(e) => setWithdrawalAmount(e.target.value)}
+                onChange={(e) => setRedeemalAmount(e.target.value)}
                 placeholder="Enter amount"
                 className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
                 min="100"
@@ -333,14 +333,14 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
             </div>
 
             <button
-              onClick={handleWithdrawalRequest}
+              onClick={handleRedeemalRequest}
               disabled={loading || !withdrawalUpi || !withdrawalAmount || parseFloat(withdrawalAmount) < 100 || parseFloat(withdrawalAmount) > (withdrawalWallet === 'referral' ? referralEarningsBalance : balance)}
               className="w-full rounded-3xl bg-[#FF6A00] px-6 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black transition disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {loading ? 'Submitting...' : 'Request Withdrawal'}
+              {loading ? 'Submitting...' : 'Request Redemption'}
             </button>
 
-            <div className="mt-2 text-xs text-[#A1A1A1]">Note: Minimum withdrawal is ₹100 for either wallet. Withdrawals require admin approval and may take 24-48 hours.</div>
+            <div className="mt-2 text-xs text-[#A1A1A1]">Note: Minimum redemption is CZ100 for either wallet. Redemptions require admin approval and may take 24-48 hours.</div>
           </div>
         )}
       </div>
@@ -356,7 +356,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               <div key={deposit._id || deposit.depositId} className="rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-white font-semibold">₹{Number(deposit.amount).toLocaleString()}</div>
+                    <div className="text-white font-semibold">CZ{Number(deposit.amount).toLocaleString()}</div>
                     <div className="text-xs text-[#A1A1A1]">UTR: {deposit.utr} • Payer: {deposit.payerName || 'N/A'}</div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${deposit.status === 'approved' ? 'bg-[#022c0b] text-[#22C55E]' : deposit.status === 'rejected' ? 'bg-[#3d1c1c] text-[#EF4444]' : 'bg-[#2A2A2A] text-[#F59E0B]'}`}>{deposit.status}</span>
@@ -377,18 +377,18 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         )}
       </div>
 
-      {/* Withdrawal History */}
+      {/* Redemption History */}
       <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6">
-        <h2 className="text-xl font-semibold text-white mb-4">Withdrawal History</h2>
-        {sortedWithdrawals.length === 0 ? (
-          <div className="text-[#A1A1A1] text-center py-6">No withdrawal requests yet</div>
+        <h2 className="text-xl font-semibold text-white mb-4">Redemption History</h2>
+        {sortedRedeemals.length === 0 ? (
+          <div className="text-[#A1A1A1] text-center py-6">No redemption requests yet</div>
         ) : (
           <div className="space-y-3">
-            {visibleWithdrawals.map((withdrawal) => (
+            {visibleRedeemals.map((withdrawal) => (
               <div key={withdrawal._id} className="rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-white font-semibold">₹{Number(withdrawal.amount).toLocaleString()}</div>
+                    <div className="text-white font-semibold">CZ{Number(withdrawal.amount).toLocaleString()}</div>
                     <div className="text-xs text-[#A1A1A1]">UPI: {withdrawal.upi || '—'}</div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${withdrawal.status === 'approved' ? 'bg-[#022c0b] text-[#22C55E]' : withdrawal.status === 'rejected' ? 'bg-[#3d1c1c] text-[#EF4444]' : 'bg-[#2A2A2A] text-[#F59E0B]'}`}>{withdrawal.status}</span>
@@ -397,7 +397,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                 {withdrawal.processedAt && <div className="text-xs text-[#A1A1A1]">Processed: {new Date(withdrawal.processedAt).toLocaleString()}</div>}
               </div>
             ))}
-            {sortedWithdrawals.length > 10 && (
+            {sortedRedeemals.length > 10 && (
               <button
                 type="button"
                 onClick={() => toggleSection('withdrawals')}
@@ -434,7 +434,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                 <div className={`text-sm font-semibold ${
                   transaction.amount > 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'
                 }`}>
-                  {transaction.amount > 0 ? '+' : ''}₹{Math.abs(transaction.amount)}
+                  {transaction.amount > 0 ? '+' : ''}CZ{Math.abs(transaction.amount)}
                 </div>
               </div>
             ))}

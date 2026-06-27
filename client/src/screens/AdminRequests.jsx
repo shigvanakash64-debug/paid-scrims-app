@@ -389,7 +389,7 @@ export const AdminRequests = () => {
                     playerA={getPlayerName(match.players?.[0] || match.playerA)}
                     playerB={getPlayerName(match.players?.[1] || match.playerB)}
                     mode={match.mode || 'Unknown'}
-                    entry={`₹${match.entry || '0'}`}
+                    entry={`CZ${match.entry || '0'}`}
                     status={match.status || 'waiting'}
                     paymentA={match.paymentA}
                     paymentB={match.paymentB}
@@ -414,7 +414,7 @@ export const AdminRequests = () => {
                   <div>
                     <p className="text-xs uppercase tracking-wide text-[#A1A1A1]">Request</p>
                     <h2 className="text-2xl font-bold text-white">{playerA} vs {playerB}</h2>
-                    <p className="text-sm text-[#A1A1A1] mt-1">Match #{selectedMatch._id || selectedMatch.id} • {selectedMatch.mode} • ₹{selectedMatch.entry}</p>
+                    <p className="text-sm text-[#A1A1A1] mt-1">Match #{selectedMatch._id || selectedMatch.id} • {selectedMatch.mode} • CZ{selectedMatch.entry}</p>
                   </div>
                   <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
                     selectedMatch.status === 'completed'

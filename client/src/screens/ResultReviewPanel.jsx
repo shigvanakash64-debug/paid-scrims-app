@@ -117,7 +117,7 @@ export const ResultReviewPanel = () => {
 
               <div className="space-y-2 text-sm text-[#E5E7EB]">
                 <div><span className="font-semibold text-white">Match:</span> {submission.mode} • {submission.type}</div>
-                <div><span className="font-semibold text-white">Entry fee:</span> ₹{submission.entry}</div>
+                <div><span className="font-semibold text-white">Entry fee:</span> CZ{submission.entry}</div>
                 <div><span className="font-semibold text-white">Players:</span> {submission.players.join(' vs ')}</div>
                 {submission.resultDeadline && (
                   <div><span className="font-semibold text-white">Deadline:</span> {new Date(submission.resultDeadline).toLocaleString()}</div>

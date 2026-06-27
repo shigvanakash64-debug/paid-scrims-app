@@ -103,7 +103,7 @@ export const DepositsPanel = () => {
               <span className={`px-3 py-1 rounded-full text-xs font-semibold ${item.status === 'approved' ? 'bg-[#022c0b] text-[#22C55E]' : item.status === 'rejected' ? 'bg-[#3d1c1c] text-[#EF4444]' : 'bg-[#2A2A2A] text-[#F59E0B]'}`}>{item.status}</span>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm text-[#E5E7EB]">
-              <div><span className="text-[#A1A1A1]">Amount:</span> ₹{Number(item.amount).toLocaleString()}</div>
+              <div><span className="text-[#A1A1A1]">Amount:</span> CZ{Number(item.amount).toLocaleString()}</div>
               <div><span className="text-[#A1A1A1]">UTR:</span> {item.utr}</div>
               <div><span className="text-[#A1A1A1]">Payer:</span> {item.payerName || 'N/A'}</div>
               <div><span className="text-[#A1A1A1]">Submitted:</span> {new Date(item.requestedAt).toLocaleString()}</div>

@@ -173,7 +173,7 @@ export const ResultSubmissionCard = ({ matchId, players, mode, type, entry, stat
 
     <div className="space-y-2 text-sm text-[#E5E7EB]">
       <div><span className="font-semibold text-white">Match:</span> {mode} • {type}</div>
-      <div><span className="font-semibold text-white">Entry fee:</span> ₹{entry}</div>
+      <div><span className="font-semibold text-white">Entry fee:</span> CZ{entry}</div>
       <div><span className="font-semibold text-white">Players:</span> {players.join(' vs ')}</div>
       {resultDeadline && (
         <div><span className="font-semibold text-white">Deadline:</span> {new Date(resultDeadline).toLocaleString()}</div>
@@ -275,7 +275,7 @@ export const UserCard = ({
       </div>
       <div className="text-right">
         <p className="text-xs text-[#A1A1A1]">WALLET</p>
-        <p className="text-lg font-bold text-white">₹{walletBalance}</p>
+        <p className="text-lg font-bold text-white">CZ{walletBalance}</p>
       </div>
     </div>
 
@@ -326,7 +326,7 @@ export const WithdrawalCard = ({
       </div>
       <div className="text-right">
         <p className="text-xs text-[#A1A1A1]">AMOUNT</p>
-        <p className="text-2xl font-bold text-[#FF6A00]">₹{amount}</p>
+        <p className="text-2xl font-bold text-[#FF6A00]">CZ{amount}</p>
       </div>
     </div>
 
