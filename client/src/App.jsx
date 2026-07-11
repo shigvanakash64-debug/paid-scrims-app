@@ -15,6 +15,7 @@ import { RegisterScreen } from './screens/RegisterScreen';
 import { InfoScreen } from './screens/InfoScreen';
 import { BottomNav } from './components/BottomNav';
 import { Header } from './components/Header';
+import { Footer } from './components/Footer';
 import NotificationTest from './components/NotificationTest';
 import { useMatch } from './contexts/MatchContext';
 import { useUser } from './contexts/UserContext';
@@ -426,11 +427,13 @@ function App() {
 
   const hideBottomNavScreens = ['admin', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming'];
   const showBottomNav = user && !hideBottomNavScreens.includes(currentScreen);
+  const showFooter = ['home', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'instructions'].includes(currentScreen);
 
   return (
     <div className={`app ${currentScreen === 'admin' ? 'app-admin' : ''}`}>
       <Header user={user} onNavigate={setCurrentScreen} onLogout={handleLogout} />
       <div className="scroll-area">{renderScreen()}</div>
+      {showFooter && <Footer onNavigate={setCurrentScreen} />}
       {showBottomNav && <BottomNav currentScreen={currentScreen} onScreenChange={setCurrentScreen} />}
     </div>
   );
