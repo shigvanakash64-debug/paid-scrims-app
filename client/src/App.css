@@ -48,7 +48,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
   .site-footer__content{grid-template-columns:1.2fr .8fr;align-items:start;gap:24px}
   .site-footer__link-list{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
-.section{padding:8px 16px;border-bottom:1px solid var(--border);margin:0;border-left:4px solid var(--orange);background:rgba(255,106,0,.1);min-height:120px}
+.section{padding:8px 16px;border-bottom:1px solid var(--border);margin:0}
 .section-label{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:10px;letter-spacing:3px;color:#F4F2EA;text-transform:uppercase;margin-bottom:6px}
 .hero{padding:12px 16px 0;margin:0}
 .game-pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--orange);padding:3px 10px;margin-bottom:10px}
