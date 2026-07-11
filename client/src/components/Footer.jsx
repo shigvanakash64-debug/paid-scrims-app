@@ -40,6 +40,17 @@ export const Footer = ({ onNavigate }) => {
 
       <div className="site-footer__bottom">
         © 2026 Clutch Zone. All Rights Reserved.
+
+
+
+
+
+
+
+
+
+
+        
       </div>
     </footer>
   );
