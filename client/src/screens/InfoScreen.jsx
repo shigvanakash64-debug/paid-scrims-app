@@ -164,7 +164,9 @@ const pageConfig = {
       },
       {
         heading: 'Required Details',
-        body: '* Match ID\n* Issue description\n* Relevant proof',
+        body: '* Match ID\n
+               * Issue description\n
+               * Relevant proof',
       },
       {
         heading: 'Response Time',
