@@ -27,9 +27,9 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .menu-item:hover{background:rgba(255,106,0,.1);color:var(--orange)}
 .menu-divider{height:1px;background:rgba(255,255,255,.08);margin:6px 0}
 .menu-divider{height:1px;background:var(--border);margin:4px 0}
-.scroll-area{flex:1;overflow-y:auto;padding-bottom:160px}
+.scroll-area{flex:1;overflow-y:auto;padding-bottom:200px}
 .scroll-area::-webkit-scrollbar{display:none}
-.site-footer{margin-top:auto;border-top:2px solid var(--orange);background:linear-gradient(180deg,#0b0b0b 0%,#080808 100%);padding:16px 16px 18px;border-bottom:1px solid var(--border)}
+.site-footer{margin-top:8px;border-top:2px solid var(--orange);background:linear-gradient(180deg,#0b0b0b 0%,#080808 100%);padding:16px 16px 18px;border-bottom:1px solid var(--border);padding-bottom:24px}
 .site-footer__content{display:grid;gap:14px;max-width:100%}
 .site-footer__brand{display:grid;gap:4px}
 .site-footer__title{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;letter-spacing:1.2px;color:#fff}
@@ -165,7 +165,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .nav-tab.active .nav-label{color:var(--orange)}
 .nav-tab.active .nav-icon{color:var(--orange)}
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
-.screen-contacts .section{margin:16px 16px 0}
+.screen-contacts .section{margin:8px 16px 0}
 .screen-contacts .card{padding:18px;display:grid;gap:14px}
 .screen-contacts .card-text{color:var(--muted);line-height:1.7;font-size:14px}
 .screen-contacts .contact-section{display:grid;gap:10px}
