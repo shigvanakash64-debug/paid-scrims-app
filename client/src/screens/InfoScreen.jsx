@@ -78,10 +78,7 @@ const pageConfig = {
       },
       {
         heading: '3. User Conduct',
-        body: 'No cheating, hacking, or unfair play',
-  'No abusive behavior',
-  'No manipulation of results',
-  'Violation may result in permanent ban.',
+        body: '* No cheating, hacking, or unfair play\n* No abusive behavior\n* No manipulation of results\n* Violation may result in permanent ban.',
       },
       {
         heading: '4. Match Rules',
@@ -167,9 +164,7 @@ const pageConfig = {
       },
       {
         heading: 'Required Details',
-        body: '* Match ID\n
-               * Issue description\n
-               * Relevant proof',
+        body: '* Match ID\n* Issue description\n* Relevant proof',
       },
       {
         heading: 'Response Time',
@@ -293,12 +288,23 @@ export const InfoScreen = ({ page }) => {
         </div>
       </div>
       <div className="section">
-        {pageData.content.map((section) => (
-          <div key={section.heading} className="info-section">
-            <h2 className="info-heading">{section.heading}</h2>
-            <p className="info-text">{section.body}</p>
-          </div>
-        ))}
+        {pageData.content.map((section) => {
+          const hasLineBreaks = section.body.includes('\n');
+          return (
+            <div key={section.heading} className="info-section">
+              <h2 className="info-heading">{section.heading}</h2>
+              {hasLineBreaks ? (
+                <ul className="policy-list">
+                  {section.body.split('\n').map((line, index) => (
+                    <li key={index}>{line.replace(/^\*\s*/, '')}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="info-text">{section.body}</p>
+              )}
+            </div>
+          );
+        })}
         {isRaiseTicket && (
           <div className="info-ticket-form">
             <div className="form-group">
