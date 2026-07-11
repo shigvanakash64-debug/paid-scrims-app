@@ -20,7 +20,6 @@ export const Header = ({ user, onNavigate, onLogout }) => {
     { key: 'privacy-policy', label: 'Privacy Policy', screen: 'privacy-policy' },
     { key: 'terms-conditions', label: 'Terms & Conditions', screen: 'terms-conditions' },
     { key: 'refund-policy', label: 'Refund Policy', screen: 'refund-policy' },
-    { key: 'raise-ticket', label: 'Raise Ticket', screen: 'raise-ticket' },
     { key: 'fair-play', label: 'Fair Play Policy', screen: 'fair-play' },
     { key: 'responsible-gaming', label: 'Responsible Gaming Policy', screen: 'responsible-gaming' },
     { key: 'contacts', label: 'Contacts', screen: 'contacts' },

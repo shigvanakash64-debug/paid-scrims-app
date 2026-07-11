@@ -125,7 +125,7 @@ function App() {
         }
       })();
 
-      const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'raise-ticket', 'fair-play', 'responsible-gaming'];
+      const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming'];
       const targetScreen = validScreens.includes(savedScreen) ? savedScreen : 'home';
 
       if (!token) {
@@ -411,8 +411,6 @@ function App() {
         return <InfoScreen page="terms-conditions" />;
       case 'refund-policy':
         return <InfoScreen page="refund-policy" />;
-      case 'raise-ticket':
-        return <InfoScreen page="raise-ticket" />;
       case 'fair-play':
         return <InfoScreen page="fair-play" />;
       case 'responsible-gaming':
@@ -426,7 +424,7 @@ function App() {
     }
   };
 
-  const hideBottomNavScreens = ['admin', 'privacy-policy', 'terms-conditions', 'refund-policy', 'raise-ticket', 'fair-play', 'responsible-gaming'];
+  const hideBottomNavScreens = ['admin', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming'];
   const showBottomNav = user && !hideBottomNavScreens.includes(currentScreen);
 
   return (
