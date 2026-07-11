@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, lazy, Suspense } from 'react';
+import { useCallback, useEffect, useState, lazy, Suspense, useRef } from 'react';
 import axios from 'axios';
 import { HomeScreen } from './screens/HomeScreen';
 import { MatchScreen } from './screens/MatchScreen';
@@ -111,7 +111,7 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState('login');
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [navVisible, setNavVisible] = useState(true);
-  const [lastScrollPos, setLastScrollPos] = useState(0);
+  const lastScrollPosRef = useRef(0);
   const { currentMatch, setMatch, clearMatch, refreshMatch } = useMatch();
   const { user, updateUser, clearUser } = useUser();
 
@@ -359,19 +359,21 @@ function App() {
 
     const handleScroll = () => {
       const currentScrollPos = scrollArea.scrollTop;
-      if (currentScrollPos > lastScrollPos) {
+      const lastScrollPos = lastScrollPosRef.current;
+
+      if (currentScrollPos > lastScrollPos + 5) {
         // Scrolling down
         setNavVisible(true);
-      } else if (currentScrollPos < lastScrollPos - 10) {
-        // Scrolling up (with 10px threshold)
+      } else if (currentScrollPos < lastScrollPos - 5) {
+        // Scrolling up
         setNavVisible(false);
       }
-      setLastScrollPos(currentScrollPos);
+      lastScrollPosRef.current = currentScrollPos;
     };
 
-    scrollArea.addEventListener('scroll', handleScroll);
-    return () => scrollArea.removeEventListener('scroll', handleScroll);
-  }, [lastScrollPos]);
+    scrollArea.addEventListener('scroll', handleScroll, true);
+    return () => scrollArea.removeEventListener('scroll', handleScroll, true);
+  }, []);
 
   const renderScreen = () => {
     if (loadingAuth) {
