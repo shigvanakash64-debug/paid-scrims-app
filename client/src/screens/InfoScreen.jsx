@@ -21,7 +21,7 @@ const pageConfig = {
       },
       {
         heading: '3. Data Sharing',
-        body: 'We do NOT sell your personal data.\nWe may share data only:\n\n* With payment providers (for transactions)\n* When required by law',
+        body: 'We do NOT sell your personal data.\nWe may share data only:\n* With payment providers (for transactions)\n* When required by law',
       },
       {
         heading: '4. Data Security',
@@ -41,7 +41,7 @@ const pageConfig = {
       },
       {
         heading: '8. Contact Email',
-        body: 'Support Email: supportclutchzone@gmail.com\n\nFor privacy concerns, contact support via the app or email us directly.',
+        body: 'Support Email: supportclutchzone@gmail.com\nFor privacy concerns, contact support via the app or email us directly.',
       },
       {
         heading: '9. Agreement',
@@ -98,11 +98,11 @@ const pageConfig = {
       },
       {
         heading: '8. Limitation of Liability',
-        body: 'We are not responsible for:\n\n* Network issues\n* Device performance\n* Player behavior outside platform',
+        body: 'We are not responsible for:\n* Network issues\n* Device performance\n* Player behavior outside platform',
       },
       {
         heading: '9. Changes',
-        body: 'We may update these terms anytime.\n\nBy using Clutch Zone, you agree to these Terms.',
+        body: 'We may update these terms anytime.\nBy using Clutch Zone, you agree to these Terms.',
       },
     ],
   },
@@ -119,7 +119,7 @@ const pageConfig = {
       },
       {
         heading: '2. Refund Eligibility',
-        body: 'Refunds may be issued only if:\n\n* Match did not start due to system failure\n* Opponent did not join (as per rules)\n* Verified technical issue from platform side',
+        body: 'Refunds may be issued only if:\n* Match did not start due to system failure\n* Opponent did not join (as per rules)\n* Verified technical issue from platform side',
       },
       {
         heading: '3. No Refund Cases',
@@ -143,36 +143,7 @@ const pageConfig = {
       },
       {
         heading: '8. Dispute-Based Refunds',
-        body: 'Refunds in disputes are subject to admin review.\n\nAll decisions are final.\n\nBy using Clutch Zone, you agree to these.',
-      },
-    ],
-  },
-  'raise-ticket': {
-    title: 'Raise Ticket',
-    content: [
-      {
-        heading: 'Support – Raise a Ticket',
-        body: 'Need help? We’ve got you.',
-      },
-      {
-        heading: 'When to Contact Support',
-        body: '* Match disputes\n* Payment issues\n* Withdrawal problems\n* Bug reports',
-      },
-      {
-        heading: 'How It Works',
-        body: '1. Submit your issue with details\n2. Attach proof (screenshots/video if required)\n3. Our team reviews and responds',
-      },
-      {
-        heading: 'Required Details',
-        body: '* Match ID\n* Issue description\n* Relevant proof',
-      },
-      {
-        heading: 'Response Time',
-        body: 'Usually within 24–48 hours.',
-      },
-      {
-        heading: 'Important',
-        body: 'False or misleading reports may lead to account action.\n\nWe’re here to ensure fair and smooth gameplay.\n\nBy using Clutch Zone, you agree to these.',
+        body: 'Refunds in disputes are subject to admin review.\nAll decisions are final.\nBy using Clutch Zone, you agree to these.',
       },
     ],
   },
@@ -193,19 +164,19 @@ const pageConfig = {
       },
       {
         heading: '3. Collusion and Match Fixing',
-        body: 'The following activities are strictly prohibited:\n\n* Teaming in solo matches\n* Match fixing\n* Intentionally losing or manipulating match outcomes\n* Any activity that gives unfair advantage to another player\n\nViolations may result in permanent account suspension.',
+        body: 'The following activities are strictly prohibited:\n* Teaming in solo matches\n* Match fixing\n* Intentionally losing or manipulating match outcomes\n* Any activity that gives unfair advantage to another player\nViolations may result in permanent account suspension.',
       },
       {
         heading: '4. Player Conduct',
-        body: 'Users must treat other players with respect.\n\nHarassment, abusive language, threats, hate speech, or toxic behavior may result in disciplinary action.',
+        body: 'Users must treat other players with respect.\nHarassment, abusive language, threats, hate speech, or toxic behavior may result in disciplinary action.',
       },
       {
         heading: '5. Evidence and Dispute Resolution',
-        body: 'In case of disputes, Clutch Zone may request screenshots, screen recordings, match results, or other relevant evidence.\n\nFailure to provide requested evidence may affect the dispute resolution process.',
+        body: 'In case of disputes, Clutch Zone may request screenshots, screen recordings, match results, or other relevant evidence.\nFailure to provide requested evidence may affect the dispute resolution process.',
       },
       {
         heading: '6. Administrative Rights',
-        body: 'Clutch Zone reserves the right to:\n\n* Review any match\n* Investigate suspicious activity\n* Reverse match results where necessary\n* Suspend or permanently terminate accounts that violate platform policies',
+        body: 'Clutch Zone reserves the right to:\n* Review any match\n* Investigate suspicious activity\n* Reverse match results where necessary\n* Suspend or permanently terminate accounts that violate platform policies',
       },
       {
         heading: '7. Policy Enforcement',
@@ -218,7 +189,7 @@ const pageConfig = {
     content: [
       {
         heading: 'Responsible Gaming Policy',
-        body: 'Clutch Zone promotes responsible participation in skill-based gaming.\n\nPlease play responsibly and only participate using funds you can comfortably afford.',
+        body: 'Clutch Zone promotes responsible participation in skill-based gaming.\nPlease play responsibly and only participate using funds you can comfortably afford.',
       },
       {
         heading: 'Guidelines',
@@ -226,7 +197,7 @@ const pageConfig = {
       },
       {
         heading: 'Self-Restriction',
-        body: 'Users may request temporary account restrictions or permanent account closure by contacting:\n\nsupportclutchzone@gmail.com\n\nClutch Zone reserves the right to assist users who request responsible gaming measures.',
+        body: 'Users may request temporary account restrictions or permanent account closure by contacting:\nsupportclutchzone@gmail.com\nClutch Zone reserves the right to assist users who request responsible gaming measures.',
       },
     ],
   },
