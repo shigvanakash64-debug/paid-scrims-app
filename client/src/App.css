@@ -152,7 +152,9 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .wallet-referral-card{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#0B0B0B;border:1px solid var(--border);border-radius:18px;padding:18px}
 .wallet-copy-btn{background:var(--orange);color:#000;border:none;padding:10px 18px;border-radius:14px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;cursor:pointer;transition:background .12s}
 .wallet-copy-btn:hover{background:#e57b1c}
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:var(--card);border-top:1px solid var(--border);display:flex;z-index:20}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:var(--card);border-top:1px solid var(--border);display:flex;z-index:20;transition:transform 0.3s ease}
+.bottom-nav.hidden{transform:translateX(-50%) translateY(100%)}
+.bottom-nav.visible{transform:translateX(-50%) translateY(0)}
 .nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0 12px;cursor:pointer;gap:4px;background:var(--card);margin:6px 4px;}
 .nav-tab:last-child{border-right:none}
 .nav-tab.active{background:#1a0c00}

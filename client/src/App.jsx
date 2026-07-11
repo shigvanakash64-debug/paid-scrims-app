@@ -110,6 +110,8 @@ const checkNotificationStatus = async (token) => {
 function App() {
   const [currentScreen, setCurrentScreen] = useState('login');
   const [loadingAuth, setLoadingAuth] = useState(true);
+  const [navVisible, setNavVisible] = useState(true);
+  const [lastScrollPos, setLastScrollPos] = useState(0);
   const { currentMatch, setMatch, clearMatch, refreshMatch } = useMatch();
   const { user, updateUser, clearUser } = useUser();
 
@@ -351,6 +353,26 @@ function App() {
     }
   }, [currentScreen, user]);
 
+  useEffect(() => {
+    const scrollArea = document.querySelector('.scroll-area');
+    if (!scrollArea) return;
+
+    const handleScroll = () => {
+      const currentScrollPos = scrollArea.scrollTop;
+      if (currentScrollPos > lastScrollPos) {
+        // Scrolling down
+        setNavVisible(true);
+      } else if (currentScrollPos < lastScrollPos - 10) {
+        // Scrolling up (with 10px threshold)
+        setNavVisible(false);
+      }
+      setLastScrollPos(currentScrollPos);
+    };
+
+    scrollArea.addEventListener('scroll', handleScroll);
+    return () => scrollArea.removeEventListener('scroll', handleScroll);
+  }, [lastScrollPos]);
+
   const renderScreen = () => {
     if (loadingAuth) {
       return <div className="loading-screen">Loading...</div>;
@@ -434,7 +456,7 @@ function App() {
       <Header user={user} onNavigate={setCurrentScreen} onLogout={handleLogout} />
       <div className="scroll-area">{renderScreen()}</div>
       {showFooter && <Footer onNavigate={setCurrentScreen} />}
-      {showBottomNav && <BottomNav currentScreen={currentScreen} onScreenChange={setCurrentScreen} />}
+      {showBottomNav && <BottomNav currentScreen={currentScreen} onScreenChange={setCurrentScreen} isVisible={navVisible} />}
     </div>
   );
 }

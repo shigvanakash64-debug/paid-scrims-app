@@ -1,4 +1,4 @@
-export const BottomNav = ({ currentScreen, onScreenChange }) => {
+export const BottomNav = ({ currentScreen, onScreenChange, isVisible = true }) => {
   const navItems = [
     { id: 'home', label: 'Home', icon: '⌂' },
     { id: 'match', label: 'Match', icon: '⚔' },
@@ -8,7 +8,7 @@ export const BottomNav = ({ currentScreen, onScreenChange }) => {
   ];
 
   return (
-    <nav className="bottom-nav">
+    <nav className={`bottom-nav ${isVisible ? 'visible' : 'hidden'}`}>
       {navItems.map((item) => (
         <button
           key={item.id}
