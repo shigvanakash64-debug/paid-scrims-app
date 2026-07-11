@@ -248,7 +248,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .result-chip.win{border:1px solid var(--success);color:var(--success)}
 .result-chip.loss{border:1px solid var(--danger);color:var(--danger)}
 .result-chip.dispute{border:1px solid var(--orange);color:var(--orange)}
-.screen-home, .screen-match, .screen-result, .screen-wallet, .screen-profile, .screen-pairing { min-height: calc(100vh - 120px); }
+.screen-home, .screen-match, .screen-result, .screen-wallet, .screen-profile, .screen-pairing { min-height: auto; }
 
 .info-page .info-section{color:#F4F2EA}
 .info-page .info-heading{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:#F4F2EA;margin-bottom:10px}
