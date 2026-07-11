@@ -180,36 +180,36 @@ const pageConfig = {
     title: 'Fair Play Policy',
     content: [
       {
-        heading: 'Fair Play Policy – Clutch Zone',
-        body: 'Clutch Zone is built on skill, not shortcuts.',
+        heading: 'Fair Play Policy',
+        body: 'At Clutch Zone, we are committed to providing a fair, competitive, and skill-based gaming environment. All users are expected to follow these rules while using our platform.',
       },
       {
         heading: '1. Zero Tolerance for Cheating',
-        body: '* Hacks, scripts, mods = permanent ban\n* Exploits or bugs abuse = strict action',
+        body: 'The use of hacks, scripts, modified game clients, exploits, bots, or any unfair software is strictly prohibited.\n\nAny user found cheating will face immediate suspension or permanent account termination.',
       },
       {
         heading: '2. Match Integrity',
-        body: '* Follow selected mode rules (headshot, weapon restrictions, etc.)\n* Invalid kills may lead to disqualification',
+        body: 'Players must follow the selected match settings, including game mode, weapon restrictions, kill type, and other match rules.\n\nFailure to follow match rules may result in disqualification or cancellation of match rewards.',
       },
       {
-        heading: '3. No Collusion',
-        body: '* Teaming in solo matches\n* Match fixing\n  = immediate ban',
+        heading: '3. Collusion and Match Fixing',
+        body: 'The following activities are strictly prohibited:\n\n* Teaming in solo matches\n* Match fixing\n* Intentionally losing or manipulating match outcomes\n* Any activity that gives unfair advantage to another player\n\nViolations may result in permanent account suspension.',
       },
       {
-        heading: '4. Respect Opponents',
-        body: '* No abuse, harassment, or toxic behavior',
+        heading: '4. Player Conduct',
+        body: 'Users must treat other players with respect.\n\nHarassment, abusive language, threats, hate speech, or toxic behavior may result in disciplinary action.',
       },
       {
-        heading: '5. Evidence Clause',
-        body: 'Screenshots, screen recordings, match results, and other supporting evidence may be required during disputes.',
+        heading: '5. Evidence and Dispute Resolution',
+        body: 'In case of disputes, Clutch Zone may request screenshots, screen recordings, match results, or other relevant evidence.\n\nFailure to provide requested evidence may affect the dispute resolution process.',
       },
       {
-        heading: '6. Admin Authority',
-        body: 'Clutch Zone reserves the right to:\n\n* Review matches\n* Reverse results\n* Suspend accounts',
+        heading: '6. Administrative Rights',
+        body: 'Clutch Zone reserves the right to:\n\n* Review any match\n* Investigate suspicious activity\n* Reverse match results where necessary\n* Suspend or permanently terminate accounts that violate platform policies',
       },
       {
-        heading: '7. Repeated Violations',
-        body: 'May lead to permanent removal from platform.\n\nPlay fair. Win real.\n\nBy using Clutch Zone, you agree to these.',
+        heading: '7. Policy Enforcement',
+        body: 'Repeated violations or serious misconduct may result in permanent removal from the platform without prior notice.\n\nBy using Clutch Zone, you agree to comply with this Fair Play Policy.',
       },
     ],
   },
@@ -218,7 +218,15 @@ const pageConfig = {
     content: [
       {
         heading: 'Responsible Gaming Policy',
-        body: 'Play responsibly.\n\nDo not spend more than you can afford to lose.\nTake regular breaks.\nDo not participate under pressure or financial stress.\nUsers may request account restrictions or account closure.',
+        body: 'Clutch Zone promotes responsible participation in skill-based gaming.\n\nPlease play responsibly and only participate using funds you can comfortably afford.',
+      },
+      {
+        heading: 'Guidelines',
+        body: '* Play for entertainment and competition.\n* Do not spend more than you can afford.\n* Take regular breaks during extended gaming sessions.\n* Do not play under financial stress or emotional pressure.\n* Users under the minimum legal age are not permitted to use the platform.\n* If you believe your gaming habits are becoming unhealthy, discontinue playing and seek appropriate support.',
+      },
+      {
+        heading: 'Self-Restriction',
+        body: 'Users may request temporary account restrictions or permanent account closure by contacting:\n\nsupportclutchzone@gmail.com\n\nClutch Zone reserves the right to assist users who request responsible gaming measures.',
       },
     ],
   },
