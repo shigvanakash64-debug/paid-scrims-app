@@ -14,19 +14,10 @@ export const Footer = ({ onNavigate }) => {
         <div className="site-footer__brand">
           <div className="site-footer__title">CLUTCH ZONE</div>
           <div className="site-footer__tagline">Compete. Win. Get Paid.</div>
+          <div className="site-footer__meta">Operated by: Akash Dinesh Shigvan</div>
+          <div className="site-footer__meta">GSTIN: 27SQJPS2378E1Z0</div>
           <div className="site-footer__meta">
-            <p>Operated by:</p>
-            <p>Akash Dinesh Shigvan</p>
-          </div>
-          <div className="site-footer__meta">
-            <p>GSTIN:</p>
-            <p>27SQJPS2378E1Z0</p>
-          </div>
-          <div className="site-footer__meta">
-            <p>Support Email:</p>
-            <a className="site-footer__link site-footer__link--mail" href="mailto:supportclutchzone@gmail.com">
-              supportclutchzone@gmail.com
-            </a>
+            Support Email: <a className="site-footer__link site-footer__link--mail" href="mailto:supportclutchzone@gmail.com" style={{display:'inline'}}>supportclutchzone@gmail.com</a>
           </div>
         </div>
 
