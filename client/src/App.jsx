@@ -364,20 +364,26 @@ function App() {
     // initialize last scroll position
     lastScrollPosRef.current = getScrollTop();
 
+    let ticking = false;
     const handleScroll = () => {
-      const currentScrollPos = getScrollTop();
-      const lastScrollPos = lastScrollPosRef.current;
-      const delta = currentScrollPos - lastScrollPos;
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const currentScrollPos = getScrollTop();
+        const lastScrollPos = lastScrollPosRef.current;
+        const delta = currentScrollPos - lastScrollPos;
 
-      if (delta > 5) {
-        // Scrolling down -> show nav
-        setNavVisible(true);
-      } else if (delta < -5) {
-        // Scrolling up -> hide nav
-        setNavVisible(false);
-      }
+        if (delta > 5) {
+          // Scrolling down -> show nav
+          setNavVisible(true);
+        } else if (delta < -5) {
+          // Scrolling up -> hide nav
+          setNavVisible(false);
+        }
 
-      lastScrollPosRef.current = currentScrollPos;
+        lastScrollPosRef.current = currentScrollPos;
+        ticking = false;
+      });
     };
 
     // Listen to both the inner scroll area and window as a fallback
