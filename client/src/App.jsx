@@ -355,14 +355,34 @@ function App() {
 
   useEffect(() => {
     const scrollArea = document.querySelector('.scroll-area');
+    const appEl = document.querySelector('.app');
     const docScrollEl = document.scrollingElement || document.documentElement || document.body;
-    const potentialContainers = [scrollArea, docScrollEl, document.documentElement, document.body, window];
-    const containers = Array.from(new Set(potentialContainers.filter(Boolean)));
+
+    const debug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('navdebug');
+
+    const candidates = [scrollArea, appEl, docScrollEl, document.documentElement, document.body];
+
+    const findScrollable = () => {
+      for (const el of candidates) {
+        if (!el) continue;
+        try {
+          if (el.scrollHeight > el.clientHeight) return el;
+        } catch (e) {
+          // ignore
+        }
+      }
+      // fallback to window
+      return window;
+    };
+
+    let activeContainer = findScrollable();
+    if (debug) console.log('nav debug: initial activeContainer', activeContainer === window ? 'window' : activeContainer.tagName);
 
     const getScrollTop = () => {
-      for (const c of containers) {
-        if (c === window) continue;
-        if (c && typeof c.scrollTop === 'number') return c.scrollTop;
+      try {
+        if (activeContainer && activeContainer !== window && typeof activeContainer.scrollTop === 'number') return activeContainer.scrollTop;
+      } catch (e) {
+        // ignore
       }
       return window.scrollY || window.pageYOffset || 0;
     };
@@ -443,8 +463,8 @@ function App() {
       });
     };
 
-    // Attach listeners to all relevant containers (documentElement/body/scroll-area/window)
-    containers.forEach((c) => {
+    // Helper to attach listeners to the active container
+    const attachTo = (c) => {
       try {
         if (c === window) {
           window.addEventListener('scroll', handleScroll, { passive: true });
@@ -458,28 +478,45 @@ function App() {
           c.addEventListener('wheel', handleWheel, { passive: true });
         }
       } catch (err) {
-        // ignore elements that don't support these events
+        // ignore
+      }
+    };
+
+    const detachFrom = (c) => {
+      try {
+        if (c === window) {
+          window.removeEventListener('scroll', handleScroll);
+          window.removeEventListener('touchstart', handleTouchStart);
+          window.removeEventListener('touchmove', handleTouchMove);
+          window.removeEventListener('wheel', handleWheel);
+        } else {
+          c.removeEventListener('scroll', handleScroll);
+          c.removeEventListener('touchstart', handleTouchStart);
+          c.removeEventListener('touchmove', handleTouchMove);
+          c.removeEventListener('wheel', handleWheel);
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    attachTo(activeContainer);
+
+    // Watch for changes in which element is scrollable (e.g., layout change)
+    const observer = new MutationObserver(() => {
+      const newActive = findScrollable();
+      if (newActive !== activeContainer) {
+        if (debug) console.log('nav debug: activeContainer changed', newActive === window ? 'window' : newActive.tagName);
+        detachFrom(activeContainer);
+        activeContainer = newActive;
+        attachTo(activeContainer);
       }
     });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
 
     return () => {
-      containers.forEach((c) => {
-        try {
-          if (c === window) {
-            window.removeEventListener('scroll', handleScroll);
-            window.removeEventListener('touchstart', handleTouchStart);
-            window.removeEventListener('touchmove', handleTouchMove);
-            window.removeEventListener('wheel', handleWheel);
-          } else {
-            c.removeEventListener('scroll', handleScroll);
-            c.removeEventListener('touchstart', handleTouchStart);
-            c.removeEventListener('touchmove', handleTouchMove);
-            c.removeEventListener('wheel', handleWheel);
-          }
-        } catch (err) {
-          // ignore
-        }
-      });
+      observer.disconnect();
+      detachFrom(activeContainer);
     };
   }, []);
 
