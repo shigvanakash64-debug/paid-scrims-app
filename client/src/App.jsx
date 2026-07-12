@@ -423,27 +423,19 @@ function App() {
     const handleTouchStart = (e) => {
       const t = e.touches && e.touches[0];
       if (t) touchStartYRef.current = t.clientY;
+      // Reset baseline for touch interactions
+      try {
+        lastScrollPosRef.current = getScrollTop();
+      } catch (err) {
+        // ignore
+      }
     };
 
     const handleTouchMove = (e) => {
-      if (!touchStartYRef.current) return;
       const t = e.touches && e.touches[0];
       if (!t) return;
-      const deltaY = touchStartYRef.current - t.clientY; // positive if moving up (scroll down content)
-
-      // For touch, invert interpretation: user swipes up (deltaY>0) means scroll down content
-      // We want small upward scroll (finger moving down) to hide nav when content moves up (scrolling up)
-      // Use same sensitivity but interpret sign relative to content movement
-      if (Math.abs(deltaY) > 0) {
-        // compute content delta approximation: negative deltaY means finger moved down -> content scrolled up
-        const contentDelta = -deltaY;
-        if (ticking) return;
-        ticking = true;
-        requestAnimationFrame(() => {
-          handleScrollDelta(contentDelta);
-          ticking = false;
-        });
-      }
+      // Use actual scrollTop/read handleScroll for consistent behavior
+      handleScroll();
       // update start to allow continuous small moves
       touchStartYRef.current = t.clientY;
     };
