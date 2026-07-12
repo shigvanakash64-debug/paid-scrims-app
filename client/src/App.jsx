@@ -355,9 +355,11 @@ function App() {
 
   useEffect(() => {
     const scrollArea = document.querySelector('.scroll-area');
+    const docScrollEl = document.scrollingElement || document.documentElement || document.body;
+    const scrollContainer = scrollArea || docScrollEl;
 
     const getScrollTop = () => {
-      if (scrollArea) return scrollArea.scrollTop;
+      if (scrollContainer && typeof scrollContainer.scrollTop === 'number') return scrollContainer.scrollTop;
       return window.scrollY || window.pageYOffset || 0;
     };
 
@@ -434,25 +436,26 @@ function App() {
       });
     };
 
-    // Listen to both the inner scroll area and window as a fallback
-    if (scrollArea) {
-      scrollArea.addEventListener('scroll', handleScroll, { passive: true });
-      scrollArea.addEventListener('touchstart', handleTouchStart, { passive: true });
-      scrollArea.addEventListener('touchmove', handleTouchMove, { passive: true });
-      scrollArea.addEventListener('wheel', handleWheel, { passive: true });
+    // Attach listeners to the detected scroll container and keep window as fallback
+    if (scrollContainer && scrollContainer !== window) {
+      scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+      scrollContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
+      scrollContainer.addEventListener('touchmove', handleTouchMove, { passive: true });
+      scrollContainer.addEventListener('wheel', handleWheel, { passive: true });
     }
 
+    // Always also listen on window for cases where scroll events bubble there
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchmove', handleTouchMove, { passive: true });
     window.addEventListener('wheel', handleWheel, { passive: true });
 
     return () => {
-      if (scrollArea) {
-        scrollArea.removeEventListener('scroll', handleScroll);
-        scrollArea.removeEventListener('touchstart', handleTouchStart);
-        scrollArea.removeEventListener('touchmove', handleTouchMove);
-        scrollArea.removeEventListener('wheel', handleWheel);
+      if (scrollContainer && scrollContainer !== window) {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+        scrollContainer.removeEventListener('touchstart', handleTouchStart);
+        scrollContainer.removeEventListener('touchmove', handleTouchMove);
+        scrollContainer.removeEventListener('wheel', handleWheel);
       }
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('touchstart', handleTouchStart);
