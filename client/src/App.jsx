@@ -502,6 +502,22 @@ function App() {
 
     attachTo(activeContainer);
 
+    // Polling fallback to detect scrollbar drags or cases where scroll events are not firing
+    const POLL_MS = 120;
+    const pollId = setInterval(() => {
+      try {
+        const top = getScrollTop();
+        const last = lastScrollPosRef.current;
+        const delta = top - last;
+        if (Math.abs(delta) > 0) {
+          handleScrollDelta(delta);
+          lastScrollPosRef.current = top;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }, POLL_MS);
+
     // Watch for changes in which element is scrollable (e.g., layout change)
     const observer = new MutationObserver(() => {
       const newActive = findScrollable();
@@ -515,6 +531,7 @@ function App() {
     observer.observe(document.body, { childList: true, subtree: true, attributes: true });
 
     return () => {
+      clearInterval(pollId);
       observer.disconnect();
       detachFrom(activeContainer);
     };
