@@ -356,10 +356,14 @@ function App() {
   useEffect(() => {
     const scrollArea = document.querySelector('.scroll-area');
     const docScrollEl = document.scrollingElement || document.documentElement || document.body;
-    const scrollContainer = scrollArea || docScrollEl;
+    const potentialContainers = [scrollArea, docScrollEl, document.documentElement, document.body, window];
+    const containers = Array.from(new Set(potentialContainers.filter(Boolean)));
 
     const getScrollTop = () => {
-      if (scrollContainer && typeof scrollContainer.scrollTop === 'number') return scrollContainer.scrollTop;
+      for (const c of containers) {
+        if (c === window) continue;
+        if (c && typeof c.scrollTop === 'number') return c.scrollTop;
+      }
       return window.scrollY || window.pageYOffset || 0;
     };
 
@@ -425,9 +429,12 @@ function App() {
     };
 
     const handleWheel = (e) => {
-      // Wheel deltaY positive => content scrolls down
-      const wheelDelta = e.deltaY;
-      if (Math.abs(wheelDelta) < 1) return;
+      // Normalize wheel delta across deltaMode
+      let wheelDelta = e.deltaY;
+      if (e.deltaMode === 1) wheelDelta *= 16; // lines -> pixels approx
+      else if (e.deltaMode === 2) wheelDelta *= window.innerHeight; // pages -> pixels
+
+      if (Math.abs(wheelDelta) < 0.5) return;
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
@@ -436,31 +443,43 @@ function App() {
       });
     };
 
-    // Attach listeners to the detected scroll container and keep window as fallback
-    if (scrollContainer && scrollContainer !== window) {
-      scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-      scrollContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
-      scrollContainer.addEventListener('touchmove', handleTouchMove, { passive: true });
-      scrollContainer.addEventListener('wheel', handleWheel, { passive: true });
-    }
-
-    // Always also listen on window for cases where scroll events bubble there
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
-    window.addEventListener('wheel', handleWheel, { passive: true });
+    // Attach listeners to all relevant containers (documentElement/body/scroll-area/window)
+    containers.forEach((c) => {
+      try {
+        if (c === window) {
+          window.addEventListener('scroll', handleScroll, { passive: true });
+          window.addEventListener('touchstart', handleTouchStart, { passive: true });
+          window.addEventListener('touchmove', handleTouchMove, { passive: true });
+          window.addEventListener('wheel', handleWheel, { passive: true });
+        } else {
+          c.addEventListener('scroll', handleScroll, { passive: true });
+          c.addEventListener('touchstart', handleTouchStart, { passive: true });
+          c.addEventListener('touchmove', handleTouchMove, { passive: true });
+          c.addEventListener('wheel', handleWheel, { passive: true });
+        }
+      } catch (err) {
+        // ignore elements that don't support these events
+      }
+    });
 
     return () => {
-      if (scrollContainer && scrollContainer !== window) {
-        scrollContainer.removeEventListener('scroll', handleScroll);
-        scrollContainer.removeEventListener('touchstart', handleTouchStart);
-        scrollContainer.removeEventListener('touchmove', handleTouchMove);
-        scrollContainer.removeEventListener('wheel', handleWheel);
-      }
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('wheel', handleWheel);
+      containers.forEach((c) => {
+        try {
+          if (c === window) {
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('touchstart', handleTouchStart);
+            window.removeEventListener('touchmove', handleTouchMove);
+            window.removeEventListener('wheel', handleWheel);
+          } else {
+            c.removeEventListener('scroll', handleScroll);
+            c.removeEventListener('touchstart', handleTouchStart);
+            c.removeEventListener('touchmove', handleTouchMove);
+            c.removeEventListener('wheel', handleWheel);
+          }
+        } catch (err) {
+          // ignore
+        }
+      });
     };
   }, []);
 
