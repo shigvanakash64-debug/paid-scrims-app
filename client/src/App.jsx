@@ -397,11 +397,11 @@ function App() {
 
     const handleScrollDelta = (delta) => {
       if (delta > SENSITIVITY) {
-        // Scrolling down -> show nav
-        setNavVisible(true);
-      } else if (delta < -SENSITIVITY) {
-        // Scrolling up -> hide nav
+        // Scrolling down / content moving down -> hide nav
         setNavVisible(false);
+      } else if (delta < -SENSITIVITY) {
+        // Scrolling up / content moving up -> show nav
+        setNavVisible(true);
       }
     };
 
