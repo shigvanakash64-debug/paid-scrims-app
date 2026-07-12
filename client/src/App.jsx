@@ -355,24 +355,39 @@ function App() {
 
   useEffect(() => {
     const scrollArea = document.querySelector('.scroll-area');
-    if (!scrollArea) return;
+
+    const getScrollTop = () => {
+      if (scrollArea) return scrollArea.scrollTop;
+      return window.scrollY || window.pageYOffset || 0;
+    };
+
+    // initialize last scroll position
+    lastScrollPosRef.current = getScrollTop();
 
     const handleScroll = () => {
-      const currentScrollPos = scrollArea.scrollTop;
+      const currentScrollPos = getScrollTop();
       const lastScrollPos = lastScrollPosRef.current;
+      const delta = currentScrollPos - lastScrollPos;
 
-      if (currentScrollPos > lastScrollPos + 5) {
-        // Scrolling down
+      if (delta > 5) {
+        // Scrolling down -> show nav
         setNavVisible(true);
-      } else if (currentScrollPos < lastScrollPos - 5) {
-        // Scrolling up
+      } else if (delta < -5) {
+        // Scrolling up -> hide nav
         setNavVisible(false);
       }
+
       lastScrollPosRef.current = currentScrollPos;
     };
 
-    scrollArea.addEventListener('scroll', handleScroll, true);
-    return () => scrollArea.removeEventListener('scroll', handleScroll, true);
+    // Listen to both the inner scroll area and window as a fallback
+    if (scrollArea) scrollArea.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      if (scrollArea) scrollArea.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   const renderScreen = () => {
