@@ -364,7 +364,21 @@ function App() {
     // initialize last scroll position
     lastScrollPosRef.current = getScrollTop();
 
+    // Make the detection more sensitive for small scrolls/touches
+    const SENSITIVITY = 3; // pixels
     let ticking = false;
+    const touchStartYRef = { current: null };
+
+    const handleScrollDelta = (delta) => {
+      if (delta > SENSITIVITY) {
+        // Scrolling down -> show nav
+        setNavVisible(true);
+      } else if (delta < -SENSITIVITY) {
+        // Scrolling up -> hide nav
+        setNavVisible(false);
+      }
+    };
+
     const handleScroll = () => {
       if (ticking) return;
       ticking = true;
@@ -373,26 +387,77 @@ function App() {
         const lastScrollPos = lastScrollPosRef.current;
         const delta = currentScrollPos - lastScrollPos;
 
-        if (delta > 5) {
-          // Scrolling down -> show nav
-          setNavVisible(true);
-        } else if (delta < -5) {
-          // Scrolling up -> hide nav
-          setNavVisible(false);
-        }
+        handleScrollDelta(delta);
 
         lastScrollPosRef.current = currentScrollPos;
         ticking = false;
       });
     };
 
+    const handleTouchStart = (e) => {
+      const t = e.touches && e.touches[0];
+      if (t) touchStartYRef.current = t.clientY;
+    };
+
+    const handleTouchMove = (e) => {
+      if (!touchStartYRef.current) return;
+      const t = e.touches && e.touches[0];
+      if (!t) return;
+      const deltaY = touchStartYRef.current - t.clientY; // positive if moving up (scroll down content)
+
+      // For touch, invert interpretation: user swipes up (deltaY>0) means scroll down content
+      // We want small upward scroll (finger moving down) to hide nav when content moves up (scrolling up)
+      // Use same sensitivity but interpret sign relative to content movement
+      if (Math.abs(deltaY) > 0) {
+        // compute content delta approximation: negative deltaY means finger moved down -> content scrolled up
+        const contentDelta = -deltaY;
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          handleScrollDelta(contentDelta);
+          ticking = false;
+        });
+      }
+      // update start to allow continuous small moves
+      touchStartYRef.current = t.clientY;
+    };
+
+    const handleWheel = (e) => {
+      // Wheel deltaY positive => content scrolls down
+      const wheelDelta = e.deltaY;
+      if (Math.abs(wheelDelta) < 1) return;
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        handleScrollDelta(wheelDelta);
+        ticking = false;
+      });
+    };
+
     // Listen to both the inner scroll area and window as a fallback
-    if (scrollArea) scrollArea.addEventListener('scroll', handleScroll, { passive: true });
+    if (scrollArea) {
+      scrollArea.addEventListener('scroll', handleScroll, { passive: true });
+      scrollArea.addEventListener('touchstart', handleTouchStart, { passive: true });
+      scrollArea.addEventListener('touchmove', handleTouchMove, { passive: true });
+      scrollArea.addEventListener('wheel', handleWheel, { passive: true });
+    }
+
     window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('wheel', handleWheel, { passive: true });
 
     return () => {
-      if (scrollArea) scrollArea.removeEventListener('scroll', handleScroll);
+      if (scrollArea) {
+        scrollArea.removeEventListener('scroll', handleScroll);
+        scrollArea.removeEventListener('touchstart', handleTouchStart);
+        scrollArea.removeEventListener('touchmove', handleTouchMove);
+        scrollArea.removeEventListener('wheel', handleWheel);
+      }
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('wheel', handleWheel);
     };
   }, []);
 
