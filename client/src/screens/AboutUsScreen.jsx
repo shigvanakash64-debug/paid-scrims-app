@@ -3,23 +3,28 @@ export const AboutUsScreen = ({ onOpenConfirmExit }) => {
     <div className="screen-home" style={{ paddingBottom: 24 }}>
       <div className="section hero">
         <h1 className="screen-title">About Us</h1>
-        <p className="screen-sub">Clutch Zone is a simple and direct gaming platform built for players who want a clean experience.</p>
       </div>
 
       <div className="section">
         <div className="card" style={{ padding: 16 }}>
+          <h3 style={{ color: '#F4F2EA', marginBottom: 12, fontSize: 16, fontWeight: 600 }}>
+            Clutch Zone Store
+          </h3>
           <p className="screen-sub" style={{ marginTop: 0 }}>
-            We focus on easy access, fair play, and a smooth experience for players who want to stay connected to their matches, wallets, and rewards without extra clutter.
+            Clutch Zone Store is a digital marketplace dedicated to high-quality wallpapers for mobile, tablet, and desktop devices.
           </p>
           <p className="screen-sub" style={{ marginTop: 8 }}>
-            The wallpaper store is a lightweight companion layer that lets users browse and own premium visuals while still keeping the main{' '}
+            We create and curate premium wallpaper collections that let users personalize their devices with clean, stylish, and visually striking designs. Every purchase is delivered instantly through your personal library, making downloads simple and accessible anytime.
+          </p>
+          <p className="screen-sub" style={{ marginTop: 8 }}>
+            Whether you're looking for gaming-inspired artwork, minimal designs, AMOLED wallpapers, abstract collections, or{' '}
             <button
               type="button"
               onClick={onOpenConfirmExit}
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#FF6A00',
+                color: 'inherit',
                 padding: 0,
                 cursor: 'pointer',
                 textDecoration: 'underline',
@@ -27,9 +32,9 @@ export const AboutUsScreen = ({ onOpenConfirmExit }) => {
                 fontFamily: 'inherit',
               }}
             >
-              Clutch
+              unique
             </button>
-            {' '}Zone experience available as a separate entry point.
+            {' '}digital visuals, our goal is to provide a fast, secure, and seamless shopping experience.
           </p>
         </div>
       </div>
