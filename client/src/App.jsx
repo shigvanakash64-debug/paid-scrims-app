@@ -139,10 +139,10 @@ function App() {
       })();
 
       const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'clutch-zone-confirm'];
-      const targetScreen = validScreens.includes(savedScreen) ? savedScreen : 'wallpaper-home';
+      const targetScreen = validScreens.includes(savedScreen) ? (savedScreen === 'home' ? 'wallpaper-home' : savedScreen) : 'wallpaper-home';
 
       if (!token) {
-        setCurrentScreen(savedScreen || 'login');
+        setCurrentScreen(savedScreen || 'wallpaper-home');
         setLoadingAuth(false);
         return;
       }
@@ -334,7 +334,7 @@ function App() {
     localStorage.removeItem('clutchzone_currentMatchId');
     localStorage.removeItem('clutchzone_currentScreen');
     clearMatch();
-    setCurrentScreen('login');
+    setCurrentScreen('wallpaper-home');
   };
 
   const handleLogin = async ({ username, password }) => {
@@ -620,7 +620,7 @@ function App() {
         case 'wallpaper-details':
           return <WallpaperDetailScreen wallpaper={selectedWallpaper} user={user} onScreenChange={handleScreenChange} onStartPurchase={handleStartPurchase} />;
         case 'about-us':
-          return <AboutUsScreen onScreenChange={() => setShowConfirmModal(true)} />;
+          return <AboutUsScreen onOpenConfirmExit={() => setShowConfirmModal(true)} />;
         default:
           return <WallpaperHomeScreen user={user} onScreenChange={handleScreenChange} onOpenConfirmExit={() => setShowConfirmModal(true)} />;
       }
@@ -695,7 +695,7 @@ function App() {
         }
         return <WallpaperAdminScreen />;
       case 'about-us':
-        return <AboutUsScreen onScreenChange={() => setShowConfirmModal(true)} />;
+        return <AboutUsScreen onOpenConfirmExit={() => setShowConfirmModal(true)} />;
       default:
         return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} />;
     }
@@ -707,7 +707,7 @@ function App() {
 
   return (
     <div className={`app ${currentScreen === 'admin' ? 'app-admin' : ''}`}>
-      <Header user={user} onNavigate={handleScreenChange} onLogout={handleLogout} />
+      <Header user={user} currentScreen={currentScreen} onNavigate={handleScreenChange} onLogout={handleLogout} />
       <div className="scroll-area">{renderScreen()}</div>
       {showFooter && <Footer onNavigate={handleScreenChange} />}
       {showBottomNav && <BottomNav currentScreen={currentScreen} onScreenChange={handleScreenChange} isVisible={navVisible} />}

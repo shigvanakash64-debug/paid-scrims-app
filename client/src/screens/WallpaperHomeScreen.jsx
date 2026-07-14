@@ -90,7 +90,6 @@ export const WallpaperHomeScreen = ({ user, onScreenChange, onOpenConfirmExit })
             <button className="btn-outline" type="button" onClick={() => onScreenChange('wallpaper-collection')}>Login to Purchase</button>
           )}
           <button className="btn-outline" type="button" onClick={onOpenConfirmExit}>Enter Clutch Zone</button>
-          <button className="btn-outline" type="button" onClick={() => onScreenChange('about-us')}>About Us</button>
         </div>
       </div>
     </div>
