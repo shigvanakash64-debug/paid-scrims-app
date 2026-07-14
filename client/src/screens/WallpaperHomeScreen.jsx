@@ -30,13 +30,6 @@ export const WallpaperHomeScreen = ({ user, onScreenChange, onOpenConfirmExit })
         <div className="game-pill"><span className="game-dot" /> <span>Digital Wallpaper Store</span></div>
         <h1 className="screen-title">Fresh wallpapers for your setup</h1>
         <p className="screen-sub">A simple storefront built on top of Clutch Zone. Browse, buy, and download premium wallpapers.</p>
-        <div className="home-banner">
-          <div className="home-banner-icon">🖼️</div>
-          <div>
-            <div className="home-banner-title">Enter Clutch Zone</div>
-            <div className="home-banner-copy">Jump back into the gaming platform from the store.</div>
-          </div>
-        </div>
       </div>
 
       <div className="section" style={{ marginTop: 12 }}>
@@ -89,7 +82,6 @@ export const WallpaperHomeScreen = ({ user, onScreenChange, onOpenConfirmExit })
           ) : (
             <button className="btn-outline" type="button" onClick={() => onScreenChange('wallpaper-collection')}>Login to Purchase</button>
           )}
-          <button className="btn-outline" type="button" onClick={onOpenConfirmExit}>Enter Clutch Zone</button>
         </div>
       </div>
     </div>

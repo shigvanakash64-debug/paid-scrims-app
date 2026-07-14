@@ -24,6 +24,8 @@ import { WallpaperDetailScreen } from './screens/WallpaperDetailScreen';
 import { WallpaperLibraryScreen } from './screens/WallpaperLibraryScreen';
 import { WallpaperAdminScreen } from './screens/WallpaperAdminScreen';
 import { AboutUsScreen } from './screens/AboutUsScreen';
+import { StoreInfoScreen } from './screens/StoreInfoScreen';
+import { StoreContactScreen } from './screens/StoreContactScreen';
 import './App.css';
 
 // Lazy load admin dashboard
@@ -136,7 +138,7 @@ function App() {
         }
       })();
 
-      const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'clutch-zone-confirm'];
+      const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact'];
       const targetScreen = validScreens.includes(savedScreen) ? (savedScreen === 'home' ? 'wallpaper-home' : savedScreen) : 'wallpaper-home';
 
       if (!token) {
@@ -694,12 +696,22 @@ function App() {
         return <WallpaperAdminScreen />;
       case 'about-us':
         return <AboutUsScreen onOpenConfirmExit={() => setShowConfirmModal(true)} />;
+      case 'store-terms':
+      case 'store-privacy':
+      case 'store-refund':
+      case 'store-shipping':
+      case 'store-disclaimer':
+      case 'store-license':
+      case 'store-dmca':
+        return <StoreInfoScreen page={currentScreen} />;
+      case 'store-contact':
+        return <StoreContactScreen />;
       default:
         return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} />;
     }
   };
 
-  const isStoreScreen = ['wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'wallpaper-manager', 'about-us', 'login', 'register'].includes(currentScreen);
+  const isStoreScreen = ['wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'wallpaper-manager', 'about-us', 'login', 'register', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact'].includes(currentScreen);
 
   const layoutContent = renderScreen();
 

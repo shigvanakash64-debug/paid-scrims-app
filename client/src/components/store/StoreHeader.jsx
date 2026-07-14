@@ -76,23 +76,6 @@ export const StoreHeader = ({ user, currentScreen, onNavigate, onLogout, onOpenC
             </button>
           );
         })}
-
-        <button
-          type="button"
-          onClick={onOpenConfirmExit}
-          style={{
-            border: '1px solid #FF6A00',
-            background: 'transparent',
-            color: '#FF6A00',
-            padding: '6px 10px',
-            fontSize: 12,
-            fontFamily: 'Rajdhani, sans-serif',
-            letterSpacing: '1px',
-            cursor: 'pointer',
-          }}
-        >
-          Enter Clutch Zone
-        </button>
       </div>
     </header>
   );
