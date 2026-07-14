@@ -8,7 +8,7 @@ export const WallpaperConfirmModal = ({ open, onCancel, onContinue }) => {
           <h3>Leave wallpaper store?</h3>
         </div>
         <div className="info-modal-content">
-          You are leaving the wallpaper store and entering the Clutch Zone.
+          You are leaving the wallpaper store and entering the Clutch Zone skill-based gaming platform.
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
           <button className="btn-primary" type="button" onClick={onContinue}>Continue</button>

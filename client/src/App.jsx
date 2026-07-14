@@ -13,12 +13,10 @@ import { ContactsScreen } from './screens/ContactsScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
 import { InfoScreen } from './screens/InfoScreen';
-import { BottomNav } from './components/BottomNav';
-import { Header } from './components/Header';
-import { Footer } from './components/Footer';
 import NotificationTest from './components/NotificationTest';
-import { WallpaperConfirmModal } from './components/WallpaperConfirmModal';
 import { useMatch } from './contexts/MatchContext';
+import { StoreLayout } from './layouts/StoreLayout';
+import { ClutchZoneLayout } from './layouts/ClutchZoneLayout';
 import { useUser } from './contexts/UserContext';
 import { WallpaperHomeScreen } from './screens/WallpaperHomeScreen';
 import { WallpaperCollectionScreen } from './screens/WallpaperCollectionScreen';
@@ -701,18 +699,34 @@ function App() {
     }
   };
 
-  const hideBottomNavScreens = ['admin', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager'];
-  const showBottomNav = user && !hideBottomNavScreens.includes(currentScreen);
-  const showFooter = ['home', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'instructions', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us'].includes(currentScreen);
+  const isStoreScreen = ['wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'wallpaper-manager', 'about-us', 'login', 'register'].includes(currentScreen);
+
+  const layoutContent = renderScreen();
+
+  if (isStoreScreen) {
+    return (
+      <StoreLayout
+        user={user}
+        currentScreen={currentScreen}
+        onNavigate={handleScreenChange}
+        onLogout={handleLogout}
+        onOpenClutchZone={openClutchZone}
+      >
+        {layoutContent}
+      </StoreLayout>
+    );
+  }
 
   return (
-    <div className={`app ${currentScreen === 'admin' ? 'app-admin' : ''}`}>
-      <Header user={user} currentScreen={currentScreen} onNavigate={handleScreenChange} onLogout={handleLogout} />
-      <div className="scroll-area">{renderScreen()}</div>
-      {showFooter && <Footer onNavigate={handleScreenChange} />}
-      {showBottomNav && <BottomNav currentScreen={currentScreen} onScreenChange={handleScreenChange} isVisible={navVisible} />}
-      <WallpaperConfirmModal open={showConfirmModal} onCancel={() => setShowConfirmModal(false)} onContinue={openClutchZone} />
-    </div>
+    <ClutchZoneLayout
+      user={user}
+      currentScreen={currentScreen}
+      navVisible={navVisible}
+      onNavigate={handleScreenChange}
+      onLogout={handleLogout}
+    >
+      {layoutContent}
+    </ClutchZoneLayout>
   );
 }
 
