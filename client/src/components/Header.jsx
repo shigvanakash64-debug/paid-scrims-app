@@ -52,8 +52,11 @@ export const Header = ({ user, currentScreen, onNavigate, onLogout }) => {
                   {isAdmin && (
                     <>
                       <div className="menu-divider" />
-                      <button className="menu-item" type="button" onClick={() => handleNavigate('admin')} style={{ color: '#FF6A00', fontWeight: 'bold' }}>
+                          <button className="menu-item" type="button" onClick={() => handleNavigate('admin')} style={{ color: '#FF6A00', fontWeight: 'bold' }}>
                         Admin Dashboard
+                      </button>
+                      <button className="menu-item" type="button" onClick={() => handleNavigate('wallpaper-manager')} style={{ color: '#FF6A00', fontWeight: 'bold' }}>
+                        Wallpaper Admin
                       </button>
                     </>
                   )}

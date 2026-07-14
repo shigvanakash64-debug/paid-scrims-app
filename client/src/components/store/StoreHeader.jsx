@@ -8,10 +8,12 @@ export const StoreHeader = ({ user, currentScreen, onNavigate, onLogout, onOpenC
     if (onNavigate) onNavigate(screen);
   };
 
+  const isAdmin = user?.role === 'admin' || user?.isAdmin === true;
   const navItems = [
     { key: 'wallpaper-home', label: 'Home', screen: 'wallpaper-home' },
     { key: 'wallpaper-collection', label: 'Collection', screen: 'wallpaper-collection' },
     { key: 'wallpaper-library', label: 'My Library', screen: 'wallpaper-library' },
+    ...(isAdmin ? [{ key: 'wallpaper-manager', label: 'Wallpaper Admin', screen: 'wallpaper-manager' }] : []),
     { key: 'about-us', label: 'About Us', screen: 'about-us' },
   ];
 
