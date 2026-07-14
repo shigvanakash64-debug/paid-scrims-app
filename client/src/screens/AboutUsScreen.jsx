@@ -12,11 +12,25 @@ export const AboutUsScreen = ({ onOpenConfirmExit }) => {
             We focus on easy access, fair play, and a smooth experience for players who want to stay connected to their matches, wallets, and rewards without extra clutter.
           </p>
           <p className="screen-sub" style={{ marginTop: 8 }}>
-            The wallpaper store is a lightweight companion layer that lets users browse and own premium visuals while still keeping the main Clutch Zone experience available as a separate entry point.
+            The wallpaper store is a lightweight companion layer that lets users browse and own premium visuals while still keeping the main{' '}
+            <button
+              type="button"
+              onClick={onOpenConfirmExit}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#FF6A00',
+                padding: 0,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                fontSize: 'inherit',
+                fontFamily: 'inherit',
+              }}
+            >
+              Clutch
+            </button>
+            {' '}Zone experience available as a separate entry point.
           </p>
-          <div className="btn-cta-wrap" style={{ justifyContent: 'flex-start', padding: 0, marginTop: 12 }}>
-            <button className="btn-primary" type="button" onClick={onOpenConfirmExit}>Enter Clutch Zone</button>
-          </div>
         </div>
       </div>
     </div>

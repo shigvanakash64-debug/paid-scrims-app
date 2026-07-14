@@ -25,8 +25,6 @@ export const StoreHeader = ({ user, currentScreen, onNavigate, onLogout, onOpenC
         <div className="topbar-right">
           {user ? (
             <>
-              <div className="wallet-balance">CZ - {user.wallet?.balance?.toLocaleString() || '0'}</div>
-              <div className="trust-badge">TG: {user.trustScore}</div>
               <button className="menu-button" type="button" onClick={() => setMenuOpen((open) => !open)}>
                 ☰
               </button>

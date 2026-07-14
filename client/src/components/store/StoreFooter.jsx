@@ -3,7 +3,6 @@ export const StoreFooter = ({ onNavigate }) => {
     { key: 'wallpaper-home', label: 'Home', screen: 'wallpaper-home' },
     { key: 'about-us', label: 'About Us', screen: 'about-us' },
     { key: 'contact-us', label: 'Contact Us', screen: 'store-contact' },
-    { key: 'enter-cz', label: 'Enter Clutch Zone', screen: 'home' },
   ];
 
   const legalLinks = [
