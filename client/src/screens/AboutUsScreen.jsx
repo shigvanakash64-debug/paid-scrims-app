@@ -1,4 +1,4 @@
-export const AboutUsScreen = ({ onOpenConfirmExit }) => {
+export const AboutUsScreen = ({ onNavigateToClutchZone }) => {
   return (
     <div className="screen-home" style={{ paddingBottom: 24 }}>
       <div className="section hero">
@@ -20,7 +20,7 @@ export const AboutUsScreen = ({ onOpenConfirmExit }) => {
             Whether you're looking for gaming-inspired artwork, minimal designs, AMOLED wallpapers, abstract collections, or{' '}
             <button
               type="button"
-              onClick={onOpenConfirmExit}
+              onClick={onNavigateToClutchZone}
               style={{
                 background: 'none',
                 border: 'none',

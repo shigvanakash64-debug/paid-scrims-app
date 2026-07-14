@@ -620,7 +620,7 @@ function App() {
         case 'wallpaper-details':
           return <WallpaperDetailScreen wallpaper={selectedWallpaper} user={user} onScreenChange={handleScreenChange} onStartPurchase={handleStartPurchase} />;
         case 'about-us':
-          return <AboutUsScreen onOpenConfirmExit={() => setShowConfirmModal(true)} />;
+          return <AboutUsScreen onNavigateToClutchZone={openClutchZone} />;
         default:
           return <WallpaperHomeScreen user={user} onScreenChange={handleScreenChange} onOpenConfirmExit={() => setShowConfirmModal(true)} />;
       }
@@ -695,7 +695,7 @@ function App() {
         }
         return <WallpaperAdminScreen />;
       case 'about-us':
-        return <AboutUsScreen onOpenConfirmExit={() => setShowConfirmModal(true)} />;
+        return <AboutUsScreen onNavigateToClutchZone={openClutchZone} />;
       case 'store-terms':
       case 'store-privacy':
       case 'store-refund':
