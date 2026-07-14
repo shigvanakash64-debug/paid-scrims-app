@@ -14,6 +14,9 @@ export const Header = ({ user, onNavigate, onLogout }) => {
   const isAdmin = currentUser?.role === 'admin' || currentUser?.isAdmin === true;
 
   const menuItems = [
+    { key: 'wallpaper-home', label: 'Wallpaper Store', screen: 'wallpaper-home' },
+    { key: 'wallpaper-collection', label: 'Wallpapers', screen: 'wallpaper-collection' },
+    { key: 'about-us', label: 'About Us', screen: 'about-us' },
     { key: 'profile', label: 'Profile', screen: 'profile' },
     { key: 'inbox', label: `Inbox${currentUser?.notifications?.some((n) => !n.read) ? ` (${currentUser.notifications.filter((n) => !n.read).length})` : ''}`, screen: 'inbox' },
     { key: 'settings', label: 'Settings', screen: 'settings' },
@@ -54,6 +57,9 @@ export const Header = ({ user, onNavigate, onLogout }) => {
                       <div className="menu-divider" />
                       <button className="menu-item" type="button" onClick={() => handleNavigate('admin')} style={{ color: '#FF6A00', fontWeight: 'bold' }}>
                         Admin Dashboard
+                      </button>
+                      <button className="menu-item" type="button" onClick={() => handleNavigate('wallpaper-manager')} style={{ color: '#FF6A00', fontWeight: 'bold' }}>
+                        Wallpaper Manager
                       </button>
                     </>
                   )}

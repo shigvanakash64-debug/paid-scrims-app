@@ -222,6 +222,20 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user',
   },
+  wallpaperLibrary: [{
+    wallpaperId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Wallpaper',
+    },
+    title: String,
+    category: String,
+    price: Number,
+    previewImage: String,
+    purchasedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  }],
   // To make a user an admin in MongoDB, set role: 'admin' on the user document.
 
   // Anti-cheat tracking

@@ -17,8 +17,15 @@ import { BottomNav } from './components/BottomNav';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import NotificationTest from './components/NotificationTest';
+import { WallpaperConfirmModal } from './components/WallpaperConfirmModal';
 import { useMatch } from './contexts/MatchContext';
 import { useUser } from './contexts/UserContext';
+import { WallpaperHomeScreen } from './screens/WallpaperHomeScreen';
+import { WallpaperCollectionScreen } from './screens/WallpaperCollectionScreen';
+import { WallpaperDetailScreen } from './screens/WallpaperDetailScreen';
+import { WallpaperLibraryScreen } from './screens/WallpaperLibraryScreen';
+import { WallpaperAdminScreen } from './screens/WallpaperAdminScreen';
+import { AboutUsScreen } from './screens/AboutUsScreen';
 import './App.css';
 
 // Lazy load admin dashboard
@@ -108,9 +115,12 @@ const checkNotificationStatus = async (token) => {
 };
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState('login');
+  const [currentScreen, setCurrentScreen] = useState('wallpaper-home');
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [navVisible, setNavVisible] = useState(true);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedWallpaper, setSelectedWallpaper] = useState(null);
+  const [pendingAction, setPendingAction] = useState(null);
   const lastScrollPosRef = useRef(0);
   const { currentMatch, setMatch, clearMatch, refreshMatch } = useMatch();
   const { user, updateUser, clearUser } = useUser();
@@ -128,8 +138,8 @@ function App() {
         }
       })();
 
-      const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming'];
-      const targetScreen = validScreens.includes(savedScreen) ? savedScreen : 'home';
+      const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'clutch-zone-confirm'];
+      const targetScreen = validScreens.includes(savedScreen) ? savedScreen : 'wallpaper-home';
 
       if (!token) {
         setCurrentScreen(savedScreen || 'login');
@@ -274,11 +284,45 @@ function App() {
     return () => clearInterval(interval);
   }, [user]);
 
+  const purchasePendingWallpaper = useCallback(async (token, wallpaper) => {
+    if (!wallpaper?._id) return;
+
+    try {
+      const response = await axios.post(`${API_BASE}/wallpapers/${wallpaper._id}/purchase`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data.success) {
+        setSelectedWallpaper(wallpaper);
+        setCurrentScreen('wallpaper-library');
+        setPendingAction(null);
+      }
+    } catch (error) {
+      alert(error.response?.data?.error || 'Purchase failed');
+      setPendingAction(null);
+    }
+  }, []);
+
   const setSession = (userData, token) => {
     updateUser(userData);
     localStorage.setItem(TOKEN_KEY, token);
-    setCurrentScreen('home');
-    
+
+    if (pendingAction?.type === 'purchase' && pendingAction.wallpaper) {
+      setSelectedWallpaper(pendingAction.wallpaper);
+      setCurrentScreen('wallpaper-details');
+      setPendingAction(null);
+      void purchasePendingWallpaper(token, pendingAction.wallpaper);
+      return;
+    }
+
+    if (pendingAction === 'clutch-zone') {
+      setCurrentScreen('home');
+      setPendingAction(null);
+    } else {
+      setCurrentScreen('wallpaper-home');
+      setPendingAction(null);
+    }
+
     // Register OneSignal player ID after successful login
     registerOneSignalPlayerId(token);
   };
@@ -345,6 +389,29 @@ function App() {
 
   const handleLogout = () => {
     clearSession();
+  };
+
+  const handleScreenChange = useCallback((screen, wallpaper = null) => {
+    setCurrentScreen(screen);
+    if (screen === 'wallpaper-details' && wallpaper) {
+      setSelectedWallpaper(wallpaper);
+    } else {
+      setSelectedWallpaper(null);
+    }
+  }, []);
+
+  const openClutchZone = () => {
+    setShowConfirmModal(false);
+    if (user) {
+      setCurrentScreen('home');
+    } else {
+      setPendingAction('clutch-zone');
+      setCurrentScreen('login');
+    }
+  };
+
+  const handleStartPurchase = (wallpaper) => {
+    setPendingAction({ type: 'purchase', wallpaper });
   };
 
   useEffect(() => {
@@ -541,7 +608,22 @@ function App() {
       if (currentScreen === 'register') {
         return <RegisterScreen onRegister={handleRegister} onNavigateLogin={() => setCurrentScreen('login')} />;
       }
-      return <LoginScreen onLogin={handleLogin} onNavigateRegister={() => setCurrentScreen('register')} />;
+      if (currentScreen === 'login') {
+        return <LoginScreen onLogin={handleLogin} onNavigateRegister={() => setCurrentScreen('register')} />;
+      }
+
+      switch (currentScreen) {
+        case 'wallpaper-home':
+          return <WallpaperHomeScreen user={user} onScreenChange={handleScreenChange} onOpenConfirmExit={() => setShowConfirmModal(true)} />;
+        case 'wallpaper-collection':
+          return <WallpaperCollectionScreen onScreenChange={handleScreenChange} />;
+        case 'wallpaper-details':
+          return <WallpaperDetailScreen wallpaper={selectedWallpaper} user={user} onScreenChange={handleScreenChange} onStartPurchase={handleStartPurchase} />;
+        case 'about-us':
+          return <AboutUsScreen onScreenChange={() => setShowConfirmModal(true)} />;
+        default:
+          return <WallpaperHomeScreen user={user} onScreenChange={handleScreenChange} onOpenConfirmExit={() => setShowConfirmModal(true)} />;
+      }
     }
 
     // Admin route protection
@@ -549,7 +631,7 @@ function App() {
       if (!isAdmin) {
         alert('Admin access required');
         setCurrentScreen('home');
-        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={setCurrentScreen} currentMatch={currentMatch} />;
+        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} currentMatch={currentMatch} />;
       }
       return (
         <Suspense fallback={<div className="loading-screen">Loading Admin Dashboard...</div>}>
@@ -560,17 +642,17 @@ function App() {
 
     switch (currentScreen) {
       case 'home':
-        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={setCurrentScreen} currentMatch={currentMatch} />;
+        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} currentMatch={currentMatch} />;
       case 'match':
-        return <MatchScreen match={currentMatch} user={user} onScreenChange={setCurrentScreen} />;
+        return <MatchScreen match={currentMatch} user={user} onScreenChange={handleScreenChange} />;
       case 'result':
-        return <ResultScreen match={currentMatch} user={user} onScreenChange={setCurrentScreen} onUserUpdate={handleUserUpdate} />;
+        return <ResultScreen match={currentMatch} user={user} onScreenChange={handleScreenChange} onUserUpdate={handleUserUpdate} />;
       case 'pairing':
         return (
           <PairingScreen
             match={currentMatch}
             user={user}
-            onScreenChange={setCurrentScreen}
+            onScreenChange={handleScreenChange}
             onMatchSelect={setMatch}
           />
         );
@@ -598,21 +680,38 @@ function App() {
         return <InstructionsScreen />;
       case 'notification-test':
         return <NotificationTest />;
+      case 'wallpaper-home':
+        return <WallpaperHomeScreen user={user} onScreenChange={handleScreenChange} onOpenConfirmExit={() => setShowConfirmModal(true)} />;
+      case 'wallpaper-collection':
+        return <WallpaperCollectionScreen onScreenChange={handleScreenChange} />;
+      case 'wallpaper-details':
+        return <WallpaperDetailScreen wallpaper={selectedWallpaper} user={user} onScreenChange={handleScreenChange} onStartPurchase={handleStartPurchase} />;
+      case 'wallpaper-library':
+        return <WallpaperLibraryScreen user={user} onScreenChange={handleScreenChange} />;
+      case 'wallpaper-manager':
+        if (!isAdmin) {
+          alert('Admin access required');
+          return <WallpaperHomeScreen user={user} onScreenChange={handleScreenChange} onOpenConfirmExit={() => setShowConfirmModal(true)} />;
+        }
+        return <WallpaperAdminScreen />;
+      case 'about-us':
+        return <AboutUsScreen onScreenChange={() => setShowConfirmModal(true)} />;
       default:
-        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={setCurrentScreen} />;
+        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} />;
     }
   };
 
-  const hideBottomNavScreens = ['admin', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming'];
+  const hideBottomNavScreens = ['admin', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager'];
   const showBottomNav = user && !hideBottomNavScreens.includes(currentScreen);
-  const showFooter = ['home', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'instructions'].includes(currentScreen);
+  const showFooter = ['home', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'instructions', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us'].includes(currentScreen);
 
   return (
     <div className={`app ${currentScreen === 'admin' ? 'app-admin' : ''}`}>
-      <Header user={user} onNavigate={setCurrentScreen} onLogout={handleLogout} />
+      <Header user={user} onNavigate={handleScreenChange} onLogout={handleLogout} />
       <div className="scroll-area">{renderScreen()}</div>
-      {showFooter && <Footer onNavigate={setCurrentScreen} />}
-      {showBottomNav && <BottomNav currentScreen={currentScreen} onScreenChange={setCurrentScreen} isVisible={navVisible} />}
+      {showFooter && <Footer onNavigate={handleScreenChange} />}
+      {showBottomNav && <BottomNav currentScreen={currentScreen} onScreenChange={handleScreenChange} isVisible={navVisible} />}
+      <WallpaperConfirmModal open={showConfirmModal} onCancel={() => setShowConfirmModal(false)} onContinue={openClutchZone} />
     </div>
   );
 }
