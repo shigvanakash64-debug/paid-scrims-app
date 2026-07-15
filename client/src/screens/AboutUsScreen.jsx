@@ -27,7 +27,7 @@ export const AboutUsScreen = ({ onNavigateToClutchZone }) => {
                 color: 'inherit',
                 padding: 0,
                 cursor: 'pointer',
-                textDecoration: 'underline',
+                textDecoration: 'none',
                 fontSize: 'inherit',
                 fontFamily: 'inherit',
               }}
