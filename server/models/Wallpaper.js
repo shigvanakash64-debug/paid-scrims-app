@@ -56,15 +56,14 @@ const wallpaperSchema = new mongoose.Schema({
   },
 });
 
-wallpaperSchema.pre('save', function handleSlug(next) {
-  if (!this.slug) {
+wallpaperSchema.pre('save', function handleSlug() {
+  if (!this.slug && this.title) {
     this.slug = this.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
   }
   this.updatedAt = Date.now();
-  next();
 });
 
 export default mongoose.model('Wallpaper', wallpaperSchema);
