@@ -46,6 +46,10 @@ export const createWallpaper = async (req, res) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
+    console.log('[WALLPAPER] createWallpaper called by user:', req.userId, 'role:', user.role);
+    console.log('[WALLPAPER] headers:', Object.keys(req.headers));
+    console.log('[WALLPAPER] hasFile:', !!req.file, 'fileInfo:', req.file ? { originalname: req.file.originalname, mimetype: req.file.mimetype, size: req.file.size } : null);
+
     const { title, description, category, price, resolution } = req.body;
 
     if (!title || !category || !price) {
@@ -57,12 +61,19 @@ export const createWallpaper = async (req, res) => {
     let originalFile = req.body.originalFile || '';
 
     if (req.file && req.file.buffer) {
-      // Upload using base64 data URI to avoid stream/worker issues
-      const mime = req.file.mimetype || 'image/jpeg';
-      const base64 = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
-      const result = await cloudinary.uploader.upload(base64, { folder: 'wallpapers' });
-      previewImage = result.secure_url;
-      originalFile = result.secure_url;
+      try {
+        // Upload using base64 data URI to avoid stream/worker issues
+        const mime = req.file.mimetype || 'image/jpeg';
+        const base64 = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
+        console.log('[WALLPAPER] uploading to Cloudinary, size:', req.file.buffer.length);
+        const result = await cloudinary.uploader.upload(base64, { folder: 'wallpapers' });
+        console.log('[WALLPAPER] Cloudinary result:', result && result.secure_url);
+        previewImage = result.secure_url;
+        originalFile = result.secure_url;
+      } catch (uerr) {
+        console.error('[WALLPAPER] Cloudinary upload error:', uerr && (uerr.stack || uerr.message || uerr));
+        return res.status(502).json({ error: 'Cloudinary upload failed', details: uerr.message || uerr });
+      }
     }
 
     if (!previewImage || !originalFile) {
