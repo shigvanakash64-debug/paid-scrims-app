@@ -1,7 +1,6 @@
 import Wallpaper from '../models/Wallpaper.js';
 import User from '../models/User.js';
 import cloudinary from '../config/cloudinary.js';
-import streamifier from 'streamifier';
 
 const sendError = (res, status, message, error) => {
   console.error(`[WALLPAPER ERROR] ${message}:`, error);
@@ -58,15 +57,10 @@ export const createWallpaper = async (req, res) => {
     let originalFile = req.body.originalFile || '';
 
     if (req.file && req.file.buffer) {
-      const uploadFromBuffer = (buffer) => new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream({ folder: 'wallpapers' }, (error, result) => {
-          if (error) return reject(error);
-          resolve(result);
-        });
-        streamifier.createReadStream(buffer).pipe(uploadStream);
-      });
-
-      const result = await uploadFromBuffer(req.file.buffer);
+      // Upload using base64 data URI to avoid stream/worker issues
+      const mime = req.file.mimetype || 'image/jpeg';
+      const base64 = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
+      const result = await cloudinary.uploader.upload(base64, { folder: 'wallpapers' });
       previewImage = result.secure_url;
       originalFile = result.secure_url;
     }
