@@ -1,5 +1,7 @@
 import Wallpaper from '../models/Wallpaper.js';
 import User from '../models/User.js';
+import cloudinary from '../config/cloudinary.js';
+import streamifier from 'streamifier';
 
 const sendError = (res, status, message, error) => {
   console.error(`[WALLPAPER ERROR] ${message}:`, error);
@@ -45,9 +47,32 @@ export const createWallpaper = async (req, res) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const { title, description, category, price, resolution, previewImage, originalFile } = req.body;
-    if (!title || !category || !price || !previewImage || !originalFile) {
-      return res.status(400).json({ error: 'Title, category, price, preview image, and original file are required' });
+    const { title, description, category, price, resolution } = req.body;
+
+    if (!title || !category || !price) {
+      return res.status(400).json({ error: 'Title, category and price are required' });
+    }
+
+    // If a file was uploaded, send it to Cloudinary and use the returned URL(s)
+    let previewImage = req.body.previewImage || '';
+    let originalFile = req.body.originalFile || '';
+
+    if (req.file && req.file.buffer) {
+      const uploadFromBuffer = (buffer) => new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream({ folder: 'wallpapers' }, (error, result) => {
+          if (error) return reject(error);
+          resolve(result);
+        });
+        streamifier.createReadStream(buffer).pipe(uploadStream);
+      });
+
+      const result = await uploadFromBuffer(req.file.buffer);
+      previewImage = result.secure_url;
+      originalFile = result.secure_url;
+    }
+
+    if (!previewImage || !originalFile) {
+      return res.status(400).json({ error: 'Preview image and original file are required (upload a file or provide URLs)' });
     }
 
     const wallpaper = await Wallpaper.create({

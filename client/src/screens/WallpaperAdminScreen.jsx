@@ -10,12 +10,11 @@ const initialForm = {
   category: 'Gaming',
   price: '',
   resolution: '',
-  previewImage: '',
-  originalFile: '',
 };
 
 export const WallpaperAdminScreen = () => {
   const [form, setForm] = useState(initialForm);
+  const [file, setFile] = useState(null);
   const [wallpapers, setWallpapers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,10 +37,19 @@ export const WallpaperAdminScreen = () => {
     event.preventDefault();
     try {
       const token = localStorage.getItem(TOKEN_KEY);
-      await axios.post(`${API_BASE}/wallpapers`, form, {
+      const formData = new FormData();
+      formData.append('title', form.title);
+      formData.append('description', form.description);
+      formData.append('category', form.category);
+      formData.append('price', form.price);
+      formData.append('resolution', form.resolution);
+      if (file) formData.append('file', file);
+
+      await axios.post(`${API_BASE}/wallpapers`, formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setForm(initialForm);
+      setFile(null);
       await loadWallpapers();
       alert('Wallpaper uploaded');
     } catch (error) {
@@ -75,8 +83,8 @@ export const WallpaperAdminScreen = () => {
           <input className="auth-input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Category" required />
           <input className="auth-input" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="Price" required />
           <input className="auth-input" value={form.resolution} onChange={(e) => setForm({ ...form, resolution: e.target.value })} placeholder="Resolution" />
-          <input className="auth-input" value={form.previewImage} onChange={(e) => setForm({ ...form, previewImage: e.target.value })} placeholder="Preview Image URL" required />
-          <input className="auth-input" value={form.originalFile} onChange={(e) => setForm({ ...form, originalFile: e.target.value })} placeholder="Original Wallpaper URL" required />
+          <label style={{ color: '#fff', marginBottom: 8 }}>Upload Image (PNG/JPG/WebP)</label>
+          <input className="auth-input" type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} />
           <button className="btn-primary" type="submit">Upload Wallpaper</button>
         </form>
       </div>
