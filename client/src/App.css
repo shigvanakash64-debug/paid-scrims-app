@@ -80,6 +80,9 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .info-modal-content{font-size:13px;line-height:1.6;color:var(--muted);margin-bottom:16px}
 .info-modal-btn{background:var(--orange);border:none;color:#fff;padding:10px 16px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;cursor:pointer;border-radius:8px;width:100%;transition:background .12s}
 .info-modal-btn:hover{background:#ff7a18}
+.wallpaper-lightbox-overlay{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:16px;cursor:pointer}
+.wallpaper-lightbox-content{position:relative;max-width:100%;max-height:100%;cursor:auto;display:flex;align-items:center;justify-content:center}
+.wallpaper-lightbox-image{max-width:100%;max-height:100%;border-radius:18px;object-fit:contain;box-shadow:0 24px 80px rgba(0,0,0,.45)}
 /* Rules Modal */
 .rules-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:30}
 .rules-modal{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:400px;width:90%;max-height:85vh;overflow-y:auto}

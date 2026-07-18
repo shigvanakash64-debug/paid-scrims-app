@@ -7,6 +7,7 @@ const TOKEN_KEY = 'clutchzone_token';
 export const WallpaperDetailScreen = ({ wallpaper, user, onScreenChange, onStartPurchase, onPurchaseSuccess }) => {
   const [detail, setDetail] = useState(wallpaper || null);
   const [loading, setLoading] = useState(!wallpaper);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (wallpaper?._id) {
@@ -53,6 +54,8 @@ export const WallpaperDetailScreen = ({ wallpaper, user, onScreenChange, onStart
     return <div className="loading-state">Loading wallpaper...</div>;
   }
 
+  const wallpaperImage = detail.originalFile || detail.previewImage;
+
   return (
     <div className="screen-home" style={{ paddingBottom: 24 }}>
       <div className="section hero">
@@ -61,7 +64,12 @@ export const WallpaperDetailScreen = ({ wallpaper, user, onScreenChange, onStart
       </div>
 
       <div className="section">
-        <img src={detail.previewImage} alt={detail.title} style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 280 }} />
+        <img
+          src={wallpaperImage}
+          alt={detail.title}
+          style={{ width: '100%', borderRadius: 12, objectFit: 'cover', maxHeight: 280, cursor: 'pointer' }}
+          onClick={() => setPreviewOpen(true)}
+        />
       </div>
 
       <div className="section">
@@ -76,6 +84,18 @@ export const WallpaperDetailScreen = ({ wallpaper, user, onScreenChange, onStart
           </div>
         </div>
       </div>
+
+      {previewOpen && (
+        <div className="wallpaper-lightbox-overlay" onClick={() => setPreviewOpen(false)}>
+          <div className="wallpaper-lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={wallpaperImage}
+              alt={detail.title}
+              className="wallpaper-lightbox-image"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
