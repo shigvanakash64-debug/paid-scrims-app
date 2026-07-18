@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useUser } from '../contexts/UserContext';
 
-export const Header = ({ user, currentScreen, onNavigate, onLogout }) => {
+export const Header = ({ user, currentScreen, onNavigate, onBack, canGoBack, onLogout }) => {
   const { user: currentUser } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -27,10 +27,17 @@ export const Header = ({ user, currentScreen, onNavigate, onLogout }) => {
   ];
 
   return (
-    <header className="topbar">
-      <div className="logo">
-        <div className="logo-hex"></div>
-        <div className="logo-text">CLUTCH <span>ZONE</span></div>
+    <header className="topbar" style={{ justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {canGoBack && (
+          <button className="back-button" type="button" onClick={onBack}>
+            ← Back
+          </button>
+        )}
+        <div className="logo">
+          <div className="logo-hex"></div>
+          <div className="logo-text">CLUTCH <span>ZONE</span></div>
+        </div>
       </div>
       <div className="topbar-right">
         {currentUser && (

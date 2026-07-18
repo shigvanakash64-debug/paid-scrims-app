@@ -3,7 +3,7 @@ import { StoreHeader } from '../components/store/StoreHeader';
 import { StoreFooter } from '../components/store/StoreFooter';
 import { WallpaperConfirmModal } from '../components/WallpaperConfirmModal';
 
-export const StoreLayout = ({ children, user, currentScreen, onNavigate, onLogout, onOpenClutchZone }) => {
+export const StoreLayout = ({ children, user, currentScreen, onNavigate, onBack, canGoBack, onLogout, onOpenClutchZone }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleEnterClutchZone = () => {
@@ -15,9 +15,11 @@ export const StoreLayout = ({ children, user, currentScreen, onNavigate, onLogou
     user,
     currentScreen,
     onNavigate,
+    onBack,
+    canGoBack,
     onLogout,
     onOpenConfirmExit: () => setShowConfirmModal(true),
-  }), [user, currentScreen, onNavigate, onLogout]);
+  }), [user, currentScreen, onNavigate, onBack, canGoBack, onLogout]);
 
   return (
     <div className="app app-store">

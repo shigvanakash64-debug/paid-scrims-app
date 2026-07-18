@@ -116,6 +116,7 @@ const checkNotificationStatus = async (token) => {
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState('wallpaper-home');
+  const [screenHistory, setScreenHistory] = useState([]);
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [navVisible, setNavVisible] = useState(true);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -309,18 +310,18 @@ function App() {
 
     if (pendingAction?.type === 'purchase' && pendingAction.wallpaper) {
       setSelectedWallpaper(pendingAction.wallpaper);
-      setCurrentScreen('wallpaper-details');
+      navigateTo('wallpaper-details', pendingAction.wallpaper, true);
       setPendingAction(null);
       void purchasePendingWallpaper(token, pendingAction.wallpaper);
       return;
     }
 
     if (pendingAction === 'clutch-zone') {
-      setCurrentScreen('home');
       setPendingAction(null);
+      navigateTo('home', null, true);
     } else {
-      setCurrentScreen('wallpaper-home');
       setPendingAction(null);
+      navigateTo('wallpaper-home', null, true);
     }
 
     // Register OneSignal player ID after successful login
@@ -334,7 +335,8 @@ function App() {
     localStorage.removeItem('clutchzone_currentMatchId');
     localStorage.removeItem('clutchzone_currentScreen');
     clearMatch();
-    setCurrentScreen('wallpaper-home');
+    setScreenHistory([]);
+    navigateTo('wallpaper-home', null, true);
   };
 
   const handleLogin = async ({ username, password }) => {
@@ -391,22 +393,42 @@ function App() {
     clearSession();
   };
 
-  const handleScreenChange = useCallback((screen, wallpaper = null) => {
+  const navigateTo = (screen, wallpaper = null, replace = false) => {
+    setScreenHistory((prev) => {
+      if (replace || screen === currentScreen) return prev;
+      if (prev.length === 0 || prev[prev.length - 1] !== currentScreen) {
+        return [...prev, currentScreen];
+      }
+      return prev;
+    });
     setCurrentScreen(screen);
     if (screen === 'wallpaper-details' && wallpaper) {
       setSelectedWallpaper(wallpaper);
     } else {
       setSelectedWallpaper(null);
     }
-  }, []);
+  };
+
+  const handleScreenChange = (screen, wallpaper = null) => {
+    navigateTo(screen, wallpaper);
+  };
+
+  const handleBack = () => {
+    setScreenHistory((prev) => {
+      if (prev.length === 0) return prev;
+      const previous = prev[prev.length - 1];
+      setCurrentScreen(previous);
+      return prev.slice(0, -1);
+    });
+  };
 
   const openClutchZone = () => {
     setShowConfirmModal(false);
     if (user) {
-      setCurrentScreen('home');
+      navigateTo('home', null, true);
     } else {
       setPendingAction('clutch-zone');
-      setCurrentScreen('login');
+      navigateTo('login', null, true);
     }
   };
 
@@ -419,6 +441,8 @@ function App() {
       localStorage.setItem('clutchzone_currentScreen', currentScreen);
     }
   }, [currentScreen, user]);
+
+  const canGoBack = screenHistory.length > 0;
 
   useEffect(() => {
     const scrollArea = document.querySelector('.scroll-area');
@@ -721,6 +745,8 @@ function App() {
         user={user}
         currentScreen={currentScreen}
         onNavigate={handleScreenChange}
+        onBack={handleBack}
+        canGoBack={canGoBack}
         onLogout={handleLogout}
         onOpenClutchZone={openClutchZone}
       >
@@ -735,6 +761,8 @@ function App() {
       currentScreen={currentScreen}
       navVisible={navVisible}
       onNavigate={handleScreenChange}
+      onBack={handleBack}
+      canGoBack={canGoBack}
       onLogout={handleLogout}
     >
       {layoutContent}

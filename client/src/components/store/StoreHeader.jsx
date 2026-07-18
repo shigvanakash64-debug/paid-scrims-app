@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export const StoreHeader = ({ user, currentScreen, onNavigate, onLogout, onOpenConfirmExit }) => {
+export const StoreHeader = ({ user, currentScreen, onNavigate, onBack, canGoBack, onLogout, onOpenConfirmExit }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleNavigate = (screen) => {
@@ -20,9 +20,16 @@ export const StoreHeader = ({ user, currentScreen, onNavigate, onLogout, onOpenC
   return (
     <header className="topbar" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-        <div className="logo">
-          <div className="logo-hex"></div>
-          <div className="logo-text">CLUTCH <span>ZONE</span></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {canGoBack && (
+            <button className="back-button" type="button" onClick={onBack}>
+              ← Back
+            </button>
+          )}
+          <div className="logo">
+            <div className="logo-hex"></div>
+            <div className="logo-text">CLUTCH <span>ZONE</span></div>
+          </div>
         </div>
         <div className="topbar-right">
           {user ? (
