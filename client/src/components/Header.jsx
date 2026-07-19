@@ -30,8 +30,8 @@ export const Header = ({ user, currentScreen, onNavigate, onBack, canGoBack, onL
     <header className="topbar" style={{ justifyContent: 'space-between' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {canGoBack && (
-          <button className="back-button" type="button" onClick={onBack}>
-            ← Back
+          <button className="back-button" type="button" onClick={onBack} aria-label="Go back">
+            ←
           </button>
         )}
         <div className="logo">

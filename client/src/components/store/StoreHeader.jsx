@@ -22,8 +22,8 @@ export const StoreHeader = ({ user, currentScreen, onNavigate, onBack, canGoBack
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {canGoBack && (
-            <button className="back-button" type="button" onClick={onBack}>
-              ← Back
+            <button className="back-button" type="button" onClick={onBack} aria-label="Go back">
+              ←
             </button>
           )}
           <div className="logo">
