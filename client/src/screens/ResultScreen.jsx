@@ -22,6 +22,15 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
   const canSubmitResult = ['ongoing', 'result_pending', 'disputed'].includes(match?.status);
 
   useEffect(() => {
+    if (match?.status === 'completed') {
+      clearMatch();
+      const timer = setTimeout(() => onScreenChange('home'), 700);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [match?.status, clearMatch, onScreenChange]);
+
+  useEffect(() => {
     if (!selectedFile) {
       setPreviewUrl('');
       return undefined;
