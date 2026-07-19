@@ -114,7 +114,7 @@ export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
         </div>
         <div className="trust-section">
           <div className="trust-label">
-            <span className="label-text">Trust Score</span>
+            <span className="label-text">TG</span>
             <span className="label-score">{currentUser.trustScore} / 100</span>
           </div>
           <div className="trust-bar">
