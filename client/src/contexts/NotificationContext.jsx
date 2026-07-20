@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import axios from 'axios';
 import { NotificationStack } from '../components/notifications/NotificationStack';
 import { useUser } from './UserContext';
+import { getNewNotifications, normalizeNotificationPayload } from '../utils/notificationUtils';
 
 const NotificationContext = createContext(null);
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -31,24 +32,19 @@ export const NotificationProvider = ({ children }) => {
   const previousNotificationKeysRef = useRef('');
 
   const queueNotification = useCallback((payload) => {
-    const safePayload = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      type: payload?.type || 'info',
-      title: payload?.title || 'Clutch Zone',
-      message: payload?.message || 'You have a new update.',
-      duration: payload?.duration || 5000,
-    };
+    const safePayload = normalizeNotificationPayload(payload);
 
     setNotificationState((prev) => {
-      if (prev.active.length < 4) {
+      const nextActive = prev.active.filter((item) => item.id !== safePayload.id);
+      if (nextActive.length < 4) {
         return {
-          active: [...prev.active, safePayload],
+          active: [...nextActive, safePayload],
           queued: prev.queued,
         };
       }
 
       return {
-        active: prev.active,
+        active: nextActive,
         queued: [...prev.queued, safePayload],
       };
     });
@@ -78,24 +74,19 @@ export const NotificationProvider = ({ children }) => {
 
   useEffect(() => {
     const notificationItems = user?.notifications || [];
+    const previousKeys = previousNotificationKeysRef.current;
     const currentKeys = notificationItems
       .filter((item) => !item.read)
       .map((item) => `${item.id || item._id || ''}-${item.createdAt || ''}`);
-    const previousKeys = previousNotificationKeysRef.current;
 
     if (previousKeys && currentKeys.length > 0) {
-      const newItems = notificationItems.filter((item) => {
-        if (item.read) return false;
-        const key = `${item.id || item._id || ''}-${item.createdAt || ''}`;
-        return !previousKeys.split('|').includes(key);
-      });
+      const newItems = getNewNotifications(
+        previousKeys.split('|').map((key) => ({ id: key.split('-')[0], createdAt: key.split('-').slice(1).join('-'), read: false })),
+        notificationItems
+      );
 
       newItems.forEach((item) => {
-        queueNotification({
-          type: item.type || 'info',
-          title: item.title || item.type?.toUpperCase?.() || 'Clutch Zone',
-          message: item.message || 'You have a new update.',
-        });
+        queueNotification(item);
       });
     }
 
@@ -119,17 +110,13 @@ export const NotificationProvider = ({ children }) => {
         const previousKeys = previousNotificationKeysRef.current;
 
         if (previousKeys && remoteKeys.length > 0) {
-          const newItems = remoteUnread.filter((item) => {
-            const key = `${item.id || item._id || ''}-${item.createdAt || ''}`;
-            return !previousKeys.split('|').includes(key);
-          });
+          const newItems = getNewNotifications(
+            previousKeys.split('|').map((key) => ({ id: key.split('-')[0], createdAt: key.split('-').slice(1).join('-'), read: false })),
+            remoteUnread
+          );
 
           newItems.forEach((item) => {
-            queueNotification({
-              type: item.type || 'info',
-              title: item.title || item.type?.toUpperCase?.() || 'Clutch Zone',
-              message: item.message || 'You have a new update.',
-            });
+            queueNotification(item);
           });
         }
 
@@ -149,7 +136,7 @@ export const NotificationProvider = ({ children }) => {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.showClutchZoneNotification = showNotification;
+      window.showClutchZoneNotification = (payload) => queueNotification(payload);
       window.dismissClutchZoneNotification = dismissNotification;
     }
 
@@ -159,7 +146,7 @@ export const NotificationProvider = ({ children }) => {
         delete window.dismissClutchZoneNotification;
       }
     };
-  }, [dismissNotification]);
+  }, [dismissNotification, queueNotification]);
 
   const notifications = notificationState.active;
 

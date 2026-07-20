@@ -54,6 +54,7 @@ export const FloatingNotification = ({ notification, onClose }) => {
   return (
     <div
       className={`w-[320px] max-w-[92vw] rounded-2xl border border-[#2A2A2A] bg-[#111111]/95 p-3 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur transition-all duration-300 ${isVisible && !isExiting ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'}`}
+      style={{ WebkitTapHighlightColor: 'transparent' }}
       role="status"
       aria-live="polite"
     >
