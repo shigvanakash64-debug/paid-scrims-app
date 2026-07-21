@@ -19,9 +19,9 @@ export const StoreFooter = ({ onNavigate }) => {
     <footer className="site-footer">
       <div className="site-footer__content">
         <div className="site-footer__brand">
-          <div className="site-footer__title">Clutch Zone</div>
-          <div className="site-footer__meta">© 2026 Clutch Zone Wallpapers.</div>
-          <div className="site-footer__meta">Clutch Zone</div>
+          <div className="site-footer__title">Clutch Zone Wallpaper</div>
+          <div className="site-footer__meta"></div>
+          <div className="site-footer__meta">Clutch Zone Wallpaper</div>
           <div className="site-footer__meta">GSTIN: 27SQJPS2378E1Z0</div>
         </div>
 
