@@ -8,10 +8,22 @@ export const StoreContactScreen = () => {
 
       <div className="section">
         <div className="card" style={{ padding: 16 }}>
-          <h3 style={{ color: '#F4F2EA', marginBottom: 12, fontSize: 16, fontWeight: 600 }}>How We Can Help</h3>
-          <p className="screen-sub" style={{ marginTop: 0 }}>
-            You can contact us for:
-          </p>
+          <h3 style={{ color: '#FF6A00', marginBottom: 12, fontSize: 16, fontWeight: 600 }}>Business Details</h3>
+          <div className="screen-sub" style={{ marginTop: 0, display: 'grid', gap: 10 }}>
+            <div><strong>Business Name</strong><br />Clutch Zone</div>
+            <div><strong>GSTIN</strong><br />27SQJPS2378E1Z0</div>
+            <div>
+              <strong>Business Email</strong><br />
+              <a href="mailto:support@clutchzone.in" style={{ color: '#FF6A00' }}>support@clutchzone.in</a> <span style={{ color: '#F4F2EA' }}>(preferred)</span>
+            </div>
+            <div><strong>Support Hours</strong><br />Monday - Saturday<br />10:00 AM - 7:00 PM IST</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="card" style={{ padding: 16 }}>
+          <h3 style={{ color: '#FF6A00', marginBottom: 12, fontSize: 16, fontWeight: 600 }}>How We Can Help</h3>
           <ul style={{ marginLeft: 16, color: '#F4F2EA' }}>
             <li>Purchase issues</li>
             <li>Download problems</li>
@@ -19,27 +31,6 @@ export const StoreContactScreen = () => {
             <li>Account assistance</li>
             <li>General inquiries</li>
           </ul>
-        </div>
-      </div>
-
-      <div className="section">
-        <div className="card" style={{ padding: 16 }}>
-          <h3 style={{ color: '#FF6A00', marginBottom: 12, fontSize: 16, fontWeight: 600 }}>Email Support</h3>
-          <p className="screen-sub" style={{ marginTop: 0 }}>
-            <strong>supportclutchzone@gmail.com</strong>
-          </p>
-          <p className="screen-sub" style={{ marginTop: 8 }}>
-            Typically responds within 24–48 business hours.
-          </p>
-        </div>
-      </div>
-
-      <div className="section">
-        <div className="card" style={{ padding: 16, border: '1px solid #FF6A00' }}>
-          <h3 style={{ color: '#F4F2EA', marginBottom: 12, fontSize: 16, fontWeight: 600 }}>Response Time</h3>
-          <p className="screen-sub" style={{ marginTop: 0 }}>
-            We strive to respond to all inquiries within 24–48 business hours.
-          </p>
         </div>
       </div>
     </div>
