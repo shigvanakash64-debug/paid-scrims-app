@@ -252,11 +252,23 @@ export const createCashfreeOrder = async ({ amount, userId, userName, userEmail,
 export const verifyCashfreePayment = async ({ orderId, userId }) => {
   const config = getCashfreeConfig();
   const result = await paymentGateway.getOrder(config, orderId);
+  console.log('[Cashfree] getOrder result', {
+    orderId,
+    rawResult: result ? { keys: Object.keys(result) } : null,
+  });
   const order = result?.cfOrder || result?.order || result;
   const paymentEntities = result?.cfPaymentsEntities || order?.payments || [];
   const paymentStatus = getStatusFromPayload(result, paymentEntities);
   const cfPaymentId = getCfPaymentId(paymentEntities, order);
   const paymentMethod = getPaymentMethod(paymentEntities, order);
+
+  console.log('[Cashfree] verifyCashfreePayment parsed', {
+    orderId,
+    paymentStatus,
+    cfPaymentId,
+    paymentMethod,
+    paymentEntitiesCount: Array.isArray(paymentEntities) ? paymentEntities.length : 0,
+  });
 
   if (!paymentStatus) {
     return {

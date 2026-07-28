@@ -79,7 +79,14 @@ export const handleCashfreeWebhook = async (req, res) => {
     const signature = req.headers['x-cashfree-signature'] || req.headers['x-cashfree-signature'.toLowerCase()];
     const rawBody = req.rawBody || JSON.stringify(payload);
 
+    const orderId = payload?.data?.orderId || payload?.data?.order_id || payload?.orderId || payload?.order_id;
+    const paymentStatus = payload?.data?.paymentStatus || payload?.data?.payment_status || payload?.paymentStatus || payload?.payment_status || payload?.status;
+
+    console.log('[Cashfree] webhook received', { orderId, paymentStatus, signatureProvided: Boolean(signature) });
+
     const result = await processCashfreeWebhook({ payload, signature, rawBody });
+
+    console.log('[Cashfree] webhook processed', { orderId, result });
 
     return res.status(200).json({ success: true, ...result });
   } catch (error) {
