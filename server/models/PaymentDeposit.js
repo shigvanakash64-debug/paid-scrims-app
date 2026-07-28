@@ -47,9 +47,8 @@ const paymentDepositSchema = new mongoose.Schema({
   },
 });
 
-paymentDepositSchema.pre('save', function (next) {
+paymentDepositSchema.pre('save', function () {
   this.updatedAt = new Date();
-  next();
 });
 
 export default mongoose.model('PaymentDeposit', paymentDepositSchema);
