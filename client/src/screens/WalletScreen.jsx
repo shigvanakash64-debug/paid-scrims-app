@@ -148,8 +148,6 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     return username ? `${username}CZ` : '';
   };
 
-  const [cashfreeLoaded, setCashfreeLoaded] = useState(false);
-
   const copyReferralCode = async () => {
     const code = getDisplayReferralCode();
     if (!code) return;
