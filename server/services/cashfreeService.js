@@ -81,12 +81,23 @@ const getPaymentMethod = (paymentEntities = [], orderResponse = {}) => {
 const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, paymentMethod, userId }) => {
   const depositRecord = await PaymentDeposit.findOne({ orderId });
 
+  console.log('[Cashfree] finalizeDeposit called', { orderId, paymentStatus, cfPaymentId, paymentMethod, userId });
+
   if (!depositRecord) {
     throw new Error('No deposit record found for the supplied Cashfree order');
   }
 
+  console.log('[Cashfree] Found PaymentDeposit record', {
+    orderId: depositRecord.orderId,
+    paymentSessionId: depositRecord.paymentSessionId,
+    amount: depositRecord.amount,
+    paymentStatus: depositRecord.paymentStatus,
+    userId: depositRecord.userId,
+  });
+
   if (paymentStatus === 'SUCCESS') {
     if (depositRecord.paymentStatus === 'SUCCESS') {
+      console.log('[Cashfree] Deposit already credited, skipping wallet update');
       return {
         success: true,
         status: 'success',
@@ -100,6 +111,12 @@ const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, paymentMet
       throw new Error('User not found while crediting wallet');
     }
 
+    console.log('[Cashfree] Updating user wallet', {
+      userId: user._id,
+      currentBalance: user.wallet.balance,
+      depositAmount: depositRecord.amount,
+    });
+
     user.wallet.balance += Number(depositRecord.amount || 0);
     user.wallet.transactions.push({
       type: 'deposit',
@@ -110,10 +127,21 @@ const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, paymentMet
 
     await user.save();
 
+    console.log('[Cashfree] Wallet updated successfully', {
+      userId: user._id,
+      newBalance: user.wallet.balance,
+    });
+
     depositRecord.paymentStatus = 'SUCCESS';
     depositRecord.cfPaymentId = cfPaymentId || depositRecord.cfPaymentId;
     depositRecord.paymentMethod = paymentMethod || depositRecord.paymentMethod;
     await depositRecord.save();
+
+    console.log('[Cashfree] Deposit record updated', {
+      orderId: depositRecord.orderId,
+      paymentStatus: depositRecord.paymentStatus,
+      cfPaymentId: depositRecord.cfPaymentId,
+    });
 
     if (user.onesignalPlayerId && user.notificationPreferences.walletNotifications) {
       await sendNotification(

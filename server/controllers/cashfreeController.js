@@ -32,12 +32,17 @@ export const verifyCashfreeDeposit = async (req, res) => {
     const userId = req.userId;
     let { orderId, paymentSessionId } = req.body || {};
 
+    console.log('[Cashfree] verifyCashfreeDeposit called', { orderId, paymentSessionId, userId });
+
     // Allow frontend to pass either orderId or paymentSessionId (post-redirect variations)
     if (!orderId && paymentSessionId) {
       // Try to resolve orderId from stored PaymentDeposit record
       const PaymentDeposit = (await import('../models/PaymentDeposit.js')).default;
       const deposit = await PaymentDeposit.findOne({ paymentSessionId });
-      if (deposit) orderId = deposit.orderId;
+      if (deposit) {
+        orderId = deposit.orderId;
+        console.log('[Cashfree] Resolved orderId from paymentSessionId', { paymentSessionId, orderId });
+      }
     }
 
     if (!orderId) {
@@ -45,6 +50,8 @@ export const verifyCashfreeDeposit = async (req, res) => {
     }
 
     const result = await verifyCashfreePayment({ orderId, userId });
+
+    console.log('[Cashfree] verifyCashfreePayment result', { orderId, result });
 
     if (!result.success) {
       return res.status(400).json({

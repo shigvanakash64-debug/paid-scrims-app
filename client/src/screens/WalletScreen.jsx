@@ -72,18 +72,20 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const fetchWalletData = async () => {
     try {
       const token = localStorage.getItem('clutchzone_token');
-      const [meResponse, depositResponse, withdrawalResponse] = await Promise.all([
+      const [meResponse, withdrawalResponse] = await Promise.all([
         axios.get(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API_BASE}/wallet/deposits`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API_BASE}/wallet/withdrawals`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const userData = meResponse.data.user;
+      const walletTransactions = userData.wallet?.transactions || [];
+      const depositTransactions = walletTransactions.filter((item) => item.type === 'deposit');
+
       setBalance(userData.wallet?.balance || 0);
       setBonusBalance(userData.wallet?.bonusBalance || 0);
       setReferralEarningsBalance(userData.wallet?.referralEarningsBalance || 0);
       setReferralCode(userData.wallet?.referralCode || '');
-      setTransactions(userData.wallet?.transactions || []);
-      setDeposits(depositResponse.data.deposits || []);
+      setTransactions(walletTransactions);
+      setDeposits(depositTransactions);
       setRedeemals(withdrawalResponse.data.withdrawals || []);
       onUserUpdate(userData);
     } catch (error) {
