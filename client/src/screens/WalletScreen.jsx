@@ -159,17 +159,28 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     }
   };
 
+  const cashfreeMode = import.meta.env.VITE_CASHFREE_ENV === 'TEST' ? 'sandbox' : 'production';
+
   useEffect(() => {
     const loadCashfreeSdk = async () => {
-      if (window.cashfree) {
+      if (window.Cashfree || window.cashfree) {
         setCashfreeLoaded(true);
         return;
       }
 
       const script = document.createElement('script');
-      script.src = 'https://sdk.cashfree.com/js/v2/cashfree.js';
+      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
       script.async = true;
-      script.onload = () => setCashfreeLoaded(true);
+      script.onload = () => {
+        if (window.Cashfree) {
+          window.cashfree = window.Cashfree;
+          setCashfreeLoaded(true);
+        } else if (window.cashfree) {
+          setCashfreeLoaded(true);
+        } else {
+          setMessage('Unable to initialize Cashfree checkout.');
+        }
+      };
       script.onerror = () => setMessage('Unable to load Cashfree payment library.');
       document.body.appendChild(script);
     };
@@ -215,42 +226,52 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         throw new Error('Failed to create Cashfree payment session');
       }
 
-      if (!window.cashfree) {
+      const cashfreeFactory = typeof window.Cashfree === 'function'
+        ? window.Cashfree
+        : typeof window.cashfree === 'function'
+          ? window.cashfree
+          : null;
+      if (!cashfreeFactory) {
         throw new Error('Cashfree checkout library is not loaded');
       }
 
-      const config = {
-        sessionId: paymentSessionId,
+      const checkoutOptions = {
+        paymentSessionId,
+        mode: cashfreeMode,
         orderId,
         orderAmount: String(amount),
         orderCurrency: 'INR',
-        customerName: user?.username || 'Clutch Zone User',
-        customerEmail: user?.email || 'placeholder@clutchzone.in',
-        customerPhone: String(user?.phone || '9999999999'),
+        returnUrl: window.location.href,
+        redirectTarget: '_self',
       };
 
-      window.cashfree.checkout(config, {
-        onSuccess: async () => {
-          setMessage('Payment completed, verifying transaction...');
-          const verifyResponse = await axios.post(`${API_BASE}/wallet/cashfree-verify`, {
-            orderId,
-          }, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+      const checkout = cashfreeFactory({ mode: cashfreeMode });
+      const result = await checkout.checkout(checkoutOptions);
 
-          if (verifyResponse.data?.success) {
-            setMessage(`Deposit successful. Wallet credited with CZ ${amount}.`);
-            setDepositSuccess(true);
-            setDepositSuccessAmount(amount);
-            fetchWalletData();
-          } else {
-            setMessage(verifyResponse.data?.message || 'Unable to verify payment. Wallet not credited yet.');
-          }
-        },
-        onFailure: async () => {
-          setMessage('Payment failed or was cancelled. No wallet update will be made.');
-        },
-      });
+      if (result?.redirect) {
+        setMessage('Redirecting to secure payment page...');
+        return;
+      }
+
+      if (result?.paymentDetails) {
+        setMessage('Payment completed, verifying transaction...');
+        const verifyResponse = await axios.post(`${API_BASE}/wallet/cashfree-verify`, {
+          orderId,
+        }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (verifyResponse.data?.success) {
+          setMessage(`Deposit successful. Wallet credited with CZ ${amount}.`);
+          setDepositSuccess(true);
+          setDepositSuccessAmount(amount);
+          fetchWalletData();
+        } else {
+          setMessage(verifyResponse.data?.message || 'Unable to verify payment. Wallet not credited yet.');
+        }
+      } else {
+        setMessage('Payment was not completed. No wallet update was made.');
+      }
     } catch (error) {
       console.error(error);
       setMessage(error.response?.data?.error || error.message || 'Failed to start Cashfree payment');
