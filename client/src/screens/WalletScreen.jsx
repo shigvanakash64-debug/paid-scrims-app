@@ -235,9 +235,13 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         throw new Error('Cashfree checkout library is not loaded');
       }
 
+      // Use the environment returned by the backend (TEST / LIVE) when available
+      // to prevent sandbox/production mismatches that make session IDs invalid.
+      const sdkMode = (data?.environment === 'TEST') ? 'sandbox' : (data?.environment === 'LIVE' ? 'production' : cashfreeMode);
+
       const checkoutOptions = {
         paymentSessionId,
-        mode: cashfreeMode,
+        mode: sdkMode,
         orderId,
         orderAmount: String(amount),
         orderCurrency: 'INR',
@@ -245,7 +249,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         redirectTarget: '_self',
       };
 
-      const checkout = cashfreeFactory({ mode: cashfreeMode });
+      const checkout = cashfreeFactory({ mode: sdkMode });
       const result = await checkout.checkout(checkoutOptions);
 
       if (result?.redirect) {
