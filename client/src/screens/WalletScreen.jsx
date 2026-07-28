@@ -3,6 +3,44 @@ import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
+const AmountChip = ({ amount, selected, onClick }) => (
+  <button
+    type="button"
+    onClick={() => onClick(String(amount))}
+    className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${selected ? 'border-[#FF6A00] bg-[#FF6A00] text-black' : 'border-[#2A2A2A] bg-[#0B0B0B] text-white hover:border-[#FF6A00]'}`}
+  >
+    CZ {amount}
+  </button>
+);
+
+const CheckoutSummaryCard = ({ amount }) => (
+  <div className="rounded-3xl border border-[#2A2A2A] bg-[#0B0B0B] p-5 shadow-[0_18px_35px_rgba(0,0,0,0.25)]">
+    <div className="flex items-center justify-between text-sm text-[#A1A1A1] mb-4">
+      <span>Deposit Amount</span>
+      <span className="font-semibold text-white">CZ {amount || 0}</span>
+    </div>
+    <div className="flex items-center justify-between text-sm text-[#A1A1A1] mb-4">
+      <span>Platform Charges</span>
+      <span className="font-semibold text-white">₹0</span>
+    </div>
+    <div className="border-t border-[#1F1F1F] pt-4 flex items-center justify-between text-lg font-semibold text-white">
+      <span>Total Payable</span>
+      <span>₹{amount || 0}</span>
+    </div>
+  </div>
+);
+
+const SecurityNoticeCard = () => (
+  <div className="rounded-3xl border border-[#2A2A2A] bg-[#111111] p-4 text-sm text-[#A1A1A1]">
+    <div className="font-semibold text-white mb-2">Security Notice</div>
+    <ul className="list-disc space-y-2 pl-4 leading-6">
+      <li>Payments are processed securely by Cashfree.</li>
+      <li>Wallet is credited only after payment verification.</li>
+      <li>Do not refresh or close the payment window until the transaction completes.</li>
+    </ul>
+  </div>
+);
+
 export const WalletScreen = ({ user, onUserUpdate }) => {
   const [balance, setBalance] = useState(user?.wallet?.balance || 0);
   const [bonusBalance, setBonusBalance] = useState(user?.wallet?.bonusBalance || 0);
@@ -11,14 +49,12 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const [transactions, setTransactions] = useState([]);
   const [activeTab, setActiveTab] = useState('deposit');
   const [withdrawalAmount, setRedeemalAmount] = useState('');
-  const [withdrawalUpi, setRedeemalUpi] = useState('');
   const [withdrawalWallet, setRedeemalWallet] = useState('main');
-  const [depositAmount, setDepositAmount] = useState('');
-  const [depositUtr, setDepositUtr] = useState('');
-  const [payerName, setPayerName] = useState('');
-  const [depositUpiInfo, setDepositUpiInfo] = useState({ upi: '', upis: [] });
-  const [depositLoading, setDepositLoading] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('100');
   const [cashfreeLoading, setCashfreeLoading] = useState(false);
+  const [cashfreeLoaded, setCashfreeLoaded] = useState(false);
+  const [depositSuccess, setDepositSuccess] = useState(false);
+  const [depositSuccessAmount, setDepositSuccessAmount] = useState(0);
   const [deposits, setDeposits] = useState([]);
   const [withdrawals, setRedeemals] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -36,11 +72,10 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const fetchWalletData = async () => {
     try {
       const token = localStorage.getItem('clutchzone_token');
-      const [meResponse, depositResponse, withdrawalResponse, upiResponse] = await Promise.all([
+      const [meResponse, depositResponse, withdrawalResponse] = await Promise.all([
         axios.get(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API_BASE}/wallet/deposits`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API_BASE}/wallet/withdrawals`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API_BASE}/wallet/deposit-upi`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const userData = meResponse.data.user;
       setBalance(userData.wallet?.balance || 0);
@@ -50,7 +85,6 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       setTransactions(userData.wallet?.transactions || []);
       setDeposits(depositResponse.data.deposits || []);
       setRedeemals(withdrawalResponse.data.withdrawals || []);
-      setDepositUpiInfo({ upi: upiResponse.data.upi || '', upis: upiResponse.data.upis || [] });
       onUserUpdate(userData);
     } catch (error) {
       console.error('Failed to fetch wallet data:', error);
@@ -73,11 +107,6 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   };
 
   const handleRedeemalRequest = async () => {
-    if (!withdrawalUpi?.trim()) {
-      setMessage('Please enter your UPI ID');
-      return;
-    }
-
     const amount = parseFloat(withdrawalAmount);
 
     if (!withdrawalAmount || amount < 100) {
@@ -97,7 +126,6 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       const token = localStorage.getItem('clutchzone_token');
       await axios.post(`${API_BASE}/wallet/withdraw`, {
         amount,
-        upi: withdrawalUpi.trim(),
         wallet: withdrawalWallet,
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -105,7 +133,6 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
 
       setMessage('Redemption request submitted successfully. Admin approval required.');
       setRedeemalAmount('');
-      setRedeemalUpi('');
       setRedeemalWallet('main');
       fetchWalletData(); // Refresh data
     } catch (error) {
@@ -162,9 +189,18 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       setMessage('Minimum deposit amount is CZ5');
       return;
     }
+    if (amount > 10000) {
+      setMessage('Maximum deposit amount is CZ10000');
+      return;
+    }
+    if (!cashfreeLoaded) {
+      setMessage('Loading Cashfree checkout... please wait.');
+      return;
+    }
 
     setCashfreeLoading(true);
-    setMessage('Creating Cashfree payment session...');
+    setDepositSuccess(false);
+    setMessage('Preparing secure checkout...');
     try {
       const token = localStorage.getItem('clutchzone_token');
       const response = await axios.post(`${API_BASE}/wallet/cashfree-order`, {
@@ -205,10 +241,12 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
           });
 
           if (verifyResponse.data?.success) {
-            setMessage(`✅ ₹${amount} has been credited to your wallet after verification.`);
+            setMessage(`Deposit successful. Wallet credited with CZ ${amount}.`);
+            setDepositSuccess(true);
+            setDepositSuccessAmount(amount);
             fetchWalletData();
           } else {
-            setMessage(verifyResponse.data?.message || 'Payment verification failed.');
+            setMessage(verifyResponse.data?.message || 'Unable to verify payment. Wallet not credited yet.');
           }
         },
         onFailure: async () => {
@@ -231,43 +269,11 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         <p className="text-sm text-[#A1A1A1] mt-2">Manage your earnings and redemptions</p>
       </div>
 
-      <div className="wallet-top-cards">
-        <div className="wallet-small-card wallet-small-card--success">
-          <div className="wallet-small-card-label">2% CASHBACK</div>
-          <div className="wallet-small-card-title">Get 2% cashback on every match entry</div>
-          <div className="wallet-small-card-action">Use cashback to play more matches</div>
-        </div>
-        <div className="wallet-small-card wallet-small-card--accent">
-          <div className="wallet-small-card-label">REFER & EARN</div>
-          <div className="wallet-small-card-title">Refer your friends and earn 20% commission</div>
-          <div className="wallet-small-card-action">On lifetime platform fees</div>
-        </div>
-      </div>
-
-      <div className="wallet-balance-card rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6">
+      <div className="wallet-balance-card rounded-3xl border border-[#1F1F1F] bg-[#111111] p-6 shadow-[0_15px_40px_rgba(0,0,0,0.35)]">
         <div className="wallet-balance-card-top text-center">
-          <div className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1] mb-2">Current Balance</div>
+          <div className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1] mb-2">Wallet Balance</div>
           <div className="text-5xl font-bold text-[#FF6A00] mb-3">CZ - {balance.toLocaleString()}</div>
-          <div className="text-sm text-[#A1A1A1]">Available for redemption</div>
-        </div>
-
-        <div className="wallet-balance-grid mt-6">
-          <div className="wallet-balance-metric">
-            <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Bonus Balance</div>
-            <div className="mt-2 text-lg font-semibold text-white">CZ - {bonusBalance.toLocaleString()}</div>
-          </div>
-          <div className="wallet-balance-metric">
-            <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Earnings</div>
-            <div className="mt-2 text-lg font-semibold text-white">CZ - {referralEarningsBalance.toLocaleString()}</div>
-          </div>
-        </div>
-
-        <div className="wallet-referral-card mt-5">
-          <div>
-            <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Code</div>
-            <div className="mt-2 text-lg font-semibold text-white">{getDisplayReferralCode() || 'Generating...'}</div>
-          </div>
-          <button className="wallet-copy-btn" type="button" onClick={copyReferralCode}>COPY</button>
+          <div className="text-sm text-[#A1A1A1]">1 CZ = ₹1</div>
         </div>
       </div>
 
@@ -300,49 +306,62 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         )}
 
         {activeTab === 'deposit' ? (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-[#A1A1A1] mb-2">Amount 1 CZ = to 1 RS</label>
-              <div className="flex gap-2 mb-2">
-                {[30,50,150,300].map((amt) => (
-                  <button key={amt} onClick={() => setDepositAmount(String(amt))} className="px-3 py-2 rounded-lg bg-[#0B0B0B] border border-[#2A2A2A] text-sm text-white">CZ - {amt}</button>
+          <div className="space-y-5">
+            <div className="rounded-3xl border border-[#1F1F1F] bg-[#111111] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+              <div className="text-sm uppercase tracking-[0.24em] text-[#A1A1A1] mb-4">Quick Amount</div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[50, 100, 200, 500, 1000].map((amt) => (
+                  <AmountChip
+                    key={amt}
+                    amount={amt}
+                    selected={depositAmount === String(amt)}
+                    onClick={setDepositAmount}
+                  />
                 ))}
               </div>
-              <p className="text-xs text-[#A1A1A1] mb-2">Minimum: CZ - 5</p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm text-[#A1A1A1]">Custom Amount</label>
+                <span className="text-xs text-[#A1A1A1]">CZ 5 - CZ 10000</span>
+              </div>
               <input
                 type="number"
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
                 placeholder="Enter deposit amount"
-                className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
-                min="1"
+                min="5"
+                max="10000"
+                className="w-full rounded-[16px] border border-[#2A2A2A] bg-[#0B0B0B] px-5 py-4 text-lg font-semibold text-white outline-none transition focus:border-[#FF6A00]"
               />
             </div>
-            <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4 text-sm text-[#E5E7EB] space-y-2">
-              <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Current Deposit UPI</div>
-              <div className="text-base font-semibold text-white">{depositUpiInfo.upi || 'Loading...'}</div>
-            </div>
-            <div>
-              <label className="block text-sm text-[#A1A1A1] mb-2">Amount 1 CZ = to 1 RS</label>
-              <input
-                type="number"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-                placeholder="Enter deposit amount"
-                className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
-                min="1"
-              />
-            </div>
+
+            <CheckoutSummaryCard amount={Number(depositAmount) || 0} />
 
             <button
               onClick={handleDeposit}
-              disabled={cashfreeLoading || !depositAmount || parseFloat(depositAmount) <= 0}
-              className="w-full rounded-3xl bg-[#FF6A00] px-6 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black transition disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={cashfreeLoading || !depositAmount || Number(depositAmount) < 5 || Number(depositAmount) > 10000 || !cashfreeLoaded}
+              className="flex w-full items-center justify-center gap-3 rounded-[16px] bg-[#FF6A00] px-6 py-4 text-base font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-[#ff9900] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {cashfreeLoading ? 'Starting Cashfree...' : 'Pay with Cashfree'}
+              {cashfreeLoading ? (
+                <>
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                  Preparing Secure Checkout...
+                </>
+              ) : (
+                'Continue to Payment'
+              )}
             </button>
 
-            <div className="text-xs text-[#A1A1A1]">Admin verifies UTR, amount, and the payer name before your wallet is credited.</div>
+            {depositSuccess && (
+              <div className="rounded-3xl border border-[#22C55E] bg-[#062b0e] p-4 text-sm text-[#D9F99D]">
+                <div className="font-semibold text-white">Deposit Successful</div>
+                <div>Wallet credited with CZ {depositSuccessAmount}.</div>
+              </div>
+            )}
+
+            <SecurityNoticeCard />
           </div>
         ) : (
           <div className="space-y-4">
@@ -368,16 +387,6 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               </div>
             </div>
             <div>
-              <label className="block text-sm text-[#A1A1A1] mb-2">UPI ID</label>
-              <input
-                type="text"
-                value={withdrawalUpi}
-                onChange={(e) => setRedeemalUpi(e.target.value)}
-                placeholder="Enter UPI ID"
-                className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
-              />
-            </div>
-            <div>
               <label className="block text-sm text-[#A1A1A1] mb-2">Amount</label>
               <input
                 type="number"
@@ -392,7 +401,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
 
             <button
               onClick={handleRedeemalRequest}
-              disabled={loading || !withdrawalUpi || !withdrawalAmount || parseFloat(withdrawalAmount) < 100 || parseFloat(withdrawalAmount) > (withdrawalWallet === 'referral' ? referralEarningsBalance : balance)}
+              disabled={loading || !withdrawalAmount || parseFloat(withdrawalAmount) < 100 || parseFloat(withdrawalAmount) > (withdrawalWallet === 'referral' ? referralEarningsBalance : balance)}
               className="w-full rounded-3xl bg-[#FF6A00] px-6 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black transition disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? 'Submitting...' : 'Request Redemption'}
@@ -415,7 +424,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-white font-semibold">CZ - {Number(deposit.amount).toLocaleString()}</div>
-                    <div className="text-xs text-[#A1A1A1]">UTR: {deposit.utr} • Payer: {deposit.payerName || 'N/A'}</div>
+                    <div className="text-xs text-[#A1A1A1]">Order ID: {deposit.orderId || deposit._id}</div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${deposit.status === 'approved' ? 'bg-[#022c0b] text-[#22C55E]' : deposit.status === 'rejected' ? 'bg-[#3d1c1c] text-[#EF4444]' : 'bg-[#2A2A2A] text-[#F59E0B]'}`}>{deposit.status}</span>
                 </div>
