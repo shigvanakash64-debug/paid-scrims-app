@@ -993,8 +993,7 @@ export const getAllWithdrawals = async (req, res) => {
   }
 };
 
-export const getAllDeposits = async (req, res) => {
-// Manual deposit endpoints removed: manual UPI deposit approval is deprecated.
+// getAllDeposits removed: manual UPI deposit approval is deprecated.
 
 /**
  * Approve a withdrawal request
