@@ -4,9 +4,6 @@ import {
   getWalletBalance,
   addBalance,
   getTransactionHistory,
-  submitDepositRequest,
-  getDepositUpiDetails,
-  getDepositHistory,
   getWithdrawalHistory,
 } from '../controllers/walletController.js';
 import {
@@ -32,13 +29,7 @@ router.post('/withdraw', requestWithdrawal);
  */
 router.get('/balance', getWalletBalance);
 
-/**
- * POST /wallet/deposit-request
- * Create a manual UPI deposit request for admin verification
- */
-router.post('/deposit-request', submitDepositRequest);
-router.get('/deposit-upi', getDepositUpiDetails);
-router.get('/deposits', getDepositHistory);
+// Manual deposit endpoints removed: /deposit-request, /deposit-upi, /deposits
 router.get('/withdrawals', getWithdrawalHistory);
 
 /**

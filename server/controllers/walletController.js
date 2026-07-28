@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
 import User from '../models/User.js';
-import { getCurrentDepositUpi, getDepositUpis, getDepositUpiConfig } from '../config/depositUpi.js';
+// Manual deposit UPI endpoints removed; deposit UPI config usage removed from controller
 import { sendNotification } from '../services/notificationService.js';
 
 const getRazorpayInstance = () => {
@@ -143,95 +143,8 @@ export const getWalletBalance = async (req, res) => {
   }
 };
 
-export const getDepositUpiDetails = async (req, res) => {
-  try {
-    const config = getDepositUpiConfig();
-    res.status(200).json({
-      success: true,
-      upi: getCurrentDepositUpi(),
-      upis: getDepositUpis(),
-      currentIndex: config.currentIndex || 0,
-    });
-  } catch (error) {
-    console.error('Get Deposit UPI Error:', error);
-    res.status(500).json({ error: 'Failed to fetch deposit UPI details' });
-  }
-};
 
-export const submitDepositRequest = async (req, res) => {
-  try {
-    const { amount, utr, payerName } = req.body;
-    const userId = req.userId;
 
-    if (!amount || Number(amount) <= 0) {
-      return res.status(400).json({ error: 'Invalid deposit amount' });
-    }
-
-    if (Number(amount) < 5) {
-      return res.status(400).json({ error: 'Minimum deposit amount is ₹5' });
-    }
-
-    const normalizedUtr = String(utr || '').trim().toUpperCase();
-    const normalizedName = String(payerName || '').trim();
-
-    if (!normalizedUtr || normalizedUtr.length < 6) {
-      return res.status(400).json({ error: 'Please enter a valid UTR number' });
-    }
-
-    if (!normalizedName) {
-      return res.status(400).json({ error: 'Please enter the payer full name' });
-    }
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const duplicate = (user.wallet?.pendingDeposits || []).some((entry) =>
-      entry.utr === normalizedUtr && ['pending', 'approved'].includes(entry.status)
-    );
-
-    if (duplicate) {
-      return res.status(409).json({ error: 'This UTR has already been used for a pending or approved deposit' });
-    }
-
-    user.wallet.pendingDeposits = user.wallet.pendingDeposits || [];
-    user.wallet.pendingDeposits.unshift({
-      amount: Number(amount),
-      utr: normalizedUtr,
-      payerName: normalizedName,
-      status: 'pending',
-      requestedAt: new Date(),
-    });
-
-    await user.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Deposit request submitted successfully. Await admin approval.',
-      deposit: user.wallet.pendingDeposits[0],
-    });
-  } catch (error) {
-    console.error('Submit Deposit Request Error:', error);
-    res.status(500).json({ error: 'Failed to submit deposit request' });
-  }
-};
-
-export const getDepositHistory = async (req, res) => {
-  try {
-    const userId = req.userId;
-    const user = await User.findById(userId).select('wallet.pendingDeposits');
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    res.status(200).json({
-      success: true,
-      deposits: (user.wallet?.pendingDeposits || []).sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt)),
-    });
-  } catch (error) {
-    console.error('Get Deposit History Error:', error);
-    res.status(500).json({ error: 'Failed to fetch deposit history' });
-  }
-};
 
 export const getWithdrawalHistory = async (req, res) => {
   try {
@@ -450,9 +363,6 @@ export default {
   getWalletBalance,
   addBalance,
   getTransactionHistory,
-  submitDepositRequest,
-  getDepositUpiDetails,
-  getDepositHistory,
   getWithdrawalHistory,
   createDepositOrder,
   confirmDeposit,

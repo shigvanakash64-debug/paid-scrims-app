@@ -1,7 +1,7 @@
 export const AdminSidebar = ({ currentScreen, onScreenChange, isMobile }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'deposits', label: 'Deposits', icon: '💳' },
+    // Deposits removed: manual deposit approval flow deprecated
     { id: 'disputes', label: 'Disputes', icon: '⚠️' },
     { id: 'withdrawals', label: 'Redemptions', icon: '💸' },
     { id: 'users', label: 'Users', icon: '👤' },

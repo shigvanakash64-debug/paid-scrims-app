@@ -3,15 +3,13 @@ import { AdminSidebar } from './AdminSidebar';
 import { AdminDashboard } from '../../screens/AdminDashboard';
 import { UsersPanel } from '../../screens/UsersPanel';
 import { WithdrawalsPanel } from '../../screens/WithdrawalsPanel';
-import { DepositsPanel } from '../../screens/DepositsPanel';
 import { DisputesPanel } from '../../screens/DisputesPanel';
 
 const SCREENS = {
   DASHBOARD: 'dashboard',
-  USERS: 'users',
-  DEPOSITS: 'deposits',
-  WITHDRAWALS: 'withdrawals',
-  DISPUTES: 'disputes',
+    USERS: 'users',
+    WITHDRAWALS: 'withdrawals',
+    DISPUTES: 'disputes',
 };
 
 export const AdminLayout = () => {
@@ -24,8 +22,6 @@ export const AdminLayout = () => {
         return <AdminDashboard onNavigate={setCurrentScreen} />;
       case SCREENS.USERS:
         return <UsersPanel />;
-      case SCREENS.DEPOSITS:
-        return <DepositsPanel />;
       case SCREENS.WITHDRAWALS:
         return <WithdrawalsPanel />;
       case SCREENS.DISPUTES:
