@@ -229,13 +229,13 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     if (possibleOrderId) {
       tryVerify(possibleOrderId);
     } else if (possiblePaymentSession) {
-      // If only payment session present, try to lookup the order server-side by session.
+      // If only payment session present, try to lookup the order server-side by session id
       (async () => {
         try {
           setMessage('Verifying payment (session)...');
           const token = localStorage.getItem('clutchzone_token');
           // Attempt to verify by asking backend to find order by session id
-          const resp = await axios.post(`${API_BASE}/wallet/cashfree-verify`, { orderId: possiblePaymentSession }, { headers: { Authorization: `Bearer ${token}` } });
+          const resp = await axios.post(`${API_BASE}/wallet/cashfree-verify`, { paymentSessionId: possiblePaymentSession }, { headers: { Authorization: `Bearer ${token}` } });
           if (resp.data?.success) {
             setMessage(`Deposit successful. Wallet credited with CZ ${resp.data.amount || depositAmount}.`);
             setDepositSuccess(true);
