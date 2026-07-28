@@ -30,10 +30,18 @@ export const createCashfreeDepositOrder = async (req, res) => {
 export const verifyCashfreeDeposit = async (req, res) => {
   try {
     const userId = req.userId;
-    const { orderId } = req.body;
+    let { orderId, paymentSessionId } = req.body || {};
+
+    // Allow frontend to pass either orderId or paymentSessionId (post-redirect variations)
+    if (!orderId && paymentSessionId) {
+      // Try to resolve orderId from stored PaymentDeposit record
+      const PaymentDeposit = (await import('../models/PaymentDeposit.js')).default;
+      const deposit = await PaymentDeposit.findOne({ paymentSessionId });
+      if (deposit) orderId = deposit.orderId;
+    }
 
     if (!orderId) {
-      return res.status(400).json({ error: 'orderId is required for verification' });
+      return res.status(400).json({ error: 'orderId or paymentSessionId is required for verification' });
     }
 
     const result = await verifyCashfreePayment({ orderId, userId });

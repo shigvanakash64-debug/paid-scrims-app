@@ -188,6 +188,70 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     loadCashfreeSdk();
   }, []);
 
+  // Handle returnUrl from Cashfree (post-redirect). If Cashfree redirects back
+  // with an order id or payment session id, automatically verify on backend.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search || window.location.hash.replace('#', '?'));
+    const possibleOrderId = params.get('order_id') || params.get('orderId') || params.get('order_id') || params.get('orderId');
+    const possiblePaymentSession = params.get('payment_session_id') || params.get('paymentSessionId') || params.get('paymentSession') || null;
+
+    const tryVerify = async (orderId) => {
+      try {
+        setMessage('Verifying payment...');
+        const token = localStorage.getItem('clutchzone_token');
+        const verifyResponse = await axios.post(`${API_BASE}/wallet/cashfree-verify`, { orderId }, { headers: { Authorization: `Bearer ${token}` } });
+
+        if (verifyResponse.data?.success) {
+          setMessage(`Deposit successful. Wallet credited with CZ ${verifyResponse.data.amount || depositAmount}.`);
+          setDepositSuccess(true);
+          setDepositSuccessAmount(verifyResponse.data.amount || Number(depositAmount));
+          fetchWalletData();
+        } else {
+          setMessage(verifyResponse.data?.message || 'Payment verification pending.');
+        }
+      } catch (err) {
+        console.error('Verify after redirect error', err);
+        setMessage(err.response?.data?.error || err.message || 'Verification failed after payment.');
+      } finally {
+        // Clean URL so we don't re-run verification repeatedly
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('order_id');
+          url.searchParams.delete('orderId');
+          url.searchParams.delete('payment_session_id');
+          window.history.replaceState({}, document.title, url.toString());
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+
+    if (possibleOrderId) {
+      tryVerify(possibleOrderId);
+    } else if (possiblePaymentSession) {
+      // If only payment session present, try to lookup the order server-side by session.
+      (async () => {
+        try {
+          setMessage('Verifying payment (session)...');
+          const token = localStorage.getItem('clutchzone_token');
+          // Attempt to verify by asking backend to find order by session id
+          const resp = await axios.post(`${API_BASE}/wallet/cashfree-verify`, { orderId: possiblePaymentSession }, { headers: { Authorization: `Bearer ${token}` } });
+          if (resp.data?.success) {
+            setMessage(`Deposit successful. Wallet credited with CZ ${resp.data.amount || depositAmount}.`);
+            setDepositSuccess(true);
+            setDepositSuccessAmount(resp.data.amount || Number(depositAmount));
+            fetchWalletData();
+          } else {
+            setMessage(resp.data?.message || 'Payment verification pending.');
+          }
+        } catch (err) {
+          console.error('Verify by session error', err);
+          setMessage(err.response?.data?.error || err.message || 'Verification failed after payment.');
+        }
+      })();
+    }
+  }, []);
+
   const handleDeposit = async () => {
     const amount = parseFloat(depositAmount);
     if (!depositAmount || amount <= 0) {
