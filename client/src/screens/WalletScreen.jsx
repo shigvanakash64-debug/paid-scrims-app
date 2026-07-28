@@ -18,6 +18,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const [payerName, setPayerName] = useState('');
   const [depositUpiInfo, setDepositUpiInfo] = useState({ upi: '', upis: [] });
   const [depositLoading, setDepositLoading] = useState(false);
+  const [cashfreeLoading, setCashfreeLoading] = useState(false);
   const [deposits, setDeposits] = useState([]);
   const [withdrawals, setRedeemals] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -120,6 +121,8 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     return username ? `${username}CZ` : '';
   };
 
+  const [cashfreeLoaded, setCashfreeLoaded] = useState(false);
+
   const copyReferralCode = async () => {
     const code = getDisplayReferralCode();
     if (!code) return;
@@ -131,6 +134,24 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     }
   };
 
+  useEffect(() => {
+    const loadCashfreeSdk = async () => {
+      if (window.cashfree) {
+        setCashfreeLoaded(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://sdk.cashfree.com/js/v2/cashfree.js';
+      script.async = true;
+      script.onload = () => setCashfreeLoaded(true);
+      script.onerror = () => setMessage('Unable to load Cashfree payment library.');
+      document.body.appendChild(script);
+    };
+
+    loadCashfreeSdk();
+  }, []);
+
   const handleDeposit = async () => {
     const amount = parseFloat(depositAmount);
     if (!depositAmount || amount <= 0) {
@@ -141,34 +162,64 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       setMessage('Minimum deposit amount is CZ5');
       return;
     }
-    if (!depositUtr.trim() || depositUtr.trim().length < 6) {
-      setMessage('Please enter a valid UTR number');
-      return;
-    }
-    if (!payerName.trim()) {
-      setMessage('Please enter the payer full name');
-      return;
-    }
 
-    setDepositLoading(true);
-    setMessage('');
+    setCashfreeLoading(true);
+    setMessage('Creating Cashfree payment session...');
     try {
       const token = localStorage.getItem('clutchzone_token');
-      await axios.post(`${API_BASE}/wallet/deposit-request`, {
+      const response = await axios.post(`${API_BASE}/wallet/cashfree-order`, {
         amount,
-        utr: depositUtr.trim(),
-        payerName: payerName.trim(),
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      setMessage('✅ Deposit request submitted. Admin will verify it and credit your wallet.');
-      setDepositAmount('');
-      setDepositUtr('');
-      setPayerName('');
-      fetchWalletData();
+      const { data } = response.data;
+      const paymentSessionId = data?.paymentSessionId;
+      const orderId = data?.orderId;
+
+      if (!paymentSessionId || !orderId) {
+        throw new Error('Failed to create Cashfree payment session');
+      }
+
+      if (!window.cashfree) {
+        throw new Error('Cashfree checkout library is not loaded');
+      }
+
+      const config = {
+        sessionId: paymentSessionId,
+        orderId,
+        orderAmount: String(amount),
+        orderCurrency: 'INR',
+        customerName: user?.username || 'Clutch Zone User',
+        customerEmail: user?.email || 'placeholder@clutchzone.in',
+        customerPhone: String(user?.phone || '9999999999'),
+      };
+
+      window.cashfree.checkout(config, {
+        onSuccess: async () => {
+          setMessage('Payment completed, verifying transaction...');
+          const verifyResponse = await axios.post(`${API_BASE}/wallet/cashfree-verify`, {
+            orderId,
+          }, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (verifyResponse.data?.success) {
+            setMessage(`✅ ₹${amount} has been credited to your wallet after verification.`);
+            fetchWalletData();
+          } else {
+            setMessage(verifyResponse.data?.message || 'Payment verification failed.');
+          }
+        },
+        onFailure: async () => {
+          setMessage('Payment failed or was cancelled. No wallet update will be made.');
+        },
+      });
     } catch (error) {
-      setMessage(error.response?.data?.error || 'Failed to submit deposit request.');
+      console.error(error);
+      setMessage(error.response?.data?.error || error.message || 'Failed to start Cashfree payment');
     } finally {
-      setDepositLoading(false);
+      setCashfreeLoading(false);
     }
   };
 
@@ -272,32 +323,23 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               <div className="text-base font-semibold text-white">{depositUpiInfo.upi || 'Loading...'}</div>
             </div>
             <div>
-              <label className="block text-sm text-[#A1A1A1] mb-2">UTR Number</label>
+              <label className="block text-sm text-[#A1A1A1] mb-2">Amount 1 CZ = to 1 RS</label>
               <input
-                type="text"
-                value={depositUtr}
-                onChange={(e) => setDepositUtr(e.target.value.toUpperCase())}
-                placeholder="Enter UTR number"
+                type="number"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                placeholder="Enter deposit amount"
                 className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-[#A1A1A1] mb-2">Full Name of Payer</label>
-              <input
-                type="text"
-                value={payerName}
-                onChange={(e) => setPayerName(e.target.value)}
-                placeholder="Enter payer full name"
-                className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
+                min="1"
               />
             </div>
 
             <button
               onClick={handleDeposit}
-              disabled={depositLoading || !depositAmount || parseFloat(depositAmount) <= 0}
+              disabled={cashfreeLoading || !depositAmount || parseFloat(depositAmount) <= 0}
               className="w-full rounded-3xl bg-[#FF6A00] px-6 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black transition disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {depositLoading ? 'Submitting...' : 'Submit Deposit Request'}
+              {cashfreeLoading ? 'Starting Cashfree...' : 'Pay with Cashfree'}
             </button>
 
             <div className="text-xs text-[#A1A1A1]">Admin verifies UTR, amount, and the payer name before your wallet is credited.</div>

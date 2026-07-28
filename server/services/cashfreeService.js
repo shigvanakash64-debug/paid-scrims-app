@@ -1,0 +1,302 @@
+import crypto from 'crypto';
+import {
+  CFConfig,
+  CFEnvironment,
+  CFPaymentGateway,
+  CFOrderRequest,
+  CFCustomerDetails,
+} from 'cashfree-pg-sdk-nodejs';
+import PaymentDeposit from '../models/PaymentDeposit.js';
+import User from '../models/User.js';
+import { sendNotification } from './notificationService.js';
+
+const API_VERSION = process.env.CASHFREE_API_VERSION || '2022-09-01';
+const paymentGateway = new CFPaymentGateway();
+
+const isTestEnvironment = () => String(process.env.CASHFREE_ENV || '').toUpperCase() === 'TEST';
+
+const getCashfreeEnvironment = () => (isTestEnvironment() ? CFEnvironment.SANDBOX : CFEnvironment.PRODUCTION);
+
+export const getCashfreeConfig = () => {
+  const clientId = process.env.CASHFREE_CLIENT_ID;
+  const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Cashfree credentials are not configured');
+  }
+
+  return new CFConfig(getCashfreeEnvironment(), API_VERSION, clientId, clientSecret, 180000, null);
+};
+
+const normalizeStatus = (value) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.toUpperCase();
+};
+
+const buildOrderId = (userId, amount) => {
+  const safeUserPart = String(userId || 'wallet').replace(/[^a-zA-Z0-9]/g, '').slice(-8) || 'wallet';
+  const safeAmountPart = String(Math.round(Number(amount || 0))).replace(/[^0-9]/g, '');
+  return `CZ-${safeUserPart}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeAmountPart}`;
+};
+
+const getStatusFromPayload = (orderResponse, paymentEntities = []) => {
+  const firstPayment = paymentEntities[0] || {};
+  const orderStatus = orderResponse?.cfOrder?.orderStatus
+    || orderResponse?.cfOrder?.order_status
+    || orderResponse?.orderStatus
+    || orderResponse?.order_status
+    || orderResponse?.status;
+
+  if (orderStatus) {
+    return normalizeStatus(orderStatus);
+  }
+
+  const paymentStatus = firstPayment.paymentStatus
+    || firstPayment.payment_status
+    || firstPayment.status;
+
+  return normalizeStatus(paymentStatus);
+};
+
+const getCfPaymentId = (paymentEntities = [], orderResponse = {}) => {
+  const firstPayment = paymentEntities[0] || {};
+  return firstPayment.cfPaymentId
+    || firstPayment.paymentId
+    || orderResponse?.cfOrder?.cfPaymentId
+    || orderResponse?.cfOrder?.paymentId
+    || null;
+};
+
+const getPaymentMethod = (paymentEntities = [], orderResponse = {}) => {
+  const firstPayment = paymentEntities[0] || {};
+  return firstPayment.paymentMethod
+    || firstPayment.payment_method
+    || orderResponse?.cfOrder?.paymentMethod
+    || orderResponse?.cfOrder?.payment_method
+    || 'cashfree';
+};
+
+const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, paymentMethod, userId }) => {
+  const depositRecord = await PaymentDeposit.findOne({ orderId });
+
+  if (!depositRecord) {
+    throw new Error('No deposit record found for the supplied Cashfree order');
+  }
+
+  if (paymentStatus === 'SUCCESS') {
+    if (depositRecord.paymentStatus === 'SUCCESS') {
+      return {
+        success: true,
+        status: 'success',
+        message: 'Deposit already credited to wallet.',
+        orderId,
+      };
+    }
+
+    const user = await User.findById(depositRecord.userId || userId);
+    if (!user) {
+      throw new Error('User not found while crediting wallet');
+    }
+
+    user.wallet.balance += Number(depositRecord.amount || 0);
+    user.wallet.transactions.push({
+      type: 'deposit',
+      amount: Number(depositRecord.amount || 0),
+      description: 'Wallet deposit via Cashfree',
+      timestamp: new Date(),
+    });
+
+    await user.save();
+
+    depositRecord.paymentStatus = 'SUCCESS';
+    depositRecord.cfPaymentId = cfPaymentId || depositRecord.cfPaymentId;
+    depositRecord.paymentMethod = paymentMethod || depositRecord.paymentMethod;
+    await depositRecord.save();
+
+    if (user.onesignalPlayerId && user.notificationPreferences.walletNotifications) {
+      await sendNotification(
+        [user.onesignalPlayerId],
+        '💰 Deposit successful',
+        `₹${depositRecord.amount} has been added to your wallet.`,
+        {
+          type: 'success',
+          priority: 9,
+          data: {
+            eventType: 'deposit_success',
+            amount: depositRecord.amount,
+            provider: 'cashfree',
+          },
+        }
+      );
+    }
+
+    user.notifications.push({
+      type: 'success',
+      message: `₹${depositRecord.amount} deposited successfully to your wallet via Cashfree.`,
+      relatedMatch: null,
+    });
+
+    await user.save();
+
+    return {
+      success: true,
+      status: 'success',
+      message: 'Deposit confirmed and wallet updated.',
+      orderId,
+      amount: Number(depositRecord.amount || 0),
+    };
+  }
+
+  depositRecord.paymentStatus = paymentStatus;
+  depositRecord.cfPaymentId = cfPaymentId || depositRecord.cfPaymentId;
+  depositRecord.paymentMethod = paymentMethod || depositRecord.paymentMethod;
+  await depositRecord.save();
+
+  return {
+    success: false,
+    status: paymentStatus.toLowerCase(),
+    message: 'Payment is not complete yet.',
+    orderId,
+  };
+};
+
+export const createCashfreeOrder = async ({ amount, userId, userName, userEmail, userPhone }) => {
+  const parsedAmount = Number(amount);
+
+  if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    throw new Error('Invalid deposit amount');
+  }
+
+  const config = getCashfreeConfig();
+  const orderId = buildOrderId(userId, parsedAmount);
+
+  const customerDetails = new CFCustomerDetails();
+  customerDetails.customerId = String(userId || orderId);
+  customerDetails.customerName = userName || 'Clutch Zone User';
+  customerDetails.customerEmail = userEmail || 'placeholder@clutchzone.in';
+  customerDetails.customerPhone = String(userPhone || '9999999999').replace(/\D/g, '').slice(0, 10);
+
+  const orderRequest = new CFOrderRequest();
+  orderRequest.orderId = orderId;
+  orderRequest.orderAmount = Number(parsedAmount.toFixed(2));
+  orderRequest.orderCurrency = 'INR';
+  orderRequest.customerDetails = customerDetails;
+  orderRequest.orderNote = 'Clutch Zone wallet deposit';
+  orderRequest.orderTags = {
+    source: 'clutch-zone',
+    channel: 'wallet',
+  };
+
+  const depositRecord = await PaymentDeposit.create({
+    userId,
+    orderId,
+    amount: parsedAmount,
+    paymentStatus: 'PENDING',
+    paymentMethod: 'cashfree',
+  });
+
+  const response = await paymentGateway.orderCreate(config, orderRequest);
+  const order = response?.cfOrder || response?.order || response;
+  const paymentSessionId = order?.paymentSessionId || order?.payment_session_id;
+
+  if (!paymentSessionId) {
+    depositRecord.paymentStatus = 'FAILED';
+    await depositRecord.save();
+    throw new Error('Cashfree did not return a payment session id');
+  }
+
+  depositRecord.paymentSessionId = paymentSessionId;
+  depositRecord.paymentStatus = 'PENDING';
+  await depositRecord.save();
+
+  return {
+    success: true,
+    orderId: order?.orderId || orderId,
+    paymentSessionId,
+    amount: Number(parsedAmount.toFixed(2)),
+    currency: 'INR',
+    environment: isTestEnvironment() ? 'TEST' : 'LIVE',
+  };
+};
+
+export const verifyCashfreePayment = async ({ orderId, userId }) => {
+  const config = getCashfreeConfig();
+  const result = await paymentGateway.getOrder(config, orderId);
+  const order = result?.cfOrder || result?.order || result;
+  const paymentEntities = result?.cfPaymentsEntities || order?.payments || [];
+  const paymentStatus = getStatusFromPayload(result, paymentEntities);
+  const cfPaymentId = getCfPaymentId(paymentEntities, order);
+  const paymentMethod = getPaymentMethod(paymentEntities, order);
+
+  if (!paymentStatus) {
+    return {
+      success: false,
+      status: 'pending',
+      message: 'Cashfree did not send a payment status yet.',
+      orderId,
+    };
+  }
+
+  return finalizeDeposit({
+    orderId,
+    paymentStatus,
+    cfPaymentId,
+    paymentMethod,
+    userId,
+  });
+};
+
+export const processCashfreeWebhook = async ({ payload, signature, rawBody }) => {
+  const webhookSecret = process.env.CASHFREE_WEBHOOK_SECRET;
+
+  if (webhookSecret && signature) {
+    const expectedSignature = crypto.createHmac('sha256', webhookSecret).update(rawBody || '').digest('hex');
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+      throw new Error('Invalid Cashfree webhook signature');
+    }
+  }
+
+  const eventPayload = payload?.data || payload;
+  const orderId = eventPayload?.orderId
+    || eventPayload?.order_id
+    || eventPayload?.order?.orderId
+    || eventPayload?.order?.order_id
+    || payload?.orderId
+    || payload?.order_id;
+
+  if (!orderId) {
+    throw new Error('Cashfree webhook payload did not include an order id');
+  }
+
+  const paymentStatus = normalizeStatus(
+    eventPayload?.paymentStatus
+    || eventPayload?.payment_status
+    || eventPayload?.orderStatus
+    || eventPayload?.order_status
+    || payload?.paymentStatus
+    || payload?.payment_status
+    || payload?.status
+  );
+
+  const cfPaymentId = eventPayload?.cfPaymentId
+    || eventPayload?.paymentId
+    || payload?.cfPaymentId
+    || payload?.paymentId
+    || null;
+
+  const paymentMethod = eventPayload?.paymentMethod
+    || eventPayload?.payment_method
+    || payload?.paymentMethod
+    || payload?.payment_method
+    || 'cashfree';
+
+  return finalizeDeposit({
+    orderId,
+    paymentStatus,
+    cfPaymentId,
+    paymentMethod,
+    userId: null,
+  });
+};

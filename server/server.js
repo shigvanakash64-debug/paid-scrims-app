@@ -96,7 +96,9 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 app.use(globalLimiter);
-app.use(express.json());
+
+// Capture raw body as well for webhook signature validation.
+app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf.toString('utf-8'); } }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 app.use("/api/tickets", ticketRoutes);
@@ -255,6 +257,7 @@ app.use("/api/auth", authLimiter, authRoutes);
 app.use("/auth", authLimiter, authRoutes); // Alias for simpler deployed URL usage
 app.use("/api/match", matchLimiter, matchRoutes);
 app.use("/api/wallet", matchLimiter, walletRoutes);
+app.use("/api/cashfree", matchLimiter, (await import("./routes/cashfreeRoutes.js")).default);
 app.use("/api/rewards", matchLimiter, rewardRoutes);
 app.use("/api/wallpapers", wallpaperRoutes);
 app.use("/api/admin", adminLimiter, adminRoutes);

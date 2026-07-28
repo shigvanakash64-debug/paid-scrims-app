@@ -4,13 +4,15 @@ import {
   getWalletBalance,
   addBalance,
   getTransactionHistory,
-  createDepositOrder,
-  confirmDeposit,
   submitDepositRequest,
   getDepositUpiDetails,
   getDepositHistory,
   getWithdrawalHistory,
 } from '../controllers/walletController.js';
+import {
+  createCashfreeDepositOrder,
+  verifyCashfreeDeposit,
+} from '../controllers/cashfreeController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -31,20 +33,25 @@ router.post('/withdraw', requestWithdrawal);
 router.get('/balance', getWalletBalance);
 
 /**
- * POST /wallet/deposit-order
- * Create a Razorpay order for wallet deposit
+ * POST /wallet/deposit-request
+ * Create a manual UPI deposit request for admin verification
  */
 router.post('/deposit-request', submitDepositRequest);
 router.get('/deposit-upi', getDepositUpiDetails);
 router.get('/deposits', getDepositHistory);
 router.get('/withdrawals', getWithdrawalHistory);
-router.post('/deposit-order', createDepositOrder);
 
 /**
- * POST /wallet/confirm-deposit
- * Confirm Razorpay payment and update wallet balance
+ * POST /wallet/cashfree-order
+ * Create a Cashfree order and return payment session id
  */
-router.post('/confirm-deposit', confirmDeposit);
+router.post('/cashfree-order', createCashfreeDepositOrder);
+
+/**
+ * POST /wallet/cashfree-verify
+ * Verify the Cashfree payment from the backend
+ */
+router.post('/cashfree-verify', verifyCashfreeDeposit);
 
 /**
  * GET /wallet/transactions
