@@ -5,6 +5,7 @@ import {
   CFPaymentGateway,
   CFOrderRequest,
   CFCustomerDetails,
+  CFOrderMeta,
 } from 'cashfree-pg-sdk-nodejs';
 import PaymentDeposit from '../models/PaymentDeposit.js';
 import User from '../models/User.js';
@@ -239,16 +240,22 @@ export const createCashfreeOrder = async ({ amount, userId, userName, userEmail,
     channel: 'wallet',
   };
 
-  // Optionally include a return URL so Cashfree redirects back to our server
-  // Set `CASHFREE_RETURN_URL` in .env to enable server-side verification on redirect
+  // Optionally include a return URL so Cashfree redirects back to our frontend page
+  // The return URL must carry the order_id so the frontend can verify the payment.
   const configuredReturn = process.env.CASHFREE_RETURN_URL;
   if (configuredReturn) {
     try {
-      // SDK may accept camelCase or snake_case meta; set both to be compatible
-      orderRequest.orderMeta = orderRequest.orderMeta || {};
-      orderRequest.orderMeta.returnUrl = configuredReturn;
+      const returnUrl = configuredReturn.includes('{order_id}')
+        ? configuredReturn.replace('{order_id}', encodeURIComponent(orderId))
+        : configuredReturn.includes('?')
+          ? `${configuredReturn}&order_id=${encodeURIComponent(orderId)}`
+          : `${configuredReturn}?order_id=${encodeURIComponent(orderId)}`;
+
+      const orderMeta = new CFOrderMeta();
+      orderMeta.returnUrl = returnUrl;
+      orderRequest.orderMeta = orderMeta;
       orderRequest.order_meta = orderRequest.order_meta || {};
-      orderRequest.order_meta.return_url = configuredReturn;
+      orderRequest.order_meta.return_url = returnUrl;
     } catch (e) {
       // ignore if SDK object shape differs
       console.warn('[Cashfree] Could not set return URL on order request', e.message || e);

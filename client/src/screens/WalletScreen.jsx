@@ -242,7 +242,12 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       // to prevent sandbox/production mismatches that make session IDs invalid.
       const sdkMode = (data?.environment === 'TEST') ? 'sandbox' : (data?.environment === 'LIVE' ? 'production' : cashfreeMode);
 
-      const returnUrl = import.meta.env.VITE_CASHFREE_RETURN_URL || `${window.location.origin}/payment-status`;
+      const rawReturnUrl = import.meta.env.VITE_CASHFREE_RETURN_URL || `${window.location.origin}/payment-status`;
+      const returnUrl = rawReturnUrl.includes('{order_id}')
+        ? rawReturnUrl.replace('{order_id}', encodeURIComponent(orderId))
+        : rawReturnUrl.includes('?')
+          ? `${rawReturnUrl}&order_id=${encodeURIComponent(orderId)}`
+          : `${rawReturnUrl}?order_id=${encodeURIComponent(orderId)}`;
       const checkoutOptions = {
         paymentSessionId,
         mode: sdkMode,
