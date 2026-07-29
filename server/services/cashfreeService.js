@@ -227,6 +227,22 @@ export const createCashfreeOrder = async ({ amount, userId, userName, userEmail,
     channel: 'wallet',
   };
 
+  // Optionally include a return URL so Cashfree redirects back to our server
+  // Set `CASHFREE_RETURN_URL` in .env to enable server-side verification on redirect
+  const configuredReturn = process.env.CASHFREE_RETURN_URL;
+  if (configuredReturn) {
+    try {
+      // SDK may accept camelCase or snake_case meta; set both to be compatible
+      orderRequest.orderMeta = orderRequest.orderMeta || {};
+      orderRequest.orderMeta.returnUrl = configuredReturn;
+      orderRequest.order_meta = orderRequest.order_meta || {};
+      orderRequest.order_meta.return_url = configuredReturn;
+    } catch (e) {
+      // ignore if SDK object shape differs
+      console.warn('[Cashfree] Could not set return URL on order request', e.message || e);
+    }
+  }
+
   const depositRecord = await PaymentDeposit.create({
     userId,
     orderId,

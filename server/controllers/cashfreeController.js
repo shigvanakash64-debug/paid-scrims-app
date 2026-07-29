@@ -103,3 +103,41 @@ export const handleCashfreeWebhook = async (req, res) => {
     return res.status(400).json({ error: error.message || 'Cashfree webhook could not be processed' });
   }
 };
+
+export const handleCashfreeReturn = async (req, res) => {
+  try {
+    // Cashfree will redirect users to this URL after payment completion.
+    // Support both orderId and paymentSessionId query params.
+    let { orderId, paymentSessionId } = req.query || {};
+
+    if (!orderId && paymentSessionId) {
+      const PaymentDeposit = (await import('../models/PaymentDeposit.js')).default;
+      const deposit = await PaymentDeposit.findOne({ paymentSessionId });
+      if (deposit) {
+        orderId = deposit.orderId;
+      }
+    }
+
+    if (!orderId) {
+      // If we cannot resolve an order id, redirect back to frontend with an error
+      const frontend = process.env.FRONTEND_URL || '/';
+      const redirectTo = `${frontend.replace(/\/$/, '')}/deposit-result?status=error&message=${encodeURIComponent('missing_order_id')}`;
+      return res.redirect(redirectTo);
+    }
+
+    const result = await verifyCashfreePayment({ orderId, userId: null });
+
+    const frontend = process.env.FRONTEND_URL || '/';
+    const status = result && result.success ? 'success' : 'failed';
+    const message = result && result.message ? result.message : (result && result.status) || 'unknown';
+
+    const redirectTo = `${frontend.replace(/\/$/, '')}/deposit-result?status=${encodeURIComponent(status)}&orderId=${encodeURIComponent(orderId)}&message=${encodeURIComponent(message)}`;
+
+    return res.redirect(redirectTo);
+  } catch (error) {
+    console.error('Cashfree Return Handler Error:', error);
+    const frontend = process.env.FRONTEND_URL || '/';
+    const redirectTo = `${frontend.replace(/\/$/, '')}/deposit-result?status=error&message=${encodeURIComponent(error.message || 'return_handler_failed')}`;
+    return res.redirect(redirectTo);
+  }
+};
