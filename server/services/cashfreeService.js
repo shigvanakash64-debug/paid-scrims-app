@@ -269,8 +269,19 @@ export const verifyCashfreePayment = async ({ orderId, userId }) => {
       orderId,
       rawResult: result ? { keys: Object.keys(result) } : null,
     });
+
     const order = result?.cfOrder || result?.order || result;
-    const paymentEntities = result?.cfPaymentsEntities || order?.payments || [];
+    let paymentEntities = result?.cfPaymentsEntities || order?.payments || [];
+
+    if (!Array.isArray(paymentEntities) && order?.payments && typeof order.payments === 'object') {
+      const paymentsResult = await paymentGateway.getPaymentsForOrder(config, orderId);
+      paymentEntities = paymentsResult?.cfPaymentsEntities || [];
+      console.log('[Cashfree] getPaymentsForOrder result', {
+        orderId,
+        paymentsCount: Array.isArray(paymentEntities) ? paymentEntities.length : 0,
+      });
+    }
+
     const paymentStatus = getStatusFromPayload(result, paymentEntities);
     const cfPaymentId = getCfPaymentId(paymentEntities, order);
     const paymentMethod = getPaymentMethod(paymentEntities, order);
