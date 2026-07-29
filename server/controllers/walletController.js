@@ -184,10 +184,22 @@ export const verifyCashfreeDeposit = async (req, res) => {
     const result = await verifyCashfreePayment({ orderId, userId: req.userId });
 
     if (!result.success) {
-      return res.status(400).json({ success: false, status: result.status, message: result.message });
+      return res.status(400).json({
+        success: false,
+        status: result.status,
+        message: result.message,
+      });
     }
 
-    return res.status(200).json({ success: true, message: result.message, orderId, amount: result.amount });
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+      orderId: result.orderId || orderId,
+      amount: result.amount,
+      walletBalance: result.walletBalance,
+      transactionId: result.transactionId,
+      alreadyCredited: result.alreadyCredited || false,
+    });
   } catch (error) {
     console.error('Verify Cashfree Deposit Error:', error);
     return res.status(500).json({ error: error.message || 'Unable to verify payment' });

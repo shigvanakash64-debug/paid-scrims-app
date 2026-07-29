@@ -7,6 +7,7 @@ import { PairingScreen } from './screens/PairingScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { WalletScreen } from './screens/WalletScreen';
+import { PaymentStatusScreen } from './screens/PaymentStatusScreen';
 import { InboxScreen } from './screens/InboxScreen';
 import { InstructionsScreen } from './screens/InstructionsScreen';
 import { ContactsScreen } from './screens/ContactsScreen';
@@ -139,11 +140,12 @@ function App() {
         }
       })();
 
-      const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact'];
-      const targetScreen = validScreens.includes(savedScreen) ? (savedScreen === 'home' ? 'wallpaper-home' : savedScreen) : 'wallpaper-home';
+      const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
+      const pathScreen = typeof window !== 'undefined' && window.location.pathname === '/payment-status' ? 'payment-status' : null;
+      const targetScreen = pathScreen || (validScreens.includes(savedScreen) ? (savedScreen === 'home' ? 'wallpaper-home' : savedScreen) : 'wallpaper-home');
 
       if (!token) {
-        setCurrentScreen(savedScreen || 'wallpaper-home');
+        setCurrentScreen(pathScreen || savedScreen || 'wallpaper-home');
         setLoadingAuth(false);
         return;
       }
@@ -635,21 +637,8 @@ function App() {
       if (currentScreen === 'login') {
         return <LoginScreen onLogin={handleLogin} onNavigateRegister={() => setCurrentScreen('register')} />;
       }
-
-      switch (currentScreen) {
-        case 'wallpaper-home':
-          return <WallpaperHomeScreen user={user} onScreenChange={handleScreenChange} onOpenConfirmExit={() => setShowConfirmModal(true)} />;
-        case 'wallpaper-collection':
-          return <WallpaperCollectionScreen onScreenChange={handleScreenChange} />;
-        case 'wallpaper-details':
-          return <WallpaperDetailScreen wallpaper={selectedWallpaper} user={user} onScreenChange={handleScreenChange} onStartPurchase={handleStartPurchase} />;
-        case 'about-us':
-          return <AboutUsScreen onNavigateToClutchZone={openClutchZone} />;
-        default:
-          return <WallpaperHomeScreen user={user} onScreenChange={handleScreenChange} onOpenConfirmExit={() => setShowConfirmModal(true)} />;
-      }
+      return <WallpaperHomeScreen user={user} onScreenChange={handleScreenChange} onOpenConfirmExit={() => setShowConfirmModal(true)} />;
     }
-
     // Admin route protection
     if (currentScreen === 'admin') {
       if (!isAdmin) {
@@ -688,6 +677,8 @@ function App() {
         return <ProfileScreen user={user} onUserUpdate={handleUserUpdate} onProfileSave={handleProfileSave} />;
       case 'wallet':
         return <WalletScreen user={user} onUserUpdate={handleUserUpdate} />;
+      case 'payment-status':
+        return <PaymentStatusScreen user={user} onNavigate={handleScreenChange} />;
       case 'settings':
         return <SettingsScreen user={user} />;
       case 'privacy-policy':
@@ -720,6 +711,8 @@ function App() {
         return <WallpaperAdminScreen />;
       case 'about-us':
         return <AboutUsScreen onNavigateToClutchZone={openClutchZone} />;
+      case 'payment-status':
+        return <PaymentStatusScreen user={user} onNavigate={handleScreenChange} />;
       case 'store-terms':
       case 'store-privacy':
       case 'store-refund':

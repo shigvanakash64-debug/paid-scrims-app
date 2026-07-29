@@ -108,15 +108,24 @@ const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, paymentMet
   if (isSuccessfulPaymentStatus(paymentStatus)) {
     if (depositRecord.paymentStatus === 'SUCCESS') {
       console.log('[Cashfree] Deposit already credited, skipping wallet update');
-      return {
-        success: true,
-        status: 'success',
-        message: 'Deposit already credited to wallet.',
-        orderId,
-      };
+    const user = await User.findById(depositRecord.userId || userId);
+    if (!user) {
+      throw new Error('User not found while checking existing wallet credit');
     }
 
-    const user = await User.findById(depositRecord.userId || userId);
+    return {
+      success: true,
+      alreadyCredited: true,
+      status: 'success',
+      message: 'Deposit already credited to wallet.',
+      orderId,
+      amount: Number(depositRecord.amount || 0),
+      walletBalance: Number(user.wallet.balance || 0),
+      transactionId: depositRecord._id?.toString() || null,
+    };
+  }
+
+  const user = await User.findById(depositRecord.userId || userId);
     if (!user) {
       throw new Error('User not found while crediting wallet');
     }
@@ -145,6 +154,7 @@ const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, paymentMet
     depositRecord.paymentStatus = 'SUCCESS';
     depositRecord.cfPaymentId = cfPaymentId || depositRecord.cfPaymentId;
     depositRecord.paymentMethod = paymentMethod || depositRecord.paymentMethod;
+    depositRecord.verifiedAt = new Date();
     await depositRecord.save();
 
     console.log('[Cashfree] Deposit record updated', {
@@ -184,6 +194,8 @@ const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, paymentMet
       message: 'Deposit confirmed and wallet updated.',
       orderId,
       amount: Number(depositRecord.amount || 0),
+      walletBalance: Number(user.wallet.balance || 0),
+      transactionId: depositRecord._id?.toString() || null,
     };
   }
 
