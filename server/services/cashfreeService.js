@@ -35,6 +35,16 @@ const normalizeStatus = (value) => {
   return value.toUpperCase();
 };
 
+const SUCCESS_PAYMENT_STATUSES = new Set(['SUCCESS', 'PAID', 'COMPLETED', 'SETTLED', 'APPROVED', 'CAPTURED', 'CONFIRMED']);
+const PENDING_PAYMENT_STATUSES = new Set(['PENDING', 'ACTIVE', 'INITIATED', 'CREATED', 'PROCESSING', 'ATTEMPTED', 'NOT_ATTEMPTED', 'IN_PROGRESS', 'WAITING']);
+
+const isSuccessfulPaymentStatus = (value) => SUCCESS_PAYMENT_STATUSES.has(normalizeStatus(value));
+const isPendingPaymentStatus = (value) => {
+  const normalized = normalizeStatus(value);
+  return !normalized || PENDING_PAYMENT_STATUSES.has(normalized);
+};
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const buildOrderId = (userId, amount) => {
   const safeUserPart = String(userId || 'wallet').replace(/[^a-zA-Z0-9]/g, '').slice(-8) || 'wallet';
   const safeAmountPart = String(Math.round(Number(amount || 0))).replace(/[^0-9]/g, '');
@@ -95,7 +105,7 @@ const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, paymentMet
     userId: depositRecord.userId,
   });
 
-  if (paymentStatus === 'SUCCESS') {
+  if (isSuccessfulPaymentStatus(paymentStatus)) {
     if (depositRecord.paymentStatus === 'SUCCESS') {
       console.log('[Cashfree] Deposit already credited, skipping wallet update');
       return {
@@ -251,41 +261,69 @@ export const createCashfreeOrder = async ({ amount, userId, userName, userEmail,
 
 export const verifyCashfreePayment = async ({ orderId, userId }) => {
   const config = getCashfreeConfig();
-  const result = await paymentGateway.getOrder(config, orderId);
-  console.log('[Cashfree] getOrder result', {
-    orderId,
-    rawResult: result ? { keys: Object.keys(result) } : null,
-  });
-  const order = result?.cfOrder || result?.order || result;
-  const paymentEntities = result?.cfPaymentsEntities || order?.payments || [];
-  const paymentStatus = getStatusFromPayload(result, paymentEntities);
-  const cfPaymentId = getCfPaymentId(paymentEntities, order);
-  const paymentMethod = getPaymentMethod(paymentEntities, order);
+  const maxAttempts = 3;
 
-  console.log('[Cashfree] verifyCashfreePayment parsed', {
-    orderId,
-    paymentStatus,
-    cfPaymentId,
-    paymentMethod,
-    paymentEntitiesCount: Array.isArray(paymentEntities) ? paymentEntities.length : 0,
-  });
-
-  if (!paymentStatus) {
-    return {
-      success: false,
-      status: 'pending',
-      message: 'Cashfree did not send a payment status yet.',
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const result = await paymentGateway.getOrder(config, orderId);
+    console.log('[Cashfree] getOrder result', {
       orderId,
-    };
+      rawResult: result ? { keys: Object.keys(result) } : null,
+    });
+    const order = result?.cfOrder || result?.order || result;
+    const paymentEntities = result?.cfPaymentsEntities || order?.payments || [];
+    const paymentStatus = getStatusFromPayload(result, paymentEntities);
+    const cfPaymentId = getCfPaymentId(paymentEntities, order);
+    const paymentMethod = getPaymentMethod(paymentEntities, order);
+
+    console.log('========== CASHFREE DEBUG ==========' );
+    console.log(JSON.stringify(result, null, 2));
+    console.log('Parsed Status:', paymentStatus);
+    console.log('====================================');
+
+    console.log('[Cashfree] verifyCashfreePayment parsed', {
+      orderId,
+      paymentStatus,
+      cfPaymentId,
+      paymentMethod,
+      paymentEntitiesCount: Array.isArray(paymentEntities) ? paymentEntities.length : 0,
+      attempt,
+    });
+
+    if (isSuccessfulPaymentStatus(paymentStatus)) {
+      return finalizeDeposit({
+        orderId,
+        paymentStatus,
+        cfPaymentId,
+        paymentMethod,
+        userId,
+      });
+    }
+
+    if (!isPendingPaymentStatus(paymentStatus) || attempt === maxAttempts) {
+      return finalizeDeposit({
+        orderId,
+        paymentStatus,
+        cfPaymentId,
+        paymentMethod,
+        userId,
+      });
+    }
+
+    console.log('[Cashfree] Payment still pending, retrying verification', {
+      orderId,
+      attempt,
+      paymentStatus,
+    });
+
+    await wait(1500);
   }
 
-  return finalizeDeposit({
+  return {
+    success: false,
+    status: 'pending',
+    message: 'Cashfree did not confirm payment yet.',
     orderId,
-    paymentStatus,
-    cfPaymentId,
-    paymentMethod,
-    userId,
-  });
+  };
 };
 
 export const processCashfreeWebhook = async ({ payload, signature, rawBody }) => {

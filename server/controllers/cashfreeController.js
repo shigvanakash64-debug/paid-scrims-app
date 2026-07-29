@@ -1,5 +1,48 @@
 import { createCashfreeOrder, verifyCashfreePayment, processCashfreeWebhook } from '../services/cashfreeService.js';
 
+const parseWebhookPayload = (req) => {
+  if (!req.body) {
+    return {
+      payload: {},
+      rawBody: req.rawBody || '',
+    };
+  }
+
+  if (Buffer.isBuffer(req.body)) {
+    const text = req.body.toString('utf8');
+    try {
+      return {
+        payload: JSON.parse(text),
+        rawBody: text,
+      };
+    } catch {
+      return {
+        payload: {},
+        rawBody: text,
+      };
+    }
+  }
+
+  if (typeof req.body === 'string') {
+    try {
+      return {
+        payload: JSON.parse(req.body),
+        rawBody: req.body,
+      };
+    } catch {
+      return {
+        payload: {},
+        rawBody: req.body,
+      };
+    }
+  }
+
+  return {
+    payload: req.body,
+    rawBody: req.rawBody || JSON.stringify(req.body),
+  };
+};
+
 export const createCashfreeDepositOrder = async (req, res) => {
   try {
     const userId = req.userId;
@@ -75,9 +118,8 @@ export const verifyCashfreeDeposit = async (req, res) => {
 
 export const handleCashfreeWebhook = async (req, res) => {
   try {
-    const payload = req.body;
+    const { payload, rawBody } = parseWebhookPayload(req);
     const signature = req.headers['x-cashfree-signature'] || req.headers['x-cashfree-signature'.toLowerCase()];
-    const rawBody = req.rawBody || JSON.stringify(payload);
 
     const orderId = payload?.data?.orderId || payload?.data?.order_id || payload?.orderId || payload?.order_id;
     const paymentStatus = payload?.data?.paymentStatus || payload?.data?.payment_status || payload?.paymentStatus || payload?.payment_status || payload?.status;
