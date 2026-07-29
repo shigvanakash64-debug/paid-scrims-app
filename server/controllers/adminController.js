@@ -8,8 +8,11 @@ import ScreenshotValidator from "../utils/screenshotValidation.js";
 import User from "../models/User.js";
 import Match from "../models/Match.js";
 import { processPayout } from "../utils/payout.js";
-import { rotateDepositUpi } from "../config/depositUpi.js";
 import { markFirstDeposit, updateReferralStatus, getRewardDashboard } from "../utils/rewardService.js";
+import {
+  approveWithdrawalRequest,
+  rejectWithdrawalRequest,
+} from "../services/walletService.js";
 
 /**
  * Admin endpoint to manually trigger match timeout resolution
@@ -1003,64 +1006,25 @@ export const approveWithdrawal = async (req, res) => {
     const { withdrawalId } = req.params;
     const { adminNote } = req.body;
 
-    const user = await User.findOne({
-      'wallet.pendingWithdrawals._id': withdrawalId,
-      'wallet.pendingWithdrawals.status': 'pending'
+    const result = await approveWithdrawalRequest({
+      withdrawalId,
+      adminNote,
+      adminId: req.userId,
     });
-
-    if (!user) {
-      return res.status(404).json({ error: "Withdrawal request not found" });
-    }
-
-    const withdrawal = user.wallet.pendingWithdrawals.id(withdrawalId);
-    if (!withdrawal) {
-      return res.status(404).json({ error: "Withdrawal not found" });
-    }
-
-    const totalWithdrawableBalance = Number(user.wallet.balance || 0) + Number(user.wallet.referralEarningsBalance || 0);
-    if (totalWithdrawableBalance < withdrawal.amount) {
-      return res.status(400).json({ error: "Insufficient balance for withdrawal" });
-    }
-
-    // Update withdrawal status
-    withdrawal.status = 'approved';
-    withdrawal.processedAt = new Date();
-    withdrawal.adminNote = adminNote;
-
-    let remainingAmount = withdrawal.amount;
-    if (user.wallet.balance >= remainingAmount) {
-      user.wallet.balance -= remainingAmount;
-      remainingAmount = 0;
-    } else {
-      remainingAmount -= user.wallet.balance;
-      user.wallet.balance = 0;
-      if (remainingAmount > 0) {
-        user.wallet.referralEarningsBalance = Math.max(0, Number(user.wallet.referralEarningsBalance || 0) - remainingAmount);
-      }
-    }
-
-    // Add transaction record
-    user.wallet.transactions.push({
-      type: 'withdrawal',
-      amount: -withdrawal.amount,
-      description: `Withdrawal approved - ${adminNote || ''}`,
-      timestamp: new Date()
-    });
-
-    await user.save();
 
     res.status(200).json({
       success: true,
       message: "Withdrawal approved successfully",
-      withdrawal: {
-        id: withdrawal._id,
-        amount: withdrawal.amount,
-        status: withdrawal.status,
-        processedAt: withdrawal.processedAt
-      }
+      withdrawal: result,
     });
   } catch (error) {
     console.error("approveWithdrawal error:", error);
+    if (error.message === 'Withdrawal request not found' || error.message === 'Withdrawal not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    if (error.message === 'Insufficient balance for withdrawal') {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({ error: error.message });
   }
 };
@@ -1073,39 +1037,18 @@ export const rejectWithdrawal = async (req, res) => {
     const { withdrawalId } = req.params;
     const { adminNote } = req.body;
 
-    const user = await User.findOne({
-      'wallet.pendingWithdrawals._id': withdrawalId,
-      'wallet.pendingWithdrawals.status': 'pending'
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: "Withdrawal request not found" });
-    }
-
-    const withdrawal = user.wallet.pendingWithdrawals.id(withdrawalId);
-    if (!withdrawal) {
-      return res.status(404).json({ error: "Withdrawal not found" });
-    }
-
-    // Update withdrawal status
-    withdrawal.status = 'rejected';
-    withdrawal.processedAt = new Date();
-    withdrawal.adminNote = adminNote;
-
-    await user.save();
+    const result = await rejectWithdrawalRequest({ withdrawalId, adminNote });
 
     res.status(200).json({
       success: true,
       message: "Withdrawal rejected successfully",
-      withdrawal: {
-        id: withdrawal._id,
-        amount: withdrawal.amount,
-        status: withdrawal.status,
-        processedAt: withdrawal.processedAt
-      }
+      withdrawal: result,
     });
   } catch (error) {
     console.error("rejectWithdrawal error:", error);
+    if (error.message === 'Withdrawal request not found' || error.message === 'Withdrawal not found') {
+      return res.status(404).json({ error: error.message });
+    }
     res.status(500).json({ error: error.message });
   }
 };

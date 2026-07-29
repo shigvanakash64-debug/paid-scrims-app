@@ -37,6 +37,26 @@ const paymentDepositSchema = new mongoose.Schema({
     type: String,
     default: 'cashfree',
   },
+  gateway: {
+    type: String,
+    default: 'cashfree',
+  },
+  verifiedAt: {
+    type: Date,
+    default: null,
+  },
+  webhookEventId: {
+    type: String,
+    default: null,
+  },
+  metadata: {
+    type: Object,
+    default: {},
+  },
+  statusReason: {
+    type: String,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

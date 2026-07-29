@@ -1,40 +1,16 @@
-import crypto from 'crypto';
-import Razorpay from 'razorpay';
-import User from '../models/User.js';
-// Manual deposit UPI endpoints removed; deposit UPI config usage removed from controller
+﻿import User from '../models/User.js';
+import PaymentDeposit from '../models/PaymentDeposit.js';
 import { sendNotification } from '../services/notificationService.js';
+import { createCashfreeOrder, verifyCashfreePayment } from '../services/cashfreeService.js';
 
-const getRazorpayInstance = () => {
-  const key_id = process.env.RAZORPAY_KEY_ID;
-  const key_secret = process.env.RAZORPAY_KEY_SECRET;
+const normalizeAmount = (value) => Number(value || 0);
 
-  if (!key_id || !key_secret) {
-    throw new Error('Razorpay credentials are not configured');
-  }
-
-  return new Razorpay({ key_id, key_secret });
-};
-
-const validateRazorpayConfig = (res) => {
-  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-    res.status(500).json({ error: 'Razorpay credentials are not configured' });
-    return false;
-  }
-  return true;
-};
-
-/**
- * POST /wallet/withdraw
- * User requests a withdrawal from their wallet
- */
 export const requestWithdrawal = async (req, res) => {
   try {
     const userId = req.userId;
-    const { amount, upi, wallet } = req.body;
+    const { amount, upi, wallet = 'main' } = req.body;
+    const parsedAmount = normalizeAmount(amount);
 
-    const parsedAmount = Number(amount);
-
-    // Validation
     if (!Number.isFinite(parsedAmount) || parsedAmount < 100) {
       return res.status(400).json({ error: 'Minimum withdrawal amount is ₹100' });
     }
@@ -50,15 +26,11 @@ export const requestWithdrawal = async (req, res) => {
 
     const selectedWallet = wallet === 'referral' ? 'referral' : 'main';
     const availableBalance = selectedWallet === 'referral'
-      ? Number(user.wallet.referralEarningsBalance || 0)
-      : Number(user.wallet.balance || 0);
+      ? Number(user.wallet?.referralEarningsBalance || 0)
+      : Number(user.wallet?.balance || 0);
 
     if (availableBalance < parsedAmount) {
-      return res.status(400).json({
-        error: 'Insufficient balance for withdrawal',
-        currentBalance: availableBalance,
-        selectedWallet,
-      });
+      return res.status(400).json({ error: 'Insufficient balance for withdrawal' });
     }
 
     const withdrawalRequest = {
@@ -70,213 +42,164 @@ export const requestWithdrawal = async (req, res) => {
     };
 
     user.wallet.pendingWithdrawals.push(withdrawalRequest);
-
     await user.save();
 
-    // Send push notification to user
-    if (user.onesignalPlayerId && user.notificationPreferences.walletNotifications) {
+    if (user.onesignalPlayerId && user.notificationPreferences?.walletNotifications) {
       await sendNotification(
         [user.onesignalPlayerId],
         '💸 Withdrawal Pending',
-        `Your withdrawal request of ₹${amount} is being processed.`,
+        `Your withdrawal request of ₹${parsedAmount} is being processed.`,
         {
           type: 'info',
           priority: 9,
-          data: {
-            eventType: 'withdrawal_requested',
-            amount,
-          },
+          data: { eventType: 'withdrawal_requested', amount: parsedAmount },
         }
       );
     }
 
-    // Also save to in-app notifications
     user.notifications.push({
       type: 'info',
-      message: `Withdrawal request of ₹${amount} submitted. Pending admin approval.`,
+      message: `Withdrawal request of ₹${parsedAmount} submitted. Pending admin approval.`,
       relatedMatch: null,
     });
-
     await user.save();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Withdrawal request submitted successfully',
       withdrawalId: withdrawalRequest._id,
-      amount,
+      amount: parsedAmount,
       status: 'pending',
       estimatedTime: '24-48 hours',
     });
   } catch (error) {
     console.error('Withdrawal Error:', error);
-    res.status(500).json({ error: 'Failed to process withdrawal request' });
+    return res.status(500).json({ error: 'Failed to process withdrawal request' });
   }
 };
 
-/**
- * GET /wallet/balance
- * Get user's wallet balance
- */
 export const getWalletBalance = async (req, res) => {
   try {
-    const userId = req.userId;
-
-    const user = await User.findById(userId).select('wallet');
+    const user = await User.findById(req.userId).select('wallet');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      balance: user.wallet.balance,
-      bonusBalance: user.wallet.bonusBalance || 0,
-      referralEarningsBalance: user.wallet.referralEarningsBalance || 0,
-      totalWithdrawableBalance: Number(user.wallet.balance || 0) + Number(user.wallet.referralEarningsBalance || 0),
-      pendingWithdrawals: user.wallet.pendingWithdrawals.filter(
-        w => w.status === 'pending'
-      ),
-      recentTransactions: user.wallet.transactions.slice(-10),
+      balance: Number(user.wallet?.balance || 0),
+      bonusBalance: Number(user.wallet?.bonusBalance || 0),
+      referralEarningsBalance: Number(user.wallet?.referralEarningsBalance || 0),
+      totalWithdrawableBalance: Number(user.wallet?.balance || 0) + Number(user.wallet?.referralEarningsBalance || 0),
+      pendingWithdrawals: (user.wallet?.pendingWithdrawals || []).filter((withdrawal) => withdrawal.status === 'pending'),
+      recentTransactions: (user.wallet?.transactions || []).slice(-10),
     });
   } catch (error) {
     console.error('Get Wallet Balance Error:', error);
-    res.status(500).json({ error: 'Failed to fetch wallet balance' });
+    return res.status(500).json({ error: 'Failed to fetch wallet balance' });
   }
 };
 
+export const getWalletSummary = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('wallet username');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
-
+    return res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        username: user.username,
+      },
+      balance: Number(user.wallet?.balance || 0),
+      bonusBalance: Number(user.wallet?.bonusBalance || 0),
+      referralEarningsBalance: Number(user.wallet?.referralEarningsBalance || 0),
+      recentTransactions: (user.wallet?.transactions || []).slice(-5),
+    });
+  } catch (error) {
+    console.error('Get Wallet Summary Error:', error);
+    return res.status(500).json({ error: 'Failed to fetch wallet summary' });
+  }
+};
 
 export const getWithdrawalHistory = async (req, res) => {
   try {
-    const userId = req.userId;
-    const user = await User.findById(userId).select('wallet.pendingWithdrawals');
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const user = await User.findById(req.userId).select('wallet.pendingWithdrawals');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     const withdrawals = (user.wallet?.pendingWithdrawals || [])
       .slice()
       .sort((a, b) => new Date(b.requestedAt || b.processedAt || 0) - new Date(a.requestedAt || a.processedAt || 0));
 
-    res.status(200).json({
-      success: true,
-      withdrawals,
-    });
+    return res.status(200).json({ success: true, withdrawals });
   } catch (error) {
     console.error('Get Withdrawal History Error:', error);
-    res.status(500).json({ error: 'Failed to fetch withdrawal history' });
+    return res.status(500).json({ error: 'Failed to fetch withdrawal history' });
   }
 };
 
-export const createDepositOrder = async (req, res) => {
+export const createCashfreeDepositOrder = async (req, res) => {
   try {
     const { amount } = req.body;
-    if (!amount || Number(amount) <= 0) {
+    const parsedAmount = normalizeAmount(amount);
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       return res.status(400).json({ error: 'Invalid deposit amount' });
     }
 
-    if (!validateRazorpayConfig(res)) {
-      return;
-    }
-
-    const razorpay = getRazorpayInstance();
-    const order = await razorpay.orders.create({
-      amount: Math.round(Number(amount) * 100),
-      currency: 'INR',
-      receipt: `deposit_${Date.now()}`,
-      payment_capture: 1,
+    const result = await createCashfreeOrder({
+      amount: parsedAmount,
+      userId: req.userId,
+      userName: req.user?.username || 'Clutch Zone User',
+      userEmail: req.user?.email || 'placeholder@clutchzone.in',
+      userPhone: req.user?.phone || '9999999999',
     });
 
-    res.status(201).json({
-      success: true,
-      order,
-      key: process.env.RAZORPAY_KEY_ID,
-    });
+    return res.status(201).json({ success: true, data: result });
   } catch (error) {
-    console.error('Create Deposit Order Error:', error);
-    res.status(500).json({ error: 'Failed to create deposit order' });
+    console.error('Create Cashfree Deposit Order Error:', error);
+    return res.status(500).json({ error: error.message || 'Failed to create deposit order' });
   }
 };
 
-export const confirmDeposit = async (req, res) => {
+export const verifyCashfreeDeposit = async (req, res) => {
   try {
-    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, amount } = req.body;
-    const userId = req.userId;
+    const { orderId, paymentSessionId } = req.body || {};
 
-    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !amount) {
-      return res.status(400).json({ error: 'Payment confirmation data is required' });
+    if (!orderId && paymentSessionId) {
+      const deposit = await PaymentDeposit.findOne({ paymentSessionId });
+      if (deposit) {
+        orderId = deposit.orderId;
+      }
     }
 
-    if (!validateRazorpayConfig(res)) {
-      return;
+    if (!orderId) {
+      return res.status(400).json({ error: 'orderId or paymentSessionId is required' });
     }
 
-    const razorpay = getRazorpayInstance();
-    const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest('hex');
+    const result = await verifyCashfreePayment({ orderId, userId: req.userId });
 
-    if (expectedSignature !== razorpay_signature) {
-      return res.status(400).json({ error: 'Invalid payment signature' });
+    if (!result.success) {
+      return res.status(400).json({ success: false, status: result.status, message: result.message });
     }
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    user.wallet.balance += Number(amount);
-    user.wallet.transactions.push({
-      type: 'deposit',
-      amount: Number(amount),
-      description: 'Wallet deposit via Razorpay',
-      timestamp: new Date(),
-    });
-
-    await user.save();
-
-    if (user.onesignalPlayerId && user.notificationPreferences.walletNotifications) {
-      await sendNotification(
-        [user.onesignalPlayerId],
-        '💰 Deposit successful',
-        `₹${amount} has been added to your wallet.`,
-        {
-          type: 'success',
-          priority: 9,
-          data: {
-            eventType: 'deposit_success',
-            amount,
-          },
-        }
-      );
-    }
-
-    user.notifications.push({
-      type: 'success',
-      message: `₹${amount} deposited successfully to your wallet.`,
-      relatedMatch: null,
-    });
-    await user.save();
-
-    res.status(200).json({
-      success: true,
-      balance: user.wallet.balance,
-      message: 'Deposit confirmed and wallet updated',
-    });
+    return res.status(200).json({ success: true, message: result.message, orderId, amount: result.amount });
   } catch (error) {
-    console.error('Confirm Deposit Error:', error);
-    res.status(500).json({ error: 'Failed to confirm deposit' });
+    console.error('Verify Cashfree Deposit Error:', error);
+    return res.status(500).json({ error: error.message || 'Unable to verify payment' });
   }
 };
 
-/**
- * POST /wallet/add-balance (Admin or Internal Use)
- * Add balance to user's wallet (for deposits, bonuses, refunds)
- */
 export const addBalance = async (req, res) => {
   try {
     const { userId, amount, reason } = req.body;
+    const parsedAmount = normalizeAmount(amount);
 
-    if (!amount || amount <= 0) {
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       return res.status(400).json({ error: 'Invalid amount' });
     }
 
@@ -285,85 +208,61 @@ export const addBalance = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const previousBalance = user.wallet.balance;
-    user.wallet.balance += amount;
-
+    const previousBalance = Number(user.wallet?.balance || 0);
+    user.wallet.balance += parsedAmount;
     user.wallet.transactions.push({
       type: reason === 'match_win' ? 'match_win' : 'deposit',
-      amount,
+      amount: parsedAmount,
       description: reason || 'Balance added',
+      status: 'completed',
       timestamp: new Date(),
     });
 
     await user.save();
 
-    // Send notification
-    if (user.onesignalPlayerId && user.notificationPreferences.walletNotifications) {
-      await sendNotification(
-        [user.onesignalPlayerId],
-        '💰 Balance Updated',
-        `₹${amount} added to your wallet. New balance: ₹${user.wallet.balance}`,
-        {
-          type: 'success',
-          priority: 9,
-          data: {
-            eventType: 'balance_added',
-            amount,
-            reason,
-          },
-        }
-      );
-    }
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Balance added successfully',
       previousBalance,
-      addedAmount: amount,
-      newBalance: user.wallet.balance,
+      addedAmount: parsedAmount,
+      newBalance: Number(user.wallet?.balance || 0),
     });
   } catch (error) {
     console.error('Add Balance Error:', error);
-    res.status(500).json({ error: 'Failed to add balance' });
+    return res.status(500).json({ error: 'Failed to add balance' });
   }
 };
 
-/**
- * GET /wallet/transactions
- * Get user's transaction history
- */
 export const getTransactionHistory = async (req, res) => {
   try {
-    const userId = req.userId;
-    const { limit = 20, skip = 0 } = req.query;
-
-    const user = await User.findById(userId).select('wallet');
+    const user = await User.findById(req.userId).select('wallet');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const transactions = user.wallet.transactions
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(parseInt(skip), parseInt(skip) + parseInt(limit));
+    const transactions = (user.wallet?.transactions || [])
+      .slice()
+      .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      total: user.wallet.transactions.length,
+      total: transactions.length,
       transactions,
-      totalBalance: user.wallet.balance,
+      totalBalance: Number(user.wallet?.balance || 0),
     });
   } catch (error) {
     console.error('Get Transaction History Error:', error);
-    res.status(500).json({ error: 'Failed to fetch transaction history' });
+    return res.status(500).json({ error: 'Failed to fetch transaction history' });
   }
 };
 
 export default {
   requestWithdrawal,
   getWalletBalance,
+  getWalletSummary,
   addBalance,
   getTransactionHistory,
   getWithdrawalHistory,
-  createDepositOrder,
-  confirmDeposit,
+  createCashfreeDepositOrder,
+  verifyCashfreeDeposit,
 };

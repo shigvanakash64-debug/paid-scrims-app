@@ -2,45 +2,27 @@ import { createCashfreeOrder, verifyCashfreePayment, processCashfreeWebhook } fr
 
 const parseWebhookPayload = (req) => {
   if (!req.body) {
-    return {
-      payload: {},
-      rawBody: req.rawBody || '',
-    };
+    return { payload: {}, rawBody: req.rawBody || '' };
   }
 
   if (Buffer.isBuffer(req.body)) {
     const text = req.body.toString('utf8');
     try {
-      return {
-        payload: JSON.parse(text),
-        rawBody: text,
-      };
+      return { payload: JSON.parse(text), rawBody: text };
     } catch {
-      return {
-        payload: {},
-        rawBody: text,
-      };
+      return { payload: {}, rawBody: text };
     }
   }
 
   if (typeof req.body === 'string') {
     try {
-      return {
-        payload: JSON.parse(req.body),
-        rawBody: req.body,
-      };
+      return { payload: JSON.parse(req.body), rawBody: req.body };
     } catch {
-      return {
-        payload: {},
-        rawBody: req.body,
-      };
+      return { payload: {}, rawBody: req.body };
     }
   }
 
-  return {
-    payload: req.body,
-    rawBody: req.rawBody || JSON.stringify(req.body),
-  };
+  return { payload: req.body, rawBody: req.rawBody || JSON.stringify(req.body) };
 };
 
 export const createCashfreeDepositOrder = async (req, res) => {
@@ -60,10 +42,7 @@ export const createCashfreeDepositOrder = async (req, res) => {
       userPhone: req.user?.phone || '9999999999',
     });
 
-    return res.status(201).json({
-      success: true,
-      data: result,
-    });
+    return res.status(201).json({ success: true, data: result });
   } catch (error) {
     console.error('Create Cashfree Deposit Order Error:', error);
     return res.status(500).json({ error: error.message || 'Unable to create Cashfree order' });
@@ -75,16 +54,11 @@ export const verifyCashfreeDeposit = async (req, res) => {
     const userId = req.userId;
     let { orderId, paymentSessionId } = req.body || {};
 
-    console.log('[Cashfree] verifyCashfreeDeposit called', { orderId, paymentSessionId, userId });
-
-    // Allow frontend to pass either orderId or paymentSessionId (post-redirect variations)
     if (!orderId && paymentSessionId) {
-      // Try to resolve orderId from stored PaymentDeposit record
       const PaymentDeposit = (await import('../models/PaymentDeposit.js')).default;
       const deposit = await PaymentDeposit.findOne({ paymentSessionId });
       if (deposit) {
         orderId = deposit.orderId;
-        console.log('[Cashfree] Resolved orderId from paymentSessionId', { paymentSessionId, orderId });
       }
     }
 
@@ -93,8 +67,6 @@ export const verifyCashfreeDeposit = async (req, res) => {
     }
 
     const result = await verifyCashfreePayment({ orderId, userId });
-
-    console.log('[Cashfree] verifyCashfreePayment result', { orderId, result });
 
     if (!result.success) {
       return res.status(400).json({
@@ -122,15 +94,10 @@ export const handleCashfreeWebhook = async (req, res) => {
     const signature = req.headers['x-cashfree-signature'] || req.headers['x-cashfree-signature'.toLowerCase()];
 
     const orderId = payload?.data?.orderId || payload?.data?.order_id || payload?.orderId || payload?.order_id;
-    const paymentStatus = payload?.data?.paymentStatus || payload?.data?.payment_status || payload?.paymentStatus || payload?.payment_status || payload?.status;
-
-    console.log('[Cashfree] webhook received', { orderId, paymentStatus, signatureProvided: Boolean(signature) });
 
     const result = await processCashfreeWebhook({ payload, signature, rawBody });
 
-    console.log('[Cashfree] webhook processed', { orderId, result });
-
-    return res.status(200).json({ success: true, ...result });
+    return res.status(200).json({ success: true, orderId, ...result });
   } catch (error) {
     console.error('Cashfree Webhook Error:', error);
     return res.status(400).json({ error: error.message || 'Cashfree webhook could not be processed' });
