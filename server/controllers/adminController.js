@@ -7,6 +7,8 @@ import TrustScoreEngine from "../utils/trustScore.js";
 import ScreenshotValidator from "../utils/screenshotValidation.js";
 import User from "../models/User.js";
 import Match from "../models/Match.js";
+import Referral from "../models/Referral.js";
+import Ticket from "../models/Ticket.js";
 import { processPayout } from "../utils/payout.js";
 import { markFirstDeposit, updateReferralStatus, getRewardDashboard } from "../utils/rewardService.js";
 import {
@@ -842,8 +844,11 @@ export const adjustUserWallet = async (req, res) => {
  */
 export const getAllUsers = async (req, res) => {
   try {
-    const { search = '', limit = 25, page = 1 } = req.query;
-    const skip = (page - 1) * limit;
+    const { search = '', limit = 50, page = 1 } = req.query;
+    const parsedLimit = Number.parseInt(limit, 10);
+    const usersPerPage = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 50;
+    const pageNumber = Math.max(Number.parseInt(page, 10) || 1, 1);
+    const skip = (pageNumber - 1) * usersPerPage;
 
     const filter = search ? { username: { $regex: search, $options: 'i' } } : {};
 
@@ -851,7 +856,7 @@ export const getAllUsers = async (req, res) => {
       { $match: filter },
       { $sort: { createdAt: -1 } },
       { $skip: skip },
-      { $limit: parseInt(limit) },
+      { $limit: usersPerPage },
       {
         $lookup: {
           from: 'matches',
@@ -900,14 +905,48 @@ export const getAllUsers = async (req, res) => {
       users,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(total / limit)
+        page: pageNumber,
+        limit: usersPerPage,
+        pages: Math.max(Math.ceil(total / usersPerPage), 1)
       }
     });
   } catch (error) {
     console.error("getAllUsers error:", error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+
+    if (req.userId && req.userId.toString() === userId.toString()) {
+      return res.status(400).json({ error: "You cannot delete your own admin account." });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    await Promise.all([
+      Referral.deleteMany({ $or: [{ referrer: userId }, { referredUser: userId }] }),
+      Ticket.deleteMany({ user: userId }),
+    ]);
+
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({
+      success: true,
+      message: "User deleted successfully."
+    });
+  } catch (error) {
+    console.error("deleteUser error:", error);
+    res.status(500).json({ error: "Failed to delete user." });
   }
 };
 

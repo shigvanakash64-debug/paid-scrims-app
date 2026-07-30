@@ -22,6 +22,8 @@ import {
   resolveDispute,
   adjustUserWallet,
   getAllUsers,
+  deleteUser,
+  deleteUser,
   getAllWithdrawals,
   approveWithdrawal,
   rejectWithdrawal,
@@ -156,6 +158,12 @@ router.post("/users/:userId/adjust-wallet", authMiddleware, adjustUserWallet);
  * Get all users with search and pagination
  */
 router.get("/users", authMiddleware, getAllUsers);
+
+/**
+ * DELETE /api/admin/users/:userId
+ * Delete a user account and related safe references
+ */
+router.delete("/users/:userId", authMiddleware, deleteUser);
 
 /**
  * GET /api/admin/withdrawals

@@ -255,6 +255,9 @@ export const UserCard = ({
   onBan,
   onAdjustBalance,
   onViewHistory,
+  onDelete,
+  isDeleting,
+  isDeleteDisabled,
 }) => (
   <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4 space-y-3">
     <div className="flex items-start justify-between">
@@ -301,6 +304,13 @@ export const UserCard = ({
         className="flex-1 border border-[#EF4444] text-[#EF4444] px-3 py-2 rounded text-xs font-semibold hover:bg-[#3d1c1c] transition"
       >
         {status === 'Active' ? 'Ban' : 'Unban'}
+      </button>
+      <button
+        onClick={onDelete}
+        disabled={isDeleteDisabled || isDeleting}
+        className="flex-1 border border-[#EF4444] text-[#EF4444] px-3 py-2 rounded text-xs font-semibold hover:bg-[#3d1c1c] transition disabled:opacity-50"
+      >
+        {isDeleting ? '...' : 'Delete'}
       </button>
     </div>
   </div>

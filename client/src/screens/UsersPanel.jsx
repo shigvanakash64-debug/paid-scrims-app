@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Trash2 } from 'lucide-react';
 import { UserCard } from '../components/admin/AdminComponents';
+import { useUser } from '../contexts/UserContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const UsersPanel = () => {
+  const { user: currentUser } = useUser();
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
@@ -15,6 +18,9 @@ export const UsersPanel = () => {
   const [error, setError] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
+  const [pendingDeleteUser, setPendingDeleteUser] = useState(null);
+  const [deletingUserId, setDeletingUserId] = useState(null);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -29,12 +35,18 @@ export const UsersPanel = () => {
     fetchUsers();
   }, [debouncedSearch, page]);
 
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError('');
       const token = localStorage.getItem('clutchzone_token');
-      const response = await axios.get(`${API_BASE}/admin/users?search=${encodeURIComponent(debouncedSearch)}&page=${page}&limit=20`, {
+      const response = await axios.get(`${API_BASE}/admin/users?search=${encodeURIComponent(debouncedSearch)}&page=${page}&limit=50`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUsers(response.data.users || []);
@@ -45,6 +57,10 @@ export const UsersPanel = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
   };
 
   const handleBanUnban = async (userId, isBanned) => {
@@ -87,6 +103,42 @@ export const UsersPanel = () => {
       alert('Failed to adjust wallet balance');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    const currentUserId = currentUser?._id || currentUser?.id;
+    if (currentUserId && currentUserId.toString() === userId.toString()) {
+      showToast('You cannot delete your own admin account.', 'error');
+      setPendingDeleteUser(null);
+      return;
+    }
+
+    setDeletingUserId(userId);
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('clutchzone_token');
+      const response = await axios.delete(`${API_BASE}/admin/users/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setUsers((prevUsers) => prevUsers.filter((user) => user._id !== userId));
+      setPagination((prevPagination) => {
+        const nextTotal = Math.max((prevPagination.total || 0) - 1, 0);
+        return {
+          ...prevPagination,
+          total: nextTotal,
+          pages: Math.max(Math.ceil(nextTotal / (prevPagination.limit || 50)), 1)
+        };
+      });
+      showToast(response.data.message || 'User deleted successfully.', 'success');
+    } catch (err) {
+      console.error('deleteUser error', err);
+      showToast(err.response?.data?.error || 'Failed to delete user.', 'error');
+    } finally {
+      setDeletingUserId(null);
+      setIsLoading(false);
+      setPendingDeleteUser(null);
     }
   };
 
@@ -221,7 +273,7 @@ export const UsersPanel = () => {
       <div>
         <h1 className="text-3xl font-bold text-white">Users</h1>
         <p className="text-sm text-[#A1A1A1] mt-2">
-          {visibleUsers.length} total users • {visibleUsers.filter((u) => u.status === 'Active').length} active
+          {pagination.total || visibleUsers.length} total users • {visibleUsers.filter((u) => u.status === 'Active').length} active
         </p>
       </div>
 
@@ -257,26 +309,104 @@ export const UsersPanel = () => {
       </div>
 
       {visibleUsers.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {visibleUsers
-            .filter((user) => filterStatus === 'all' || user.status === filterStatus)
-            .map((user) => (
-              <UserCard
-                key={user.id}
-                username={user.username}
-                walletBalance={user.walletBalance}
-                trustScore={user.trustScore}
-                status={user.status}
-                matchCount={user.matchCount}
-                onBan={() => handleBanUnban(user.id, user.isBanned)}
-                onAdjustBalance={() => handleAdjustBalance(user.id)}
-                onViewHistory={() => handleViewHistory(user.id)}
-              />
-            ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {visibleUsers
+              .filter((user) => filterStatus === 'all' || user.status === filterStatus)
+              .map((user) => (
+                <UserCard
+                  key={user.id}
+                  username={user.username}
+                  walletBalance={user.walletBalance}
+                  trustScore={user.trustScore}
+                  status={user.status}
+                  matchCount={user.matchCount}
+                  onBan={() => handleBanUnban(user.id, user.isBanned)}
+                  onAdjustBalance={() => handleAdjustBalance(user.id)}
+                  onViewHistory={() => handleViewHistory(user.id)}
+                  onDelete={() => {
+                    const currentUserId = currentUser?._id || currentUser?.id;
+                    if (currentUserId && currentUserId.toString() === user.id?.toString()) {
+                      showToast('You cannot delete your own admin account.', 'error');
+                      return;
+                    }
+                    setPendingDeleteUser(user);
+                  }}
+                  isDeleting={deletingUserId === user.id}
+                  isDeleteDisabled={Boolean(currentUser && ((currentUser._id || currentUser.id)?.toString() === user.id?.toString()))}
+                />
+              ))}
+          </div>
+
+          {pagination.pages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-lg border border-[#1F1F1F] bg-[#111111] px-4 py-3">
+              <p className="text-sm text-[#A1A1A1]">
+                Page {pagination.page} of {pagination.pages}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+                  disabled={page === 1}
+                  className="rounded-lg border border-[#1F1F1F] px-3 py-2 text-sm text-[#A1A1A1] disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((currentPage) => Math.min(pagination.pages, currentPage + 1))}
+                  disabled={page >= pagination.pages}
+                  className="rounded-lg border border-[#1F1F1F] px-3 py-2 text-sm text-[#A1A1A1] disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-12 text-center">
           <p className="text-[#A1A1A1]">No users found</p>
+        </div>
+      )}
+
+      {pendingDeleteUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#1F1F1F] bg-[#111111] p-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-[#3d1c1c] p-2 text-[#EF4444]">
+                <Trash2 size={18} />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Delete User</h3>
+                <p className="text-sm text-[#A1A1A1]">This action cannot be undone.</p>
+              </div>
+            </div>
+
+            <p className="mt-5 text-sm text-[#A1A1A1]">
+              Are you sure you want to permanently delete <span className="font-semibold text-white">{pendingDeleteUser.username}</span>?
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setPendingDeleteUser(null)}
+                className="rounded-lg border border-[#1F1F1F] px-4 py-2 text-sm text-[#A1A1A1]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteUser(pendingDeleteUser.id)}
+                disabled={deletingUserId === pendingDeleteUser.id}
+                className="rounded-lg bg-[#EF4444] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {deletingUserId === pendingDeleteUser.id ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className={`fixed bottom-4 right-4 z-50 rounded-lg border px-4 py-3 text-sm shadow-lg ${toast.type === 'error' ? 'border-[#EF4444] bg-[#3d1c1c] text-[#FECACA]' : 'border-[#22C55E] bg-[#022c0b] text-[#BBF7D0]'}`}>
+          {toast.message}
         </div>
       )}
     </div>
