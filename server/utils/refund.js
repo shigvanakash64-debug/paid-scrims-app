@@ -39,7 +39,7 @@ export const refundPlayers = async (matchId, userModel) => {
           "result.decidedAt": new Date(),
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (updatedMatch.isPaid !== true) {
@@ -66,7 +66,7 @@ export const refundPlayers = async (matchId, userModel) => {
               },
             },
           },
-          { new: true }
+          { returnDocument: 'after' }
         );
 
         refundResults.push({

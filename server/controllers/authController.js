@@ -318,7 +318,7 @@ export const registerPushNotificationId = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       authenticatedUserId,
       { onesignalPlayerId: onesignalPlayerId.trim() },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!user) {

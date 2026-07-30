@@ -97,7 +97,7 @@ export const processPayout = async (matchId, winnerId, userModel) => {
           status: "completed",
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedMatch.isPaid || !updatedMatch.result.paidOut) {
@@ -123,7 +123,7 @@ export const processPayout = async (matchId, winnerId, userModel) => {
           },
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     const loserIds = match.players

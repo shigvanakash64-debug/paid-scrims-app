@@ -253,7 +253,7 @@ export const registerPlayerNotificationId = async (userId, onesignalPlayerId) =>
     const user = await User.findByIdAndUpdate(
       userId,
       { onesignalPlayerId },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     console.log(`✅ Registered OneSignal ID for user ${userId}`);

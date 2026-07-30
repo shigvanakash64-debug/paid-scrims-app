@@ -35,7 +35,7 @@ export const autoResolveMatch = async (match, userModel) => {
             completedAt: match.completedAt || now,
           },
         },
-        { new: true }
+        { returnDocument: 'after' }
       );
 
       return {
@@ -79,7 +79,7 @@ export const autoResolveMatch = async (match, userModel) => {
                 status: "completed",
               },
             },
-            { new: true }
+            { returnDocument: 'after' }
           );
 
           return {
@@ -112,7 +112,7 @@ export const autoResolveMatch = async (match, userModel) => {
               },
             },
           },
-          { new: true }
+          { returnDocument: 'after' }
         );
 
         return {
@@ -154,7 +154,7 @@ export const autoResolveMatch = async (match, userModel) => {
                 isPaid: false,
               },
             },
-            { new: true }
+            { returnDocument: 'after' }
           );
 
           return {
