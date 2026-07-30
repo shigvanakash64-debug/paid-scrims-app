@@ -24,6 +24,29 @@ export const autoResolveMatch = async (match, userModel) => {
       };
     }
 
+    // Repair legacy matches that already have a winner recorded but never transitioned out of the pending lifecycle.
+    if (match.result?.winner && (match.status === "result_pending" || match.status === "ongoing")) {
+      const updatedMatch = await Match.findByIdAndUpdate(
+        match._id,
+        {
+          $set: {
+            status: "completed",
+            "result.decidedAt": match.result.decidedAt || now,
+            completedAt: match.completedAt || now,
+          },
+        },
+        { new: true }
+      );
+
+      return {
+        resolved: true,
+        reason: "Legacy match already had a winner, finalized to completed",
+        matchId: match._id,
+        action: "finalized_completed",
+        fallbackMatch: updatedMatch,
+      };
+    }
+
     // Skip if no deadline set yet
     if (!match.resultDeadline) {
       return {
@@ -39,11 +62,65 @@ export const autoResolveMatch = async (match, userModel) => {
     if (isDeadlineExpired) {
       // CASE 1: Both players submitted with same winner
       if (submittedCount === totalPlayers) {
-        console.log(`[AUTO-RESOLVE] Match ${match._id}: Both submitted - should already be processed`);
+        const claims = match.result?.submissionClaims || [];
+        const uniqueClaimedWinners = [...new Set(claims.map((claim) => claim.claimedWinner?.toString()).filter(Boolean))];
+
+        if (uniqueClaimedWinners.length === 1) {
+          const confirmedWinnerId = claims[0].claimedWinner;
+          console.log(`[AUTO-RESOLVE] Match ${match._id}: Both submitted - finalizing completed`);
+
+          const updatedMatch = await Match.findByIdAndUpdate(
+            match._id,
+            {
+              $set: {
+                "result.winner": confirmedWinnerId,
+                "result.decidedAt": now,
+                completedAt: now,
+                status: "completed",
+              },
+            },
+            { new: true }
+          );
+
+          return {
+            resolved: true,
+            reason: "Both submitted and agreed on winner",
+            matchId: match._id,
+            action: "finalized_completed",
+            winner: confirmedWinnerId,
+            fallbackMatch: updatedMatch,
+          };
+        }
+
+        console.log(`[AUTO-RESOLVE] Match ${match._id}: Both submitted - conflicting claims, moving to dispute`);
+
+        const updatedMatch = await Match.findByIdAndUpdate(
+          match._id,
+          {
+            $set: {
+              status: "disputed",
+              "result.decidedAt": now,
+              completedAt: match.completedAt || now,
+            },
+            $push: {
+              disputes: {
+                raisedBy: match.players?.[0],
+                reason: "wrong_result",
+                description: "Both players submitted conflicting winner claims after timeout. The match was moved to dispute.",
+                status: "pending",
+                createdAt: now,
+              },
+            },
+          },
+          { new: true }
+        );
+
         return {
-          resolved: false,
-          reason: "Both submitted but status not updated",
+          resolved: true,
+          reason: "Both submitted but claims conflicted",
           matchId: match._id,
+          action: "moved_to_dispute",
+          fallbackMatch: updatedMatch,
         };
       }
 

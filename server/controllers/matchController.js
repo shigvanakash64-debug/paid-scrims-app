@@ -318,7 +318,9 @@ export const approveResult = async (req, res) => {
     }
 
     match.result.winner = winner._id;
+    match.result.decidedAt = new Date();
     match.completedAt = new Date();
+    match.status = 'completed';
 
     await match.save();
 

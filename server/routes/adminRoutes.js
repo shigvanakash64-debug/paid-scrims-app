@@ -23,7 +23,6 @@ import {
   adjustUserWallet,
   getAllUsers,
   deleteUser,
-  deleteUser,
   getAllWithdrawals,
   approveWithdrawal,
   rejectWithdrawal,

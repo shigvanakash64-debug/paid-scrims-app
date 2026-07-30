@@ -54,6 +54,35 @@ const cancelPaymentTimeouts = async () => {
   return results;
 };
 
+const repairLegacyMatches = async (userModel, batchSize = 100) => {
+  const now = new Date();
+  const matchesToRepair = await Match.find({
+    status: { $in: ['result_pending', 'ongoing'] },
+    $or: [
+      { resultDeadline: { $exists: true, $lte: now } },
+      { result: { $exists: true }, 'result.winner': { $exists: true, $ne: null } },
+    ],
+  })
+    .limit(batchSize)
+    .lean();
+
+  if (matchesToRepair.length === 0) {
+    return [];
+  }
+
+  const results = [];
+  for (const match of matchesToRepair) {
+    try {
+      const result = await batchAutoResolveMatches([match], userModel);
+      results.push(...result);
+    } catch (error) {
+      results.push({ matchId: match._id, error: error.message });
+    }
+  }
+
+  return results;
+};
+
 /**
  * Initialize cron job for match timeout resolution
  * Runs every 1 minute
@@ -82,6 +111,14 @@ export const initializeCronJobs = (userModel, options = {}) => {
       const cleanupResult = await cleanupExpiredUploads();
       if (cleanupResult.deletedCount > 0) {
         console.log(`[CRON] Removed ${cleanupResult.deletedCount} expired screenshots older than 48 hours`);
+      }
+
+      const repairedMatches = await repairLegacyMatches(userModel, batchSize);
+      if (repairedMatches.length > 0) {
+        const repairedCount = repairedMatches.filter((result) => result.resolved).length;
+        if (repairedCount > 0) {
+          console.log(`[CRON] Repaired ${repairedCount} legacy matches`);
+        }
       }
 
       // Handle payment timeouts for matches awaiting proof
