@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -23,6 +23,7 @@ export const PaymentStatusScreen = ({ user, onNavigate }) => {
   const [isRetrying, setIsRetrying] = useState(false);
   const [hasTried, setHasTried] = useState(false);
   const [params, setParams] = useState({});
+  const urlReplacedRef = useRef(false);
 
   const verifyOrder = async (orderId) => {
     const token = localStorage.getItem('clutchzone_token');
@@ -77,9 +78,19 @@ export const PaymentStatusScreen = ({ user, onNavigate }) => {
 
   useEffect(() => {
     if (status === 'success') {
+      // Replace the browser URL immediately so refresh won't re-run verification
+      try {
+        if (!urlReplacedRef.current && typeof window !== 'undefined' && window.history && window.history.replaceState) {
+          window.history.replaceState(null, '', '/wallet');
+          urlReplacedRef.current = true;
+        }
+      } catch (e) {
+        // ignore
+      }
+
       const timer = setTimeout(() => {
-        onNavigate('wallet');
-      }, 3000);
+        onNavigate('wallet', null, true);
+      }, 2000);
       return () => clearTimeout(timer);
     }
     return undefined;

@@ -411,8 +411,8 @@ function App() {
     }
   };
 
-  const handleScreenChange = (screen, wallpaper = null) => {
-    navigateTo(screen, wallpaper);
+  const handleScreenChange = (screen, wallpaper = null, replace = false) => {
+    navigateTo(screen, wallpaper, replace);
   };
 
   const handleBack = () => {
