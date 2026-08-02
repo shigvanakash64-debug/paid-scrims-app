@@ -34,6 +34,13 @@ const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m =
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
+const VALID_SCREENS = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
+
+const getInitialScreen = () => {
+  if (typeof window === 'undefined') return 'home';
+  const savedScreen = localStorage.getItem('clutchzone_currentScreen');
+  return savedScreen && VALID_SCREENS.includes(savedScreen) ? savedScreen : 'home';
+};
 
 // Helper function to register OneSignal player ID with backend
 const registerOneSignalPlayerId = async (token, playerId = null) => {
@@ -116,7 +123,7 @@ const checkNotificationStatus = async (token) => {
 };
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState('wallpaper-home');
+  const [currentScreen, setCurrentScreen] = useState(getInitialScreen);
   const [screenHistory, setScreenHistory] = useState([]);
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [navVisible, setNavVisible] = useState(true);
@@ -140,12 +147,12 @@ function App() {
         }
       })();
 
-      const validScreens = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
       const pathScreen = typeof window !== 'undefined' && window.location.pathname === '/payment-status' ? 'payment-status' : null;
-      const targetScreen = pathScreen || (validScreens.includes(savedScreen) ? (savedScreen === 'home' ? 'wallpaper-home' : savedScreen) : 'wallpaper-home');
+      const fallbackScreen = 'home';
+      const targetScreen = pathScreen || (savedScreen && VALID_SCREENS.includes(savedScreen) ? savedScreen : fallbackScreen);
 
       if (!token) {
-        setCurrentScreen(pathScreen || savedScreen || 'wallpaper-home');
+        setCurrentScreen(pathScreen || savedScreen || fallbackScreen);
         setLoadingAuth(false);
         return;
       }
@@ -439,10 +446,11 @@ function App() {
   };
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem('clutchzone_currentScreen', currentScreen);
+    if (typeof window !== 'undefined') {
+      const safeScreen = VALID_SCREENS.includes(currentScreen) ? currentScreen : 'home';
+      localStorage.setItem('clutchzone_currentScreen', safeScreen);
     }
-  }, [currentScreen, user]);
+  }, [currentScreen]);
 
   const canGoBack = screenHistory.length > 0;
 
