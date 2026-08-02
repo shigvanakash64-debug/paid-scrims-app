@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import axios from 'axios';
 import { NotificationStack } from '../components/notifications/NotificationStack';
 import { useUser } from './UserContext';
-import { getNewNotifications, normalizeNotificationPayload } from '../utils/notificationUtils';
+import { getFloatingNotificationPayload, getNewNotifications, normalizeNotificationPayload } from '../utils/notificationUtils';
 
 const NotificationContext = createContext(null);
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -33,19 +33,22 @@ export const NotificationProvider = ({ children }) => {
 
   const queueNotification = useCallback((payload) => {
     const safePayload = normalizeNotificationPayload(payload);
+    const floatingPayload = getFloatingNotificationPayload(safePayload);
+
+    if (!floatingPayload) return;
 
     setNotificationState((prev) => {
-      const nextActive = prev.active.filter((item) => item.id !== safePayload.id);
+      const nextActive = prev.active.filter((item) => item.id !== floatingPayload.id);
       if (nextActive.length < 4) {
         return {
-          active: [...nextActive, safePayload],
+          active: [...nextActive, floatingPayload],
           queued: prev.queued,
         };
       }
 
       return {
         active: nextActive,
-        queued: [...prev.queued, safePayload],
+        queued: [...prev.queued, floatingPayload],
       };
     });
   }, []);

@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { useNotifications } from './NotificationContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
@@ -21,7 +20,6 @@ export const MatchProvider = ({ children }) => {
   const [lastMatchUpdate, setLastMatchUpdate] = useState(null);
   const [previousPlayerCount, setPreviousPlayerCount] = useState(0);
   const refreshInFlightRef = useRef(false);
-  const { showNotification } = useNotifications();
 
   // Polling interval for active matches (every 30 seconds to avoid backend rate limiting)
   const POLLING_INTERVAL = 60000;
@@ -99,11 +97,6 @@ export const MatchProvider = ({ children }) => {
           tag: 'opponent-joined',
           requireInteraction: true,
         });
-        showNotification({
-          type: 'match',
-          title: 'Opponent Joined',
-          message: 'A new player joined your room and the countdown has started.',
-        });
       }
       setPreviousPlayerCount(currentPlayerCount);
       setLastMatchUpdate(new Date());
@@ -126,7 +119,7 @@ export const MatchProvider = ({ children }) => {
     } finally {
       refreshInFlightRef.current = false;
     }
-  }, [sendNotification, showNotification]);
+  }, [sendNotification]);
 
   // Start polling for match updates
   const startMatchPolling = useCallback(() => {

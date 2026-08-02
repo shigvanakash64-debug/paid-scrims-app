@@ -680,8 +680,8 @@ export const acceptMatch = async (req, res) => {
     if (creatorPlayerId && creatorPlayerId.trim()) {
       await sendNotification(
         [creatorPlayerId],
-        '⚡ Player Joined',
-        `${opponentUsername} has joined your match. Complete wallet payment to start the match.`,
+        '🎮 Match Joined',
+        `${opponentUsername} has joined your match. Complete your payment to continue.`,
         {
           url: `https://www.clutchzone.in/match/${match._id}`,
           matchId: match._id,
@@ -695,33 +695,6 @@ export const acceptMatch = async (req, res) => {
           },
         }
       );
-    }
-
-    if (match.players.length === parseInt(match.mode.split('v')[0]) * 2) {
-      const playerIds = (
-        await User.find({
-          _id: { $in: match.players },
-          onesignalPlayerId: { $exists: true, $ne: null },
-        }).select('onesignalPlayerId')
-      ).map(u => u.onesignalPlayerId);
-
-      if (playerIds.length > 0) {
-        await sendNotification(
-          playerIds,
-          '🎮 Match Ready',
-          'Match is ready and waiting for wallet payments from both players.',
-          {
-            url: `https://www.clutchzone.in/match/${match._id}`,
-            matchId: match._id,
-            type: 'success',
-            priority: 10,
-            data: {
-              eventType: 'match_full',
-              matchId: match._id.toString(),
-            },
-          }
-        );
-      }
     }
 
     res.status(200).json({ match: serializeMatch(match) });
@@ -799,18 +772,28 @@ export const payMatchWithWallet = async (req, res) => {
 
     await match.save();
 
-    const playerIds = match.players
-      .filter((player) => player.onesignalPlayerId)
-      .map((player) => player.onesignalPlayerId);
+    const recipientPlayer = match.players.find((player) => player._id?.toString() !== userId.toString());
+    const recipientPlayerId = recipientPlayer?.onesignalPlayerId;
 
-    if (playerIds.length > 0) {
+    if (recipientPlayerId && recipientPlayerId.trim()) {
+      const recipientMessage = match.creator?.toString() === userId.toString()
+        ? 'The match creator has completed payment. You can now complete your payment.'
+        : 'Your opponent has completed payment. Proceed to the next stage.';
+
+      const recipientTitle = match.creator?.toString() === userId.toString()
+        ? '💳 Creator Completed Payment'
+        : '✅ Opponent Completed Payment';
+
       await sendNotification(
-        playerIds,
-        '💵 Match payment update',
-        `${user.username} completed wallet payment for match ${match.mode}. ${allPlayersPaid ? 'Both players have paid.' : 'Waiting for the opponent to pay.'}`,
+        [recipientPlayerId],
+        recipientTitle,
+        recipientMessage,
         {
+          url: `https://www.clutchzone.in/match/${match._id}`,
+          matchId: match._id,
           type: 'info',
           priority: 9,
+          link: `/match/${match._id}`,
           data: {
             eventType: 'match_payment',
             matchId: match._id.toString(),
