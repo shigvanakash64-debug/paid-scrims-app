@@ -379,14 +379,17 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                       <span>Status: {item.status}</span>
                     </div>
                     <div className="match-card-footer">
-                      <span className="match-detail">Prize CZ{item.prizePool}</span>
+                      <div className="match-card-stats">
+                        <span className="match-detail">Entry CZ - {item.entryFee || item.entry}</span>
+                        <span className="match-detail">Prize - {item.prizePool}</span>
+                      </div>
                       <button
                         className="join-btn"
                         type="button"
                         disabled={!user || item.id === activeMatch?.id}
                         onClick={() => handleJoin(item)}
                       >
-                        {item.id === activeMatch?.id ? 'YOUR MATCH' : 'JOIN MATCH'}
+                        {item.id === activeMatch?.id ? 'YOUR MATCH' : 'JOIN'}
                       </button>
                     </div>
                   </div>
