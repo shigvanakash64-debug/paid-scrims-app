@@ -25,6 +25,12 @@ const addWalletTransaction = async (userId, { type, amount, description, matchId
   await user.save();
 };
 
+export const calculateReferralCommissionAmount = (platformFee, referralPercentage) => {
+  const normalizedFee = Number(platformFee || 0);
+  const normalizedPercentage = Number(referralPercentage || 0);
+  return Number((normalizedFee * (normalizedPercentage / 100)).toFixed(2));
+};
+
 export const generateReferralCode = async (username) => {
   const base = String(username || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '');
   const prefix = base || 'PLAYER';
@@ -166,7 +172,7 @@ export const creditReferralCommission = async ({ referredUserId, platformFee, ma
   if (!settings.referralEnabled) return { success: false, message: 'Referral rewards disabled' };
   const referral = await Referral.findOne({ referredUser: referredUserId });
   if (!referral) return { success: false, message: 'No referral found' };
-  const commissionAmount = Number(platformFee || 0) * (Number(settings.referralPercentage || 0) / 100);
+  const commissionAmount = calculateReferralCommissionAmount(platformFee, settings.referralPercentage);
   if (commissionAmount <= 0) return { success: false, message: 'No referral commission to credit' };
 
   const referrer = await User.findById(referral.referrer);

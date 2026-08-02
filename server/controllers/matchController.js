@@ -205,7 +205,7 @@ export const submitResult = async (req, res) => {
             await creditWelcomeBonus({ userId: participant._id, matchId: match._id });
             await markCompletedPaidMatch(participant._id);
             await updateReferralStatus({ referredUserId: participant._id, status: 'active', matchId: match._id });
-            await creditReferralCommission({ referredUserId: participant._id, platformFee: perPlayerPlatformFee, matchId: match._id });
+            await creditReferralCommission({ referredUserId: participant._id, platformFee: feeAmount, matchId: match._id });
           }
         } catch (payoutError) {
           console.error('PAYOUT ERROR:', payoutError.message);
@@ -324,10 +324,10 @@ export const approveResult = async (req, res) => {
     await match.save();
 
     const payoutInfo = await processPayout(matchId, winner._id, User);
-    const perPlayerPlatformFee = Number(payoutInfo?.fee || 0) / Math.max(1, match.players.length);
+    const platformFee = Number(payoutInfo?.fee || 0);
 
     for (const player of match.players) {
-      await creditReferralCommission({ referredUserId: player._id, platformFee: perPlayerPlatformFee, matchId });
+      await creditReferralCommission({ referredUserId: player._id, platformFee, matchId });
     }
 
     const loser = match.players.find((player) => player._id.toString() !== winner._id.toString());
