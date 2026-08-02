@@ -380,8 +380,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                     </div>
                     <div className="match-card-footer">
                       <div className="match-card-stats">
-                        <span className="match-detail">Entry CZ - {item.entryFee || item.entry}</span>
-                        <span className="match-detail">Prize - {item.prizePool}</span>
+                       <span className="match-detail">Prize - {item.prizePool}</span>
                       </div>
                       <button
                         className="join-btn"
