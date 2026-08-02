@@ -50,6 +50,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const [activeTab, setActiveTab] = useState('deposit');
   const [withdrawalAmount, setRedeemalAmount] = useState('');
   const [withdrawalWallet, setRedeemalWallet] = useState('main');
+  const [upiId, setUpiId] = useState('');
   const [depositAmount, setDepositAmount] = useState('100');
   const [cashfreeLoading, setCashfreeLoading] = useState(false);
   const [cashfreeLoaded, setCashfreeLoaded] = useState(false);
@@ -110,6 +111,17 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
 
   const handleRedeemalRequest = async () => {
     const amount = parseFloat(withdrawalAmount);
+    const normalizedUpi = upiId.trim();
+
+    if (!normalizedUpi) {
+      setMessage('Please enter your UPI ID.');
+      return;
+    }
+
+    if (!normalizedUpi.includes('@') || normalizedUpi.includes(' ')) {
+      setMessage('Please enter a valid UPI ID (example@upi).');
+      return;
+    }
 
     if (!withdrawalAmount || amount < 100) {
       setMessage('Minimum redemption amount is CZ100');
@@ -129,16 +141,18 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       await axios.post(`${API_BASE}/wallet/withdraw`, {
         amount,
         wallet: withdrawalWallet,
+        upi: normalizedUpi,
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      setMessage('Redemption request submitted successfully. Admin approval required.');
+      setMessage('Your redemption request has been submitted successfully.\n\nThe request is under admin review.\n\nEstimated processing time: 24–48 hours.');
       setRedeemalAmount('');
+      setUpiId('');
       setRedeemalWallet('main');
       fetchWalletData(); // Refresh data
     } catch (error) {
-      setMessage(error.response?.data?.error || 'Failed to submit redemption request');
+      setMessage(error.response?.data?.error || 'Unable to submit redemption request. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -312,7 +326,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         </div>
 
         {message && (
-          <div className={`mb-4 p-3 rounded-lg text-sm ${
+          <div className={`mb-4 whitespace-pre-line p-3 rounded-lg text-sm ${
             message.includes('success') ? 'bg-[#022c0b] text-[#22C55E]' : 'bg-[#3d1c1c] text-[#EF4444]'
           }`}>
             {message}
@@ -401,6 +415,16 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               </div>
             </div>
             <div>
+              <label className="block text-sm text-[#A1A1A1] mb-2">UPI ID</label>
+              <input
+                type="text"
+                value={upiId}
+                onChange={(e) => setUpiId(e.target.value)}
+                placeholder="Enter your UPI ID (example@upi)"
+                className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
+              />
+            </div>
+            <div>
               <label className="block text-sm text-[#A1A1A1] mb-2">Amount</label>
               <input
                 type="number"
@@ -415,7 +439,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
 
             <button
               onClick={handleRedeemalRequest}
-              disabled={loading || !withdrawalAmount || parseFloat(withdrawalAmount) < 100 || parseFloat(withdrawalAmount) > (withdrawalWallet === 'referral' ? referralEarningsBalance : balance)}
+              disabled={loading || !upiId.trim() || !withdrawalAmount || parseFloat(withdrawalAmount) < 100 || parseFloat(withdrawalAmount) > (withdrawalWallet === 'referral' ? referralEarningsBalance : balance)}
               className="w-full rounded-3xl bg-[#FF6A00] px-6 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black transition disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? 'Submitting...' : 'Request Redemption'}
