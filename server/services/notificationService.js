@@ -46,48 +46,61 @@ export const sendNotification = async (playerIds, title, message, options = {}) 
   // Validate config on first use
   validateConfig();
   try {
+    const userIds = Array.isArray(options.userIds) ? options.userIds.filter(Boolean) : [];
+    const normalizedPlayerIds = Array.isArray(playerIds) ? playerIds.filter((id) => id && id.trim()) : [];
+
+    // Save the in-app notification first so it is available even when push is unavailable
+    await Promise.all(
+      [...userIds, ...normalizedPlayerIds].map(async (recipient) => {
+        try {
+          const normalizedRecipient = recipient?.toString?.() || recipient;
+          const user = normalizedRecipient
+            ? await User.findOne(
+                userIds.includes(recipient)
+                  ? { _id: normalizedRecipient }
+                  : { onesignalPlayerId: normalizedRecipient }
+              )
+            : null;
+
+          if (!user) return;
+
+          const notificationEnabled = user.notificationPreferences?.systemNotifications ?? true;
+          if (!notificationEnabled) return;
+
+          user.notifications.push({
+            type: options.type || 'info',
+            message,
+            link: options.link || null,
+            relatedMatch: options.matchId || null,
+          });
+          await user.save();
+        } catch (err) {
+          console.error('Error saving in-app notification:', err.message);
+        }
+      })
+    );
+
     // ✅ VALIDATION: Check if credentials are set
     if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
-      console.error(
-        '❌ OneSignal credentials not configured. Set ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY in .env'
-      );
+      console.warn('⚠️ OneSignal credentials not configured. Skipping push delivery but keeping in-app notification.');
       return {
-        success: false,
+        success: true,
+        inAppSaved: true,
         error: 'OneSignal credentials missing. Add to .env file.',
       };
     }
 
     // Filter out null/undefined player IDs
-    const validPlayerIds = playerIds.filter(id => id && id.trim());
+    const validPlayerIds = normalizedPlayerIds.filter(id => id && id.trim());
 
     console.log(`📤 Preparing notification: "${title}"`);
-    console.log(`   Players: ${playerIds.length} → Valid: ${validPlayerIds.length}`);
+    console.log(`   Players: ${normalizedPlayerIds.length} → Valid: ${validPlayerIds.length}`);
     console.log(`   Valid Player IDs:`, validPlayerIds);
 
     if (validPlayerIds.length === 0) {
       console.warn('⚠️  No valid player IDs provided for notification');
       return { success: false, message: 'No valid player IDs' };
     }
-
-    // Also save notification to in-app notification center
-    await Promise.all(
-      playerIds.map(async (playerId) => {
-        try {
-          const user = await User.findOne({ onesignalPlayerId: playerId });
-          if (user && user.notificationPreferences?.systemNotifications) {
-            user.notifications.push({
-              type: options.type || 'info',
-              message: message,
-              link: options.link || null,
-              relatedMatch: options.matchId || null,
-            });
-            await user.save();
-          }
-        } catch (err) {
-          console.error(`Error saving in-app notification for ${playerId}:`, err.message);
-        }
-      })
-    );
 
     // Prepare OneSignal payload
     const payload = {

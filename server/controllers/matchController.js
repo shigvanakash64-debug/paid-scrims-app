@@ -676,10 +676,11 @@ export const acceptMatch = async (req, res) => {
     await match.save();
     await updateLastActivity(userId);
 
-    const creatorPlayerId = match.creator.onesignalPlayerId;
-    if (creatorPlayerId && creatorPlayerId.trim()) {
+    const creatorPlayerId = match.creator?.onesignalPlayerId;
+    const creatorUserId = match.creator?._id || match.creator;
+    if (creatorPlayerId && creatorPlayerId.trim() || creatorUserId) {
       await sendNotification(
-        [creatorPlayerId],
+        creatorPlayerId && creatorPlayerId.trim() ? [creatorPlayerId] : [],
         '🎮 Match Joined',
         `${opponentUsername} has joined your match. Complete your payment to continue.`,
         {
@@ -693,6 +694,7 @@ export const acceptMatch = async (req, res) => {
             matchId: match._id.toString(),
             opponent: opponentUsername,
           },
+          userIds: creatorUserId ? [creatorUserId.toString()] : [],
         }
       );
     }
@@ -774,8 +776,9 @@ export const payMatchWithWallet = async (req, res) => {
 
     const recipientPlayer = match.players.find((player) => player._id?.toString() !== userId.toString());
     const recipientPlayerId = recipientPlayer?.onesignalPlayerId;
+    const recipientUserId = recipientPlayer?._id?.toString?.() || recipientPlayer?._id;
 
-    if (recipientPlayerId && recipientPlayerId.trim()) {
+    if (recipientPlayerId && recipientPlayerId.trim() || recipientUserId) {
       const recipientMessage = match.creator?.toString() === userId.toString()
         ? 'The match creator has completed payment. You can now complete your payment.'
         : 'Your opponent has completed payment. Proceed to the next stage.';
@@ -785,7 +788,7 @@ export const payMatchWithWallet = async (req, res) => {
         : '✅ Opponent Completed Payment';
 
       await sendNotification(
-        [recipientPlayerId],
+        recipientPlayerId && recipientPlayerId.trim() ? [recipientPlayerId] : [],
         recipientTitle,
         recipientMessage,
         {
@@ -798,6 +801,7 @@ export const payMatchWithWallet = async (req, res) => {
             eventType: 'match_payment',
             matchId: match._id.toString(),
           },
+          userIds: recipientUserId ? [recipientUserId.toString()] : [],
         }
       );
     }
