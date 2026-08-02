@@ -91,6 +91,7 @@ const getTrustClass = (score) => {
 export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) => {
   const { currentMatch, clearMatch } = useMatch();
   const { user: currentUser } = useUser();
+  const [game, setGame] = useState(match?.game || 'All');
   const [mode, setMode] = useState(match?.mode || 'All');
   const [type, setType] = useState(match?.type || 'All');
   const [entry, setEntry] = useState(match?.entryFee || 0);
@@ -102,11 +103,12 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const filteredSamples = useMemo(
     () => sampleMatches.filter(
       (item) =>
+        (game === 'All' || item.game === game) &&
         (mode === 'All' || item.mode === mode) &&
         (type === 'All' || item.type === type) &&
         (entry === 0 || item.entryFee === entry)
     ),
-    [mode, type, entry]
+    [game, mode, type, entry]
   );
 
   useEffect(() => {
@@ -115,6 +117,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
       setError('');
       try {
         const params = new URLSearchParams();
+        if (game !== 'All') params.append('game', game);
         if (mode !== 'All') params.append('mode', mode);
         if (type !== 'All') params.append('type', type);
         if (entry !== 0) params.append('entry', String(entry));
@@ -131,7 +134,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     };
 
     fetchMatches();
-  }, [mode, type, entry, filteredSamples]);
+  }, [game, mode, type, entry, filteredSamples]);
 
   const handleCancelMatch = async () => {
     if (!activeMatch?.id) return;
@@ -209,6 +212,16 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
       </div>
 
       <div className="pairing-topbar">
+        <div className="pairing-filter">
+          <span className="filter-label">Game</span>
+          <select className="pairing-select" value={game} onChange={(e) => setGame(e.target.value)}>
+            {['All', 'Free Fire', 'BGMI'].map((option) => (
+              <option key={option} value={option}>
+                {option === 'All' ? 'All' : option}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="pairing-filter">
           <span className="filter-label">Mode</span>
           <select className="pairing-select" value={mode} onChange={(e) => setMode(e.target.value)}>
@@ -349,7 +362,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                   <div key={item.id} className="match-card">
                     <div className="match-card-header">
                       <div>
-                        <div className="match-tag">{item.type}</div>
+                        <div className="match-tag">{item.game || 'Free Fire'} · {item.type}</div>
                         <div className="match-title">{item.mode} · Entry CZ{item.entryFee || item.entry}</div>
                       </div>
                       <div className={`trust-pill ${getTrustClass(item.trustScore)}`}>

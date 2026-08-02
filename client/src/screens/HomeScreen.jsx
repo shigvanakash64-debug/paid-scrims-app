@@ -124,6 +124,7 @@ const getPrizePool = (entryFee) => {
 
 export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) => {
   const { user: currentUser } = useUser();
+  const [selectedGame, setSelectedGame] = useState('Free Fire');
   const [selectedMode, setSelectedMode] = useState('1v1');
   const [selectedType, setSelectedType] = useState('Normal Headshot');
   const [selectedSkill, setSelectedSkill] = useState('Skill On');
@@ -148,6 +149,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
       const response = await axios.post(
         `${API_BASE}/match/create`,
         {
+          game: selectedGame,
           mode: selectedMode,
           type: selectedType,
           entry: selectedFee,
@@ -191,6 +193,22 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
             <div className="home-banner-title">Play more, earn more!</div>
             <div className="home-banner-copy">Get 2% cashback on every match and refer your friends to earn 20% commission on platform fees.</div>
           </div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-label">Game</div>
+        <div className="grid2">
+          {['Free Fire', 'BGMI'].map((game) => (
+            <button
+              key={game}
+              type="button"
+              className={`sel-btn ${selectedGame === game ? 'active' : ''}`}
+              onClick={() => setSelectedGame(game)}
+            >
+              {game}
+            </button>
+          ))}
         </div>
       </div>
 

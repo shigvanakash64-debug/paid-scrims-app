@@ -14,6 +14,12 @@ const matchSchema = new mongoose.Schema(
         required: true,
       },
     ],
+    game: {
+      type: String,
+      enum: ["Free Fire", "BGMI"],
+      required: true,
+      default: "Free Fire",
+    },
     mode: {
       type: String,
       enum: ["1v1", "2v2", "3v3", "4v4"],

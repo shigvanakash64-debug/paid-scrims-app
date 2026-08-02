@@ -434,6 +434,7 @@ const serializeMatch = (match) => {
         username: player.username,
       };
     }),
+    game: record.game || 'Free Fire',
     mode: record.mode,
     type: record.type,
     entry: record.entry,
@@ -533,11 +534,13 @@ export const getMatch = async (req, res) => {
 
 export const createMatch = async (req, res) => {
   try {
-    const { mode, type, entry, skillSetting } = req.body;
+    const { game, mode, type, entry, skillSetting } = req.body;
     const userId = req.userId;
+    const allowedGames = ['Free Fire', 'BGMI'];
+    const finalGame = allowedGames.includes(game) ? game : 'Free Fire';
 
     if (!mode || !type || !entry) {
-      return res.status(400).json({ error: 'mode, type and entry are required' });
+      return res.status(400).json({ error: 'game, mode, type and entry are required' });
     }
 
     if (pendingMatchCreations.has(userId.toString())) {
@@ -586,6 +589,7 @@ export const createMatch = async (req, res) => {
     const match = await Match.create({
       creator: userId,
       players: [userId],
+      game: finalGame,
       mode,
       type,
       skillSetting: finalSkillSetting,
@@ -617,6 +621,7 @@ export const createMatch = async (req, res) => {
           matchId: match._id.toString(),
           eventType: 'match_created',
           entryFee: parsedEntry,
+          game: finalGame,
           mode: mode,
         },
       }
@@ -1084,12 +1089,13 @@ export const addChatMessage = async (req, res) => {
 
 export const listMatches = async (req, res) => {
   try {
-    const { mode, type, entry } = req.query;
+    const { game, mode, type, entry } = req.query;
     await cancelExpiredPayments();
 
     // Exclude matches older than 2 hours
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
     const query = { status: 'waiting', createdAt: { $gte: twoHoursAgo } };
+    if (game) query.game = game;
     if (mode) query.mode = mode;
     if (type) query.type = type;
     if (entry) query.entry = Number(entry);
