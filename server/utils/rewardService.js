@@ -122,10 +122,11 @@ export const creditWelcomeBonus = async ({ userId, matchId }) => {
   const bonusAmount = Number(settings.welcomeBonusAmount || 0);
   if (bonusAmount <= 0) return { success: false, message: 'Welcome bonus amount is zero' };
 
-  user.wallet.bonusBalance += bonusAmount;
+  user.wallet.balance = Number((user.wallet.balance || 0) + bonusAmount);
+  user.wallet.bonusBalance = Number((user.wallet.bonusBalance || 0) + bonusAmount);
   user.wallet.welcomeBonusClaimed = true;
-  user.wallet.totalBonusEarned = (user.wallet.totalBonusEarned || 0) + bonusAmount;
-  user.wallet.totalWelcomeBonusEarned = (user.wallet.totalWelcomeBonusEarned || 0) + bonusAmount;
+  user.wallet.totalBonusEarned = Number((user.wallet.totalBonusEarned || 0) + bonusAmount);
+  user.wallet.totalWelcomeBonusEarned = Number((user.wallet.totalWelcomeBonusEarned || 0) + bonusAmount);
   user.wallet.transactions.push({
     type: 'bonus',
     amount: bonusAmount,
@@ -135,7 +136,7 @@ export const creditWelcomeBonus = async ({ userId, matchId }) => {
   });
   await user.save();
 
-  return { success: true, amount: bonusAmount, balance: user.wallet.bonusBalance };
+  return { success: true, amount: bonusAmount, balance: user.wallet.balance, bonusBalance: user.wallet.bonusBalance };
 };
 
 export const creditCashback = async ({ userId, matchEntryFee, matchId }) => {
@@ -146,8 +147,9 @@ export const creditCashback = async ({ userId, matchEntryFee, matchId }) => {
   const cashbackAmount = Number(matchEntryFee || 0) * (Number(settings.cashbackPercentage || 0) / 100);
   if (cashbackAmount <= 0) return { success: false, message: 'No cashback to credit' };
 
-  user.wallet.bonusBalance += cashbackAmount;
-  user.wallet.totalBonusEarned = (user.wallet.totalBonusEarned || 0) + cashbackAmount;
+  user.wallet.balance = Number((user.wallet.balance || 0) + cashbackAmount);
+  user.wallet.bonusBalance = Number((user.wallet.bonusBalance || 0) + cashbackAmount);
+  user.wallet.totalBonusEarned = Number((user.wallet.totalBonusEarned || 0) + cashbackAmount);
   user.wallet.transactions.push({
     type: 'bonus',
     amount: cashbackAmount,
@@ -156,7 +158,7 @@ export const creditCashback = async ({ userId, matchEntryFee, matchId }) => {
     matchId,
   });
   await user.save();
-  return { success: true, amount: cashbackAmount, balance: user.wallet.bonusBalance };
+  return { success: true, amount: cashbackAmount, balance: user.wallet.balance, bonusBalance: user.wallet.bonusBalance };
 };
 
 export const creditReferralCommission = async ({ referredUserId, platformFee, matchId }) => {
@@ -169,7 +171,9 @@ export const creditReferralCommission = async ({ referredUserId, platformFee, ma
 
   const referrer = await User.findById(referral.referrer);
   if (!referrer) return { success: false, message: 'Referrer not found' };
-  referrer.wallet.referralEarningsBalance += commissionAmount;
+
+  referrer.wallet.balance = Number((referrer.wallet.balance || 0) + commissionAmount);
+  referrer.wallet.referralEarningsBalance = Number((referrer.wallet.referralEarningsBalance || 0) + commissionAmount);
   referral.lifetimePlatformFeesGenerated += Number(platformFee || 0);
   referral.totalReferralCommissionEarned += commissionAmount;
   referral.status = 'active';
@@ -184,7 +188,7 @@ export const creditReferralCommission = async ({ referredUserId, platformFee, ma
     matchId,
   });
   await referrer.save();
-  return { success: true, amount: commissionAmount, balance: referrer.wallet.referralEarningsBalance };
+  return { success: true, amount: commissionAmount, balance: referrer.wallet.balance, referralEarningsBalance: referrer.wallet.referralEarningsBalance };
 };
 
 export const markFirstDeposit = async (userId, amount) => {
