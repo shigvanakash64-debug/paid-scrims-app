@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useMatch } from '../contexts/MatchContext';
+import { useNotifications } from '../contexts/NotificationContext';
 import { useUser } from '../contexts/UserContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -91,6 +92,7 @@ const getTrustClass = (score) => {
 export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) => {
   const { currentMatch, clearMatch } = useMatch();
   const { user: currentUser } = useUser();
+  const { showNotification } = useNotifications();
   const [game, setGame] = useState(match?.game || 'All');
   const [mode, setMode] = useState(match?.mode || 'All');
   const [type, setType] = useState(match?.type || 'All');
@@ -166,6 +168,13 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         { matchId: matchItem.id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      showNotification({
+        id: `join-${Date.now()}`,
+        type: 'match',
+        title: '🎮 Match Joined',
+        message: `${currentUser?.username || 'A player'} has joined your match. Complete your payment to continue.`,
+        duration: 5000,
+      });
       onMatchSelect?.(response.data.match);
       onScreenChange('match');
     } catch (error) {

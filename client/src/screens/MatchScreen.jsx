@@ -7,6 +7,7 @@ import { PaymentCard } from '../components/PaymentCard';
 import { PlayerStatusList } from '../components/PlayerStatusList';
 import { RoomDetailsCard } from '../components/RoomDetailsCard';
 import { useMatch } from '../contexts/MatchContext';
+import { useNotifications } from '../contexts/NotificationContext';
 import { useUser } from '../contexts/UserContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -35,6 +36,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const matchId = match?.id || match?._id;
   const { currentMatch, refreshMatch, updateMatchState, clearMatch } = useMatch();
   const { user: currentUser } = useUser();
+  const { showNotification } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [paying, setPaying] = useState(false);
@@ -189,6 +191,15 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       await refreshMatch(matchId);
+      showNotification({
+        id: `payment-${Date.now()}`,
+        type: currentUser?.id === creatorId ? 'info' : 'success',
+        title: currentUser?.id === creatorId ? '💳 Creator Completed Payment' : '✅ Opponent Completed Payment',
+        message: currentUser?.id === creatorId
+          ? 'The match creator has completed payment. You can now complete your payment.'
+          : 'Your opponent has completed payment. Proceed to the next stage.',
+        duration: 5000,
+      });
       setShowPaymentStep(true);
       alert(response.data.message || 'Wallet payment completed.');
     } catch (err) {
