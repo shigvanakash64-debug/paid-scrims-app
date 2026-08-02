@@ -138,7 +138,7 @@ const userSchema = new mongoose.Schema({
     transactions: [{
       type: {
         type: String,
-        enum: ['deposit', 'withdrawal', 'match_win', 'match_loss', 'refund', 'fee', 'bonus', 'referral'],
+        enum: ['deposit', 'withdrawal', 'match_win', 'match_loss', 'refund', 'fee', 'bonus', 'referral', 'admin_adjustment'],
         required: true
       },
       amount: {

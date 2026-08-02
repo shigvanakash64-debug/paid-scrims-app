@@ -819,26 +819,36 @@ export const resolveDispute = async (req, res) => {
 export const adjustUserWallet = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { amount, reason } = req.body;
+    const rawAmount = Number(req.body?.amount);
+    const reason = req.body?.reason || 'Admin wallet adjustment';
+
+    if (!Number.isFinite(rawAmount)) {
+      return res.status(400).json({ error: 'A valid numeric amount is required.' });
+    }
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    user.wallet.balance += amount;
+    const nextBalance = Number((user.wallet?.balance || 0) + rawAmount);
+    if (nextBalance < 0) {
+      return res.status(400).json({ error: 'Cannot subtract more than the current wallet balance.' });
+    }
+
+    user.wallet.balance = nextBalance;
     user.wallet.transactions.push({
       type: 'admin_adjustment',
-      amount,
-      reason,
-      date: new Date()
+      amount: rawAmount,
+      description: reason,
+      timestamp: new Date()
     });
 
     await user.save();
 
     res.status(200).json({
       success: true,
-      message: `User wallet adjusted by ${amount > 0 ? '+' : ''}${amount}`,
+      message: `User wallet adjusted by ${rawAmount > 0 ? '+' : ''}${rawAmount}`,
       user: {
         id: user._id,
         username: user.username,
@@ -846,8 +856,8 @@ export const adjustUserWallet = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("adjustUserWallet error:", error);
-    res.status(500).json({ error: error.message });
+    console.error('adjustUserWallet error:', error);
+    res.status(500).json({ error: error.message || 'Failed to adjust wallet balance' });
   }
 };
 
