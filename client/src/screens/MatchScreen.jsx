@@ -248,6 +248,8 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
         { matchId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      clearMatch();
+      onScreenChange('pairing');
     } catch (err) {
       alert(err.response?.data?.error || 'Could not cancel match');
     }

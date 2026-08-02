@@ -17,7 +17,6 @@ const PAYMENT_UPIS = [
   '8261047808@mbk',
 ];
 const RESULT_DEADLINE_MS = 5 * 60 * 1000;
-const pendingMatchCreations = new Set();
 
 const getNextPaymentUpi = async () => {
   const lastMatch = await Match.findOne({ paymentUpi: { $exists: true, $ne: null } })
@@ -543,12 +542,6 @@ export const createMatch = async (req, res) => {
       return res.status(400).json({ error: 'game, mode, type and entry are required' });
     }
 
-    if (pendingMatchCreations.has(userId.toString())) {
-      return res.status(409).json({ error: 'Match creation already in progress. Please wait a moment.' });
-    }
-
-    pendingMatchCreations.add(userId.toString());
-
     const allowedSkillSettings = ['Skill On', 'Skill Off'];
     const finalSkillSetting = allowedSkillSettings.includes(skillSetting) ? skillSetting : 'Skill On';
 
@@ -631,8 +624,6 @@ export const createMatch = async (req, res) => {
   } catch (error) {
     console.error('createMatch error:', error);
     res.status(500).json({ error: `Server error: ${error.message}` });
-  } finally {
-    pendingMatchCreations.delete(userId.toString());
   }
 };
 
