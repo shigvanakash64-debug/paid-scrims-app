@@ -363,7 +363,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                     <div className="match-card-header">
                       <div>
                         <div className="match-tag">{item.game || 'Free Fire'} · {item.type}</div>
-                        <div className="match-title">{item.mode} · Entry CZ{item.entryFee || item.entry}</div>
+                        <div className="match-title">{item.mode} · Entry - {item.entryFee || item.entry}</div>
                       </div>
                       <div className={`trust-pill ${getTrustClass(item.trustScore)}`}>
                         {item.trustScore}
