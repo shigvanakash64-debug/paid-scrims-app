@@ -1,5 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
+import {
+  clearPaymentVerificationState,
+  readPaymentVerificationState,
+  writePaymentVerificationState,
+} from '../utils/paymentVerificationState';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -24,12 +29,33 @@ export const PaymentStatusScreen = ({ user, onNavigate }) => {
   const [hasTried, setHasTried] = useState(false);
   const [params, setParams] = useState({});
   const urlReplacedRef = useRef(false);
+  const verifiedOrderRef = useRef(null);
 
   const verifyOrder = async (orderId) => {
     const token = localStorage.getItem('clutchzone_token');
     if (!token) {
       setStatus('failed');
       setMessage('Please log in again to verify your payment.');
+      return;
+    }
+
+    const storedState = readPaymentVerificationState(orderId);
+    const isExpired = typeof storedState?.expiresAt === 'number' && storedState.expiresAt <= Date.now();
+    if ((storedState?.status === 'success' || storedState?.status === 'failed') && !isExpired) {
+      setStatus(storedState.status);
+      setMessage(storedState.message || (storedState.status === 'success' ? 'Payment already processed.' : 'Payment verification already handled.'));
+      setAmount(storedState.amount || 0);
+      setWalletBalance(storedState.walletBalance ?? null);
+      setTransactionId(storedState.transactionId || null);
+      setHasTried(true);
+      return;
+    }
+
+    if (isExpired) {
+      clearPaymentVerificationState(orderId);
+    }
+
+    if (verifiedOrderRef.current === orderId) {
       return;
     }
 
@@ -45,20 +71,40 @@ export const PaymentStatusScreen = ({ user, onNavigate }) => {
 
       const data = response.data;
       if (data.success) {
+        const finalState = {
+          status: 'success',
+          message: data.alreadyCredited ? 'Payment has already been credited to your wallet.' : 'Payment successful. Wallet credited successfully.',
+          amount: data.amount || 0,
+          walletBalance: data.walletBalance ?? null,
+          transactionId: data.transactionId || null,
+          expiresAt: Date.now() + 1000 * 60 * 10,
+        };
+        writePaymentVerificationState(orderId, finalState);
+        verifiedOrderRef.current = orderId;
         setStatus('success');
-        setMessage(data.alreadyCredited ? 'Payment has already been credited to your wallet.' : 'Payment successful. Wallet credited successfully.');
-        setAmount(data.amount || 0);
-        setWalletBalance(data.walletBalance ?? null);
-        setTransactionId(data.transactionId || null);
+        setMessage(finalState.message);
+        setAmount(finalState.amount);
+        setWalletBalance(finalState.walletBalance);
+        setTransactionId(finalState.transactionId);
         setHasTried(true);
       } else {
+        const finalState = {
+          status: 'failed',
+          message: data.message || 'Payment verification failed.',
+          expiresAt: Date.now() + 1000 * 60 * 10,
+        };
+        writePaymentVerificationState(orderId, finalState);
+        verifiedOrderRef.current = orderId;
         setStatus('failed');
-        setMessage(data.message || 'Payment verification failed.');
+        setMessage(finalState.message);
       }
     } catch (error) {
       console.error('PaymentStatusScreen verifyOrder error', error);
       const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Payment verification failed.';
-      setStatus(error.response?.data?.success === false ? 'failed' : 'failed');
+      const finalState = { status: 'failed', message: errorMessage, expiresAt: Date.now() + 1000 * 60 * 10 };
+      writePaymentVerificationState(orderId, finalState);
+      verifiedOrderRef.current = orderId;
+      setStatus('failed');
       setMessage(errorMessage);
     }
   };
@@ -77,8 +123,18 @@ export const PaymentStatusScreen = ({ user, onNavigate }) => {
   }, []);
 
   useEffect(() => {
-    if (status === 'success') {
-      // Replace the browser URL immediately so refresh won't re-run verification
+    if (status === 'success' || status === 'failed') {
+      const orderId = params.orderId;
+      if (orderId) {
+        writePaymentVerificationState(orderId, {
+          status,
+          message,
+          amount,
+          walletBalance,
+          transactionId,
+        });
+      }
+
       try {
         if (!urlReplacedRef.current && typeof window !== 'undefined' && window.history && window.history.replaceState) {
           window.history.replaceState(null, '', '/wallet');
@@ -90,16 +146,19 @@ export const PaymentStatusScreen = ({ user, onNavigate }) => {
 
       const timer = setTimeout(() => {
         onNavigate('wallet', null, true);
-      }, 2000);
+      }, 400);
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [status, onNavigate]);
+  }, [status, params.orderId, message, amount, walletBalance, transactionId, onNavigate]);
 
   const handleRetry = () => {
     if (!params.orderId) return;
+    const orderId = params.orderId;
+    clearPaymentVerificationState(orderId);
+    verifiedOrderRef.current = null;
     setIsRetrying(true);
-    void verifyOrder(params.orderId).finally(() => setIsRetrying(false));
+    void verifyOrder(orderId).finally(() => setIsRetrying(false));
   };
 
   const handleReturn = () => {
