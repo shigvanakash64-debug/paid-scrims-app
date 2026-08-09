@@ -90,6 +90,13 @@ const buildWallpaperOrderId = () => {
 export const createWallpaperCashfreeOrder = async ({ wallpaperId, userId, userName, userEmail, userPhone, amount, returnBaseUrl }) => {
   const parsedAmount = Number(amount);
 
+  console.log('[WALLPAPER CASHFREE] createWallpaperCashfreeOrder start', {
+    wallpaperId,
+    userId,
+    parsedAmount,
+    environment: isTestEnvironment() ? 'TEST' : 'LIVE',
+  });
+
   if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
     throw new Error('Invalid wallpaper amount');
   }
@@ -124,11 +131,25 @@ export const createWallpaperCashfreeOrder = async ({ wallpaperId, userId, userNa
   };
 
   const returnUrl = buildReturnUrl(orderId, returnBaseUrl);
-  const orderMeta = new CFOrderMeta();
-  orderMeta.returnUrl = returnUrl;
-  orderRequest.orderMeta = orderMeta;
-  orderRequest.order_meta = orderRequest.order_meta || {};
-  orderRequest.order_meta.return_url = returnUrl;
+
+  if (process.env.WALLPAPER_CASHFREE_RETURN_URL || process.env.CASHFREE_RETURN_URL) {
+    const orderMeta = new CFOrderMeta();
+    orderMeta.returnUrl = returnUrl;
+    orderRequest.orderMeta = orderMeta;
+    orderRequest.order_meta = orderRequest.order_meta || {};
+    orderRequest.order_meta.return_url = returnUrl;
+  }
+
+  console.log('[WALLPAPER CASHFREE] orderRequest payload', {
+    orderId,
+    orderAmount: Number(parsedAmount.toFixed(2)),
+    orderCurrency: 'INR',
+    customerId: String(userId || orderId),
+    customerName: customerDetails.customerName,
+    customerEmail: customerDetails.customerEmail,
+    customerPhone: customerDetails.customerPhone,
+    returnUrl,
+  });
 
   const purchase = await WallpaperPurchase.findOne({ userId, wallpaperId, paymentStatus: 'SUCCESS' });
   if (purchase) {
@@ -136,7 +157,7 @@ export const createWallpaperCashfreeOrder = async ({ wallpaperId, userId, userNa
       success: true,
       alreadyPurchased: true,
       orderId: purchase.orderId,
-      paymentSessionId: purchase.paymentSessionId,
+      paymentSessionId: purchase.paymentSessionId || null,
       amount: Number(purchase.amount || wallpaper.price),
       currency: purchase.currency || 'INR',
       environment: isTestEnvironment() ? 'TEST' : 'LIVE',
@@ -145,7 +166,7 @@ export const createWallpaperCashfreeOrder = async ({ wallpaperId, userId, userNa
   }
 
   const existingPending = await WallpaperPurchase.findOne({ userId, wallpaperId, paymentStatus: 'PENDING' });
-  if (existingPending) {
+  if (existingPending && existingPending.paymentSessionId) {
     return {
       success: true,
       orderId: existingPending.orderId,
@@ -168,30 +189,49 @@ export const createWallpaperCashfreeOrder = async ({ wallpaperId, userId, userNa
     paymentMethod: 'cashfree',
   });
 
-  const response = await paymentGateway.orderCreate(config, orderRequest);
-  const order = response?.cfOrder || response?.order || response;
-  const paymentSessionId = order?.paymentSessionId || order?.payment_session_id;
+  try {
+    const response = await paymentGateway.orderCreate(config, orderRequest);
+    console.log('[WALLPAPER CASHFREE] SDK orderCreate raw response', JSON.stringify(response || {}));
 
-  if (!paymentSessionId) {
+    const order = response?.cfOrder || response?.order || response;
+    const paymentSessionId = order?.paymentSessionId || order?.payment_session_id;
+
+    console.log('[WALLPAPER CASHFREE] SDK parsed response', {
+      paymentSessionId: paymentSessionId || null,
+      orderId: order?.orderId || orderId,
+    });
+
+    if (!paymentSessionId) {
+      purchaseRecord.paymentStatus = 'FAILED';
+      await purchaseRecord.save();
+      console.error('[WALLPAPER CASHFREE] orderCreate returned no paymentSessionId', JSON.stringify(response || {}));
+      throw new Error('Cashfree did not return a payment session id');
+    }
+
+    purchaseRecord.paymentSessionId = paymentSessionId;
+    purchaseRecord.cfOrderId = order?.orderId || orderId;
+    purchaseRecord.paymentStatus = 'PENDING';
+    await purchaseRecord.save();
+
+    return {
+      success: true,
+      orderId: order?.orderId || orderId,
+      paymentSessionId,
+      amount: Number(parsedAmount.toFixed(2)),
+      currency: 'INR',
+      environment: isTestEnvironment() ? 'TEST' : 'LIVE',
+      returnUrl,
+    };
+  } catch (error) {
+    console.error('[WALLPAPER CASHFREE] orderCreate failed', {
+      orderId,
+      message: error?.message || 'Unknown Cashfree orderCreate error',
+      details: error?.response?.data || error?.body || error,
+    });
     purchaseRecord.paymentStatus = 'FAILED';
     await purchaseRecord.save();
-    throw new Error('Cashfree did not return a payment session id');
+    throw error;
   }
-
-  purchaseRecord.paymentSessionId = paymentSessionId;
-  purchaseRecord.cfOrderId = order?.orderId || orderId;
-  purchaseRecord.paymentStatus = 'PENDING';
-  await purchaseRecord.save();
-
-  return {
-    success: true,
-    orderId: order?.orderId || orderId,
-    paymentSessionId,
-    amount: Number(parsedAmount.toFixed(2)),
-    currency: 'INR',
-    environment: isTestEnvironment() ? 'TEST' : 'LIVE',
-    returnUrl,
-  };
 };
 
 const buildReturnUrl = (orderId, returnBaseUrl) => {

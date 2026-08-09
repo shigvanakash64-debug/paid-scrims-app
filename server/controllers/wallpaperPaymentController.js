@@ -62,8 +62,8 @@ export const createWallpaperPaymentOrder = async (req, res) => {
     const result = await createWallpaperCashfreeOrder({
       wallpaperId,
       userId,
-      userName: user.username,
-      userEmail: user.email || user.username || 'wallpaper@clutchzone.in',
+      userName: user.username || 'Wallpaper Buyer',
+      userEmail: user.email || 'wallpaper@clutchzone.in',
       userPhone: user.phone || user.mobile || '9999999999',
       amount: wallpaper.price,
       returnBaseUrl: `${req.protocol}://${req.get('host')}/api/wallpaper/payment/return`,
@@ -71,7 +71,7 @@ export const createWallpaperPaymentOrder = async (req, res) => {
 
     return res.status(201).json({ success: true, data: result });
   } catch (error) {
-    console.error('[WALLPAPER PAYMENT] create order error:', error);
+    console.error('[WALLPAPER PAYMENT] create order error:', error?.response?.data || error?.message || error);
     return res.status(500).json({ error: error.message || 'Unable to create wallpaper payment order' });
   }
 };

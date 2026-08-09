@@ -72,6 +72,13 @@ export const WallpaperDetailScreen = ({ wallpaper, user, onScreenChange, onStart
       });
 
       const payload = response.data?.data || response.data;
+
+      if (payload?.alreadyPurchased) {
+        onPurchaseSuccess?.(detail);
+        onScreenChange('wallpaper-library');
+        return;
+      }
+
       const paymentSessionId = payload?.paymentSessionId;
       const orderId = payload?.orderId;
 
