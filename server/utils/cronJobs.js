@@ -2,6 +2,7 @@ import cron from "node-cron";
 import Match from "../models/Match.js";
 import { batchAutoResolveMatches } from "./autoResolveMatch.js";
 import { cleanupExpiredUploads } from "./cleanupExpiredUploads.js";
+import { refundPaidUsers } from "./refund.js";
 import {
   sendBroadcastNotification,
   sendRetentionNotification,
@@ -29,7 +30,7 @@ const ensureResultDeadlines = async () => {
   return matches.length;
 };
 
-const cancelPaymentTimeouts = async () => {
+const cancelPaymentTimeouts = async (userModel) => {
   const now = new Date();
   const matches = await Match.find({
     status: { $in: ['matched', 'payment_pending'] },
@@ -41,15 +42,26 @@ const cancelPaymentTimeouts = async () => {
     if ((match.paidUsers || []).length >= (match.players || []).length) {
       continue;
     }
+
     match.status = 'cancelled';
+    match.paymentDueAt = null;
     match.adminMessages = match.adminMessages || [];
     match.adminMessages.push({
       sender: 'system',
       text: 'Match auto-cancelled because payment was not completed in time.',
       createdAt: new Date(),
     });
+
     await match.save();
-    results.push({ matchId: match._id.toString(), action: 'cancelled', reason: 'payment timeout' });
+
+    const refundResult = await refundPaidUsers(match._id, userModel);
+
+    results.push({
+      matchId: match._id.toString(),
+      action: 'cancelled',
+      reason: 'payment timeout',
+      refund: refundResult,
+    });
   }
   return results;
 };
@@ -122,7 +134,7 @@ export const initializeCronJobs = (userModel, options = {}) => {
       }
 
       // Handle payment timeouts for matches awaiting proof
-      const paymentTimeouts = await cancelPaymentTimeouts();
+      const paymentTimeouts = await cancelPaymentTimeouts(userModel);
       if (paymentTimeouts.length > 0) {
         console.log(`[CRON] Cancelled ${paymentTimeouts.length} matches due to payment timeout`);
       }
@@ -276,7 +288,7 @@ export const manualTriggerResolution = async (userModel) => {
 
     await ensureResultDeadlines();
     const cleanupResult = await cleanupExpiredUploads();
-    const paymentTimeouts = await cancelPaymentTimeouts();
+    const paymentTimeouts = await cancelPaymentTimeouts(userModel);
     const matchesToProcess = await Match.find({
       status: 'result_pending',
       resultDeadline: { $exists: true, $lte: now },

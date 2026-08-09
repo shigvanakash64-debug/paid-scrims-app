@@ -11,6 +11,7 @@ import {
   updateLastActivity,
 } from "../services/notificationService.js";
 import { creditCashback, creditWelcomeBonus, creditReferralCommission, markCompletedPaidMatch, updateReferralStatus } from "../utils/rewardService.js";
+import { refundPaidUsers } from "../utils/refund.js";
 
 const PAYMENT_UPIS = [
   '8261047808@fam',
@@ -657,7 +658,7 @@ export const acceptMatch = async (req, res) => {
     match.players.push(userId);
     match.paymentUpi = await getNextPaymentUpi();
     match.status = 'payment_pending';
-    match.paymentDueAt = new Date(Date.now() + 5 * 60 * 1000);
+    match.paymentDueAt = null;
 
     match.adminMessages.push({
       sender: 'system',
@@ -755,12 +756,16 @@ export const payMatchWithWallet = async (req, res) => {
     const allPlayersPaid = match.players.length > 0 && match.paidUsers.length === match.players.length;
     if (allPlayersPaid) {
       match.status = 'verified';
+      match.paymentDueAt = null;
       match.adminMessages.push({
         sender: 'system',
         text: 'Both players have paid from wallet. Room credentials can now be published.',
       });
     } else {
       match.status = 'payment_pending';
+      if ((match.paidUsers || []).length === 1) {
+        match.paymentDueAt = new Date(Date.now() + 5 * 60 * 1000);
+      }
     }
 
     await match.save();
@@ -981,9 +986,32 @@ export const cancelMatch = async (req, res) => {
       return res.status(400).json({ error: 'Cancellation is locked after both players have paid.' });
     }
 
+    const paidUserIds = (match.paidUsers || []).map((player) => player.toString());
+    const requesterHasPaid = paidUserIds.includes(userId.toString());
+    const singlePaidMatch = paidUserIds.length === 1;
+
     const isParticipant = match.players.some((player) => player.toString() === userId.toString());
     if (!isParticipant && !req.isAdmin) {
       return res.status(403).json({ error: 'Only participants or admin can cancel the match' });
+    }
+
+    if (!req.isAdmin && singlePaidMatch && requesterHasPaid) {
+      match.status = 'cancelled';
+      match.canceledBy = userId;
+      match.paymentDueAt = null;
+      match.adminMessages.push({
+        sender: 'system',
+        text: 'Match cancelled by the paid user. The paid player will be refunded.',
+      });
+
+      await match.save();
+
+      const refundResult = await refundPaidUsers(match._id, User);
+
+      return res.status(200).json({
+        match: serializeMatch(match),
+        refund: refundResult,
+      });
     }
 
     const isCreator = match.creator.toString() === userId.toString();
