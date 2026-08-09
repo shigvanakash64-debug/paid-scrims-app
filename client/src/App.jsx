@@ -38,6 +38,26 @@ const VALID_SCREENS = ['home', 'match', 'result', 'pairing', 'profile', 'wallet'
 
 const getInitialScreen = () => {
   if (typeof window === 'undefined') return 'home';
+
+  const path = window.location.pathname || '';
+  const pathLower = path.toLowerCase();
+
+  if (pathLower.startsWith('/wallpaper/my-library') || pathLower === '/wallpaper/my-library' || pathLower.includes('/wallpaper/my-library/')) {
+    return 'wallpaper-library';
+  }
+
+  if (pathLower.startsWith('/wallpaper/collection') || pathLower === '/wallpaper/collection' || pathLower.includes('/wallpaper/collection/')) {
+    return 'wallpaper-collection';
+  }
+
+  if (pathLower.startsWith('/wallpaper') || pathLower === '/wallpaper') {
+    return 'wallpaper-home';
+  }
+
+  if (pathLower === '/payment-status' || pathLower.startsWith('/payment-status')) {
+    return 'payment-status';
+  }
+
   const savedScreen = localStorage.getItem('clutchzone_currentScreen');
   return savedScreen && VALID_SCREENS.includes(savedScreen) ? savedScreen : 'home';
 };
@@ -294,25 +314,6 @@ function App() {
     return () => clearInterval(interval);
   }, [user]);
 
-  const purchasePendingWallpaper = useCallback(async (token, wallpaper) => {
-    if (!wallpaper?._id) return;
-
-    try {
-      const response = await axios.post(`${API_BASE}/wallpapers/${wallpaper._id}/purchase`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.data.success) {
-        setSelectedWallpaper(wallpaper);
-        setCurrentScreen('wallpaper-library');
-        setPendingAction(null);
-      }
-    } catch (error) {
-      alert(error.response?.data?.error || 'Purchase failed');
-      setPendingAction(null);
-    }
-  }, []);
-
   const setSession = (userData, token) => {
     updateUser(userData);
     localStorage.setItem(TOKEN_KEY, token);
@@ -321,7 +322,6 @@ function App() {
       setSelectedWallpaper(pendingAction.wallpaper);
       navigateTo('wallpaper-details', pendingAction.wallpaper, true);
       setPendingAction(null);
-      void purchasePendingWallpaper(token, pendingAction.wallpaper);
       return;
     }
 

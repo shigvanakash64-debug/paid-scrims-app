@@ -8,6 +8,7 @@ export const WallpaperDetailScreen = ({ wallpaper, user, onScreenChange, onStart
   const [detail, setDetail] = useState(wallpaper || null);
   const [loading, setLoading] = useState(!wallpaper);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
     if (wallpaper?._id) {
@@ -29,6 +30,21 @@ export const WallpaperDetailScreen = ({ wallpaper, user, onScreenChange, onStart
     loadWallpaper();
   }, [wallpaper]);
 
+  useEffect(() => {
+    const loadCashfreeSdk = async () => {
+      if (window.Cashfree || window.cashfree) {
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+      script.async = true;
+      document.body.appendChild(script);
+    };
+
+    loadCashfreeSdk();
+  }, []);
+
   const handleBuyNow = async () => {
     if (!user) {
       onStartPurchase?.(detail);
@@ -36,17 +52,67 @@ export const WallpaperDetailScreen = ({ wallpaper, user, onScreenChange, onStart
       return;
     }
 
+    if (!detail?._id) {
+      alert('Wallpaper is not ready to purchase');
+      return;
+    }
+
+    if (checkoutLoading) {
+      return;
+    }
+
+    setCheckoutLoading(true);
+
     try {
       const token = localStorage.getItem(TOKEN_KEY);
-      const response = await axios.post(`${API_BASE}/wallpapers/${detail._id}/purchase`, {}, {
+      const response = await axios.post(`${API_BASE}/wallpapers/payment/create-order`, {
+        wallpaperId: detail._id,
+      }, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (response.data.success) {
-        onPurchaseSuccess?.(detail);
-        onScreenChange('wallpaper-library');
+
+      const payload = response.data?.data || response.data;
+      const paymentSessionId = payload?.paymentSessionId;
+      const orderId = payload?.orderId;
+
+      if (!paymentSessionId || !orderId) {
+        throw new Error('Cashfree payment session could not be created');
       }
+
+      const cashfreeFactory = typeof window.Cashfree === 'function'
+        ? window.Cashfree
+        : typeof window.cashfree === 'function'
+          ? window.cashfree
+          : null;
+
+      if (!cashfreeFactory) {
+        throw new Error('Cashfree checkout library is not loaded');
+      }
+
+      const sdkMode = payload?.environment === 'TEST' ? 'sandbox' : 'production';
+      const checkoutOptions = {
+        paymentSessionId,
+        mode: sdkMode,
+        orderId,
+        orderAmount: String(Number(detail.price || payload.amount || 0)),
+        orderCurrency: 'INR',
+        returnUrl: payload.returnUrl || `${window.location.origin}/wallpaper`,
+        redirectTarget: '_self',
+      };
+
+      const checkout = cashfreeFactory({ mode: sdkMode });
+      const result = await checkout.checkout(checkoutOptions);
+
+      if (result?.redirect) {
+        return;
+      }
+
+      onPurchaseSuccess?.(detail);
     } catch (error) {
-      alert(error.response?.data?.error || 'Purchase failed');
+      console.error(error);
+      alert(error.response?.data?.error || error.message || 'Purchase failed');
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -80,7 +146,9 @@ export const WallpaperDetailScreen = ({ wallpaper, user, onScreenChange, onStart
             <div><strong>Price:</strong> ₹{detail.price}</div>
           </div>
           <div className="btn-cta-wrap" style={{ justifyContent: 'flex-start', padding: 0, marginTop: 12 }}>
-            <button className="btn-primary" type="button" onClick={handleBuyNow}>Buy Now</button>
+            <button className="btn-primary" type="button" onClick={handleBuyNow} disabled={checkoutLoading}>
+              {checkoutLoading ? 'Preparing...' : 'Buy Now'}
+            </button>
           </div>
         </div>
       </div>

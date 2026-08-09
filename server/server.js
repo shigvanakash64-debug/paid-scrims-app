@@ -260,6 +260,7 @@ app.use("/api/wallet", matchLimiter, walletRoutes);
 app.use("/api/cashfree", matchLimiter, (await import("./routes/cashfreeRoutes.js")).default);
 app.use("/api/rewards", matchLimiter, rewardRoutes);
 app.use("/api/wallpapers", wallpaperRoutes);
+app.use("/api/wallpaper", wallpaperRoutes);
 app.use("/api/admin", adminLimiter, adminRoutes);
 
 const PORT = process.env.PORT || 5000;
