@@ -1,8 +1,19 @@
 import User from "../models/User.js";
+import PhoneVerification from "../models/PhoneVerification.js";
 import { createToken, generateSalt, hashPassword } from "../utils/authUtils.js";
 import bcrypt from "bcrypt";
 import { sendNotification } from "../services/notificationService.js";
 import { ensureReferralCodeForUser, applyReferralCode } from "../utils/rewardService.js";
+
+const normalizeIndianPhone = (rawPhone) => {
+  if (!rawPhone) return null;
+  const digits = String(rawPhone).trim().replace(/[^0-9+]/g, '');
+  if (digits.startsWith('+91') && digits.length === 13) return digits;
+  if (digits.startsWith('91') && digits.length === 12) return '+' + digits;
+  if (digits.startsWith('0') && digits.length === 11) return '+91' + digits.slice(1);
+  if (/^[6-9][0-9]{9}$/.test(digits)) return '+91' + digits;
+  return null;
+};
 
 const sendError = (res, status, message, error) => {
   console.error(`[AUTH ERROR] ${message}:`, error);
@@ -16,6 +27,8 @@ const sendError = (res, status, message, error) => {
 const sanitizeUser = (user) => ({
   id: user._id.toString(),
   username: user.username,
+  phone: user.phone || null,
+  phoneVerified: !!user.phoneVerified,
   role: user.role || 'user',
   isAdmin: user.role === 'admin',
   ffUid: user.ffUid || "",
@@ -51,20 +64,39 @@ export const register = async (req, res) => {
   try {
     console.log("REGISTER BODY:", req.body);
 
-    let { username, password, referralCode } = req.body;
+    let { username, password, phone: rawPhone, referralCode } = req.body;
     username = username || req.body.name || req.body.userName || req.body.user;
+    const phone = normalizeIndianPhone(rawPhone);
 
     if (!username || !password) {
       console.log("REGISTER MISSING FIELD:", { username, password });
       return res.status(400).json({ error: "In Game Name and password are required" });
     }
 
+    if (!phone) {
+      return res.status(400).json({ success: false, code: 'INVALID_PHONE', message: 'Invalid mobile number' });
+    }
+
     const normalizedUsername = username.trim().toLowerCase();
-    console.log("CHECKING EXISTING USER:", normalizedUsername);
+    console.log("CHECKING EXISTING USER:", normalizedUsername, phone);
     const existing = await User.findOne({ username: normalizedUsername });
     if (existing) {
       console.log("USER EXISTS:", existing.username);
       return res.status(409).json({ error: "In Game Name already exists" });
+    }
+
+    const existingPhoneUser = await User.findOne({ phone });
+    if (existingPhoneUser) {
+      return res.status(409).json({ success: false, code: 'PHONE_ALREADY_REGISTERED', message: 'Mobile number already registered' });
+    }
+
+    const verifiedPhone = await PhoneVerification.findOne({ phone, verified: true });
+    if (!verifiedPhone) {
+      return res.status(403).json({
+        success: false,
+        code: 'PHONE_NOT_VERIFIED',
+        message: 'Please verify your mobile number before creating an account.'
+      });
     }
 
     console.log("GENERATING SALT AND HASH");
@@ -77,6 +109,12 @@ export const register = async (req, res) => {
       username: normalizedUsername,
       password: passwordHash,
       passwordSalt: salt,
+      phone,
+      phoneVerified: true,
+      phoneOtpHash: null,
+      phoneOtpExpiresAt: null,
+      phoneOtpAttempts: 0,
+      phoneOtpLastSentAt: null,
     });
     console.log("USER CREATED:", user._id, user.username);
 

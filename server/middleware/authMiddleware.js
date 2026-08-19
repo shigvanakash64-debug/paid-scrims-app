@@ -48,3 +48,29 @@ export const adminMiddleware = (req, res, next) => {
   }
   next();
 };
+
+export const requireVerifiedPhone = async (req, res, next) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const user = await User.findById(req.userId).select('phoneVerified phone username');
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (!user.phoneVerified) {
+      return res.status(403).json({
+        success: false,
+        code: 'PHONE_NOT_VERIFIED',
+        message: 'Please verify your mobile number before continuing.'
+      });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    return res.status(500).json({ error: 'Could not verify mobile number status' });
+  }
+};

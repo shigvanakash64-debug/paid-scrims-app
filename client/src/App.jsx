@@ -360,21 +360,49 @@ function App() {
     }
   };
 
-  const handleRegister = async ({ username, password, referralCode }) => {
+  const handleRegister = async ({ username, password, phone, referralCode, otp }) => {
     try {
       const normalizedUsername = username.trim().toLowerCase();
-      const response = await axios.post(`${API_BASE}/auth/register`, {
-        username: normalizedUsername,
-        password,
-        referralCode,
+
+      if (otp) {
+        const verifyResponse = await axios.post(`${API_BASE}/auth/verify-phone-otp`, {
+          phone,
+          otp,
+        });
+
+        if (!verifyResponse.data?.success) {
+          return { success: false, message: verifyResponse.data?.message || 'OTP verification failed' };
+        }
+
+        const response = await axios.post(`${API_BASE}/auth/register`, {
+          username: normalizedUsername,
+          password,
+          phone,
+          referralCode,
+        });
+
+        setSession(response.data.user, response.data.token);
+        return { success: true, mode: 'registered' };
+      }
+
+      const response = await axios.post(`${API_BASE}/auth/send-phone-otp`, {
+        phone,
       });
-      setSession(response.data.user, response.data.token);
+
+      if (response.data?.success) {
+        return { success: true, mode: 'otp-sent' };
+      }
+
+      return { success: false, message: response.data?.message || 'Could not send OTP' };
     } catch (error) {
       if (error.response?.status === 409) {
-        alert('In Game Name already exists. Choose a different in-game name.');
-      } else {
-        alert(error.response?.data?.error || 'Registration failed');
+        return { success: false, message: 'In Game Name or mobile number already exists.' };
       }
+
+      return {
+        success: false,
+        message: error.response?.data?.message || error.response?.data?.error || 'Registration failed',
+      };
     }
   };
 

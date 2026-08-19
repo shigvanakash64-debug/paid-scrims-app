@@ -15,6 +15,23 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // Mobile phone verification fields
+  phone: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  phoneVerified: {
+    type: Boolean,
+    default: false
+  },
+  phoneOtpHash: String,
+  phoneOtpExpiresAt: Date,
+  phoneOtpAttempts: {
+    type: Number,
+    default: 0
+  },
+  phoneOtpLastSentAt: Date,
   wallet: {
     balance: {
       type: Number,

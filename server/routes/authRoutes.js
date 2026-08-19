@@ -12,11 +12,14 @@ import {
   getNotificationStatus,
   testNotification,
 } from "../controllers/authController.js";
+import { sendPhoneOtp, verifyPhoneOtp } from "../controllers/phoneVerificationController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router.post("/register", register);
+router.post("/send-phone-otp", sendPhoneOtp);
+router.post("/verify-phone-otp", verifyPhoneOtp);
 router.post("/login", login);
 router.get("/me", authMiddleware, getMe);
 router.post("/change-password", authMiddleware, changePassword);

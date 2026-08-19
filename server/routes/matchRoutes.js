@@ -1,5 +1,5 @@
 import express from "express";
-import { authMiddleware, adminMiddleware } from "../middleware/authMiddleware.js";
+import { authMiddleware, adminMiddleware, requireVerifiedPhone } from "../middleware/authMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
 import {
   submitResult,
@@ -29,19 +29,19 @@ const router = express.Router();
  * POST /api/match/create
  * Create a new match request
  */
-router.post("/create", authMiddleware, createMatch);
+router.post("/create", authMiddleware, requireVerifiedPhone, createMatch);
 
 /**
  * POST /api/match/accept
  * Accept a waiting match request
  */
-router.post("/accept", authMiddleware, acceptMatch);
+router.post("/accept", authMiddleware, requireVerifiedPhone, acceptMatch);
 
 /**
  * POST /api/match/pay-wallet
  * Pay match entry fee from wallet
  */
-router.post("/pay-wallet", authMiddleware, payMatchWithWallet);
+router.post("/pay-wallet", authMiddleware, requireVerifiedPhone, payMatchWithWallet);
 
 /**
  * POST /api/match/upload-payment
@@ -82,7 +82,7 @@ router.post("/chat", authMiddleware, addChatMessage);
  * POST /api/match/withdraw
  * Request a withdrawal from user's wallet (requires admin approval)
  */
-router.post("/withdraw", authMiddleware, requestWithdrawal);
+router.post("/withdraw", authMiddleware, requireVerifiedPhone, requestWithdrawal);
 
 /**
  * POST /api/match/submit-result

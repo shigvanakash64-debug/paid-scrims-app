@@ -9,19 +9,19 @@ import {
   verifyCashfreeDeposit,
   getWalletSummary,
 } from '../controllers/walletController.js';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, requireVerifiedPhone } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 router.use(authMiddleware);
 
-router.post('/withdraw', requestWithdrawal);
+router.post('/withdraw', requireVerifiedPhone, requestWithdrawal);
 router.get('/balance', getWalletBalance);
 router.get('/summary', getWalletSummary);
 router.get('/withdrawals', getWithdrawalHistory);
-router.post('/deposit/create-order', createCashfreeDepositOrder);
-router.post('/deposit/verify', verifyCashfreeDeposit);
-router.post('/cashfree-order', createCashfreeDepositOrder);
-router.post('/cashfree-verify', verifyCashfreeDeposit);
+router.post('/deposit/create-order', requireVerifiedPhone, createCashfreeDepositOrder);
+router.post('/deposit/verify', requireVerifiedPhone, verifyCashfreeDeposit);
+router.post('/cashfree-order', requireVerifiedPhone, createCashfreeDepositOrder);
+router.post('/cashfree-verify', requireVerifiedPhone, verifyCashfreeDeposit);
 router.get('/transactions', getTransactionHistory);
 router.post('/add-balance', addBalance);
 
