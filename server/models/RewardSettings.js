@@ -24,16 +24,35 @@ const rewardSettingsSchema = new mongoose.Schema({
     default: 5,
     min: 0,
   },
+  signupBonusAmount: {
+    type: Number,
+    default: 10,
+    min: 0,
+  },
   minimumDepositAmount: {
     type: Number,
     default: 50,
     min: 0,
   },
+  minimumDepositForWithdrawal: {
+    type: Number,
+    default: 20,
+    min: 0,
+  },
+  minimumMatchEntryForWithdrawal: {
+    type: Number,
+    default: 20,
+    min: 0,
+  },
   referralEnabled: {
     type: Boolean,
-    default: true,
+    default: false,
   },
   cashbackEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  signupBonusEnabled: {
     type: Boolean,
     default: true,
   },

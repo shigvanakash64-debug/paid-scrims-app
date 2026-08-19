@@ -187,7 +187,7 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
           </div>
           <RulesModal />
         </div>
-        <div className="home-banner">
+        <div className="home-banner" style={{ display: 'none' }}>
           <div className="home-banner-icon">📣</div>
           <div>
             <div className="home-banner-title">Play more, earn more!</div>

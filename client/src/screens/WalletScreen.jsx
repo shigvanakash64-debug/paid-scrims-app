@@ -60,6 +60,14 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const [withdrawals, setRedeemals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [eligibility, setEligibility] = useState({
+    canWithdraw: false,
+    depositRequirementMet: false,
+    matchRequirementMet: false,
+    successfulDepositAmount: 0,
+    qualifyingPaidMatchCount: 0,
+    message: 'Deposit ₹20 and play a ₹20+ entry match before redeeming.',
+  });
   const [expandedSections, setExpandedSections] = useState({
     deposits: false,
     withdrawals: false,
@@ -80,6 +88,10 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       const userData = meResponse.data.user;
       const walletTransactions = userData.wallet?.transactions || [];
       const depositTransactions = walletTransactions.filter((item) => item.type === 'deposit');
+      const depositTotal = walletTransactions
+        .filter((item) => item.type === 'deposit' && Number(item.amount) > 0)
+        .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      const qualifyingPayMatches = walletTransactions.filter((item) => item.type === 'fee' && Number(item.amount) < 0).length;
 
       setBalance(userData.wallet?.balance || 0);
       setBonusBalance(userData.wallet?.bonusBalance || 0);
@@ -88,6 +100,14 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       setTransactions(walletTransactions);
       setDeposits(depositTransactions);
       setRedeemals(withdrawalResponse.data.withdrawals || []);
+      setEligibility({
+        canWithdraw: depositTotal >= 20 && qualifyingPayMatches >= 1,
+        depositRequirementMet: depositTotal >= 20,
+        matchRequirementMet: qualifyingPayMatches >= 1,
+        successfulDepositAmount: depositTotal,
+        qualifyingPaidMatchCount: qualifyingPayMatches,
+        message: depositTotal >= 20 && qualifyingPayMatches >= 1 ? 'Eligible to redeem' : 'Deposit ₹20 and play a ₹20+ entry match before redeeming.',
+      });
       onUserUpdate(userData);
     } catch (error) {
       console.error('Failed to fetch wallet data:', error);
@@ -332,6 +352,26 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
             {message}
           </div>
         )}
+
+        <div className="mb-5 rounded-3xl border border-[#2A2A2A] bg-[#111111] p-4">
+          <div className="flex items-center justify-between text-sm text-[#A1A1A1]">
+            <span>Withdrawal check</span>
+            <span className={`font-semibold ${eligibility.canWithdraw ? 'text-[#22C55E]' : 'text-[#F59E0B]'}`}>
+              {eligibility.canWithdraw ? 'Ready' : 'Locked'}
+            </span>
+          </div>
+          <div className="mt-3 space-y-2 text-sm text-white">
+            <div className="flex items-center justify-between">
+              <span>Deposit requirement</span>
+              <span>{eligibility.successfulDepositAmount || 0} / 20</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Match requirement</span>
+              <span>{eligibility.qualifyingPaidMatchCount || 0} / 1 qualifying match</span>
+            </div>
+          </div>
+          <div className="mt-3 text-xs text-[#A1A1A1]">{eligibility.message}</div>
+        </div>
 
         {activeTab === 'deposit' ? (
           <div className="space-y-5">

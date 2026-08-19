@@ -3,7 +3,7 @@ import PhoneVerification from "../models/PhoneVerification.js";
 import { createToken, generateSalt, hashPassword } from "../utils/authUtils.js";
 import bcrypt from "bcrypt";
 import { sendNotification } from "../services/notificationService.js";
-import { ensureReferralCodeForUser, applyReferralCode } from "../utils/rewardService.js";
+import { ensureReferralCodeForUser, applyReferralCode, creditSignupBonus } from "../utils/rewardService.js";
 
 const normalizeIndianPhone = (rawPhone) => {
   if (!rawPhone) return null;
@@ -117,6 +117,11 @@ export const register = async (req, res) => {
       phoneOtpLastSentAt: null,
     });
     console.log("USER CREATED:", user._id, user.username);
+
+    const bonusResult = await creditSignupBonus({ userId: user._id });
+    if (!bonusResult.success) {
+      console.log('[AUTH] Signup bonus not applied:', bonusResult.message);
+    }
 
     const generatedReferralCode = await ensureReferralCodeForUser(user._id, user.username);
     if (referralCode && generatedReferralCode) {

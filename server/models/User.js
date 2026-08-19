@@ -75,6 +75,10 @@ const userSchema = new mongoose.Schema({
       type: Boolean,
       default: false,
     },
+    signupBonusClaimed: {
+      type: Boolean,
+      default: false,
+    },
     totalBonusEarned: {
       type: Number,
       default: 0,
@@ -155,7 +159,7 @@ const userSchema = new mongoose.Schema({
     transactions: [{
       type: {
         type: String,
-        enum: ['deposit', 'withdrawal', 'match_win', 'match_loss', 'refund', 'fee', 'bonus', 'referral', 'admin_adjustment'],
+        enum: ['deposit', 'withdrawal', 'match_win', 'match_loss', 'refund', 'fee', 'bonus', 'signup_bonus', 'referral', 'admin_adjustment'],
         required: true
       },
       amount: {

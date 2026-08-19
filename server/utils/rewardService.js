@@ -1,5 +1,7 @@
 import User from '../models/User.js';
 import Referral from '../models/Referral.js';
+import PaymentDeposit from '../models/PaymentDeposit.js';
+import Match from '../models/Match.js';
 import RewardSettings from '../models/RewardSettings.js';
 import mongoose from 'mongoose';
 
@@ -29,6 +31,75 @@ export const calculateReferralCommissionAmount = (platformFee, referralPercentag
   const normalizedFee = Number(platformFee || 0);
   const normalizedPercentage = Number(referralPercentage || 0);
   return Number((normalizedFee * (normalizedPercentage / 100)).toFixed(2));
+};
+
+export const getRewardFeatureState = () => ({
+  referralEnabled: false,
+  cashbackEnabled: false,
+  signupBonusEnabled: true,
+  signupBonusAmount: 10,
+  minimumDepositForWithdrawal: 20,
+  minimumMatchEntryForWithdrawal: 20,
+});
+
+export const computeWithdrawalEligibility = ({
+  successfulDepositAmount = 0,
+  qualifyingPaidMatchCount = 0,
+  minimumDepositForWithdrawal = 20,
+  minimumMatchEntryForWithdrawal = 20,
+}) => {
+  const depositRequirementMet = Number(successfulDepositAmount || 0) >= Number(minimumDepositForWithdrawal || 20);
+  const matchRequirementMet = Number(qualifyingPaidMatchCount || 0) >= 1;
+  const canWithdraw = depositRequirementMet && matchRequirementMet;
+
+  return {
+    canWithdraw,
+    depositRequirementMet,
+    matchRequirementMet,
+    minimumDepositForWithdrawal: Number(minimumDepositForWithdrawal || 20),
+    minimumMatchEntryForWithdrawal: Number(minimumMatchEntryForWithdrawal || 20),
+    message: canWithdraw ? 'Eligible to redeem' : 'Deposit ₹20 and play a ₹20+ entry match before redeeming.',
+  };
+};
+
+export const getWithdrawalEligibilityForUser = async (userId) => {
+  const settings = await getSettings();
+  const minimumDepositForWithdrawal = Number(settings.minimumDepositForWithdrawal || 20);
+  const minimumMatchEntryForWithdrawal = Number(settings.minimumMatchEntryForWithdrawal || 20);
+
+  const depositAggregate = await PaymentDeposit.aggregate([
+    {
+      $match: {
+        userId: new mongoose.Types.ObjectId(String(userId)),
+        paymentStatus: 'SUCCESS',
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: '$amount' },
+      },
+    },
+  ]);
+
+  const successfulDepositAmount = Number(depositAggregate[0]?.total || 0);
+  const qualifyingPaidMatchCount = await Match.countDocuments({
+    players: userId,
+    paidUsers: userId,
+    entry: { $gte: minimumMatchEntryForWithdrawal },
+    status: { $ne: 'cancelled' },
+  });
+
+  return {
+    ...computeWithdrawalEligibility({
+      successfulDepositAmount,
+      qualifyingPaidMatchCount,
+      minimumDepositForWithdrawal,
+      minimumMatchEntryForWithdrawal,
+    }),
+    successfulDepositAmount,
+    qualifyingPaidMatchCount,
+  };
 };
 
 export const generateReferralCode = async (username) => {
@@ -145,6 +216,33 @@ export const creditWelcomeBonus = async ({ userId, matchId }) => {
   return { success: true, amount: bonusAmount, balance: user.wallet.balance, bonusBalance: user.wallet.bonusBalance };
 };
 
+export const creditSignupBonus = async ({ userId, matchId = null }) => {
+  const settings = await getSettings();
+  if (!settings.signupBonusEnabled) return { success: false, message: 'Signup bonus disabled' };
+
+  const user = await User.findById(userId);
+  if (!user) return { success: false, message: 'User not found' };
+  if (user.wallet?.signupBonusClaimed) return { success: false, message: 'Signup bonus already claimed' };
+
+  const bonusAmount = Number(settings.signupBonusAmount || 10);
+  if (bonusAmount <= 0) return { success: false, message: 'Signup bonus amount is zero' };
+
+  user.wallet.balance = Number((user.wallet.balance || 0) + bonusAmount);
+  user.wallet.bonusBalance = Number((user.wallet.bonusBalance || 0) + bonusAmount);
+  user.wallet.signupBonusClaimed = true;
+  user.wallet.totalBonusEarned = Number((user.wallet.totalBonusEarned || 0) + bonusAmount);
+  user.wallet.transactions.push({
+    type: 'signup_bonus',
+    amount: bonusAmount,
+    description: 'Sign-up bonus credited',
+    timestamp: new Date(),
+    matchId,
+  });
+
+  await user.save();
+  return { success: true, amount: bonusAmount, balance: user.wallet.balance, bonusBalance: user.wallet.bonusBalance };
+};
+
 export const creditCashback = async ({ userId, matchEntryFee, matchId }) => {
   const settings = await getSettings();
   if (!settings.cashbackEnabled) return { success: false, message: 'Cashback disabled' };
@@ -205,6 +303,12 @@ export const markFirstDeposit = async (userId, amount) => {
   }
   await user.save();
   return user.wallet.firstDepositAmount;
+};
+
+export const getQualifyingPaidMatchCount = async (userId) => {
+  const user = await User.findById(userId).select('wallet.completedPaidMatches');
+  if (!user) return 0;
+  return Number(user.wallet?.completedPaidMatches || 0);
 };
 
 export const markCompletedPaidMatch = async (userId) => {

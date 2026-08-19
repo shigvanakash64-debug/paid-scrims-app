@@ -2,6 +2,7 @@
 import PaymentDeposit from '../models/PaymentDeposit.js';
 import { sendNotification } from '../services/notificationService.js';
 import { createCashfreeOrder, verifyCashfreePayment } from '../services/cashfreeService.js';
+import { getWithdrawalEligibilityForUser } from '../utils/rewardService.js';
 
 const normalizeAmount = (value) => Number(value || 0);
 
@@ -22,6 +23,16 @@ export const requestWithdrawal = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
+    }
+
+    const eligibility = await getWithdrawalEligibilityForUser(userId);
+    if (!eligibility.canWithdraw) {
+      return res.status(403).json({
+        success: false,
+        code: 'WITHDRAWAL_REQUIREMENTS_NOT_MET',
+        message: 'Deposit ₹20 and play a ₹20+ entry match before redeeming.',
+        eligibility,
+      });
     }
 
     const selectedWallet = wallet === 'referral' ? 'referral' : 'main';

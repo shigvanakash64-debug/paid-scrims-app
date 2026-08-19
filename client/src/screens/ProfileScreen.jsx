@@ -123,12 +123,14 @@ export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
         </div>
       </div>
       <div className="profile-form">
-        <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4 mb-4">
-          <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Code</div>
-          <div className="mt-2 text-lg font-semibold text-white">{getDisplayReferralCode() || 'Generating...'}</div>
-          <div className="mt-2 text-sm text-[#A1A1A1]">Share this code to earn rewards when your friends complete paid matches.</div>
-          <button className="btn-outline mt-3" type="button" onClick={copyReferralCode} disabled={!getDisplayReferralCode()}>COPY CODE</button>
-        </div>
+        {currentUser?.wallet?.referralCode && (
+          <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4 mb-4">
+            <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Code</div>
+            <div className="mt-2 text-lg font-semibold text-white">{getDisplayReferralCode() || 'Generating...'}</div>
+            <div className="mt-2 text-sm text-[#A1A1A1]">Share this code to earn rewards when your friends complete paid matches.</div>
+            <button className="btn-outline mt-3" type="button" onClick={copyReferralCode} disabled={!getDisplayReferralCode()}>COPY CODE</button>
+          </div>
+        )}
         <label className="form-group">
           <span className="form-label">Free Fire UID</span>
           <input
