@@ -66,37 +66,35 @@ export const register = async (req, res) => {
 
     let { username, password, phone: rawPhone, referralCode } = req.body;
     username = username || req.body.name || req.body.userName || req.body.user;
-    const phone = normalizeIndianPhone(rawPhone);
+    const phone = rawPhone ? normalizeIndianPhone(rawPhone) : null;
 
     if (!username || !password) {
       console.log("REGISTER MISSING FIELD:", { username, password });
       return res.status(400).json({ error: "In Game Name and password are required" });
     }
 
-    if (!phone) {
-      return res.status(400).json({ success: false, code: 'INVALID_PHONE', message: 'Invalid mobile number' });
-    }
-
     const normalizedUsername = username.trim().toLowerCase();
-    console.log("CHECKING EXISTING USER:", normalizedUsername, phone);
+    console.log("CHECKING EXISTING USER:", normalizedUsername, phone || 'no-phone');
     const existing = await User.findOne({ username: normalizedUsername });
     if (existing) {
       console.log("USER EXISTS:", existing.username);
       return res.status(409).json({ error: "In Game Name already exists" });
     }
 
-    const existingPhoneUser = await User.findOne({ phone });
-    if (existingPhoneUser) {
-      return res.status(409).json({ success: false, code: 'PHONE_ALREADY_REGISTERED', message: 'Mobile number already registered' });
-    }
+    if (phone) {
+      const existingPhoneUser = await User.findOne({ phone });
+      if (existingPhoneUser) {
+        return res.status(409).json({ success: false, code: 'PHONE_ALREADY_REGISTERED', message: 'Mobile number already registered' });
+      }
 
-    const verifiedPhone = await PhoneVerification.findOne({ phone, verified: true });
-    if (!verifiedPhone) {
-      return res.status(403).json({
-        success: false,
-        code: 'PHONE_NOT_VERIFIED',
-        message: 'Please verify your mobile number before creating an account.'
-      });
+      const verifiedPhone = await PhoneVerification.findOne({ phone, verified: true });
+      if (!verifiedPhone) {
+        return res.status(403).json({
+          success: false,
+          code: 'PHONE_NOT_VERIFIED',
+          message: 'Please verify your mobile number before creating an account.'
+        });
+      }
     }
 
     console.log("GENERATING SALT AND HASH");
@@ -110,7 +108,7 @@ export const register = async (req, res) => {
       password: passwordHash,
       passwordSalt: salt,
       phone,
-      phoneVerified: true,
+      phoneVerified: Boolean(phone),
       phoneOtpHash: null,
       phoneOtpExpiresAt: null,
       phoneOtpAttempts: 0,
