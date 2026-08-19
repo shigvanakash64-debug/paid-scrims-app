@@ -360,43 +360,19 @@ function App() {
     }
   };
 
-  const handleRegister = async ({ username, password, phone, referralCode, otp }) => {
+  const handleRegister = async ({ username, password, referralCode }) => {
     try {
       const normalizedUsername = username.trim().toLowerCase();
-
-      if (otp) {
-        const verifyResponse = await axios.post(`${API_BASE}/auth/verify-phone-otp`, {
-          phone,
-          otp,
-        });
-
-        if (!verifyResponse.data?.success) {
-          return { success: false, message: verifyResponse.data?.message || 'OTP verification failed' };
-        }
-
-        const response = await axios.post(`${API_BASE}/auth/register`, {
-          username: normalizedUsername,
-          password,
-          phone,
-          referralCode,
-        });
-
-        setSession(response.data.user, response.data.token);
-        return { success: true, mode: 'registered' };
-      }
-
-      const response = await axios.post(`${API_BASE}/auth/send-phone-otp`, {
-        phone,
+      const response = await axios.post(`${API_BASE}/auth/register`, {
+        username: normalizedUsername,
+        password,
+        referralCode,
       });
-
-      if (response.data?.success) {
-        return { success: true, mode: 'otp-sent' };
-      }
-
-      return { success: false, message: response.data?.message || 'Could not send OTP' };
+      setSession(response.data.user, response.data.token);
+      return { success: true };
     } catch (error) {
       if (error.response?.status === 409) {
-        return { success: false, message: 'In Game Name or mobile number already exists.' };
+        return { success: false, message: 'In Game Name already exists. Choose a different in-game name.' };
       }
 
       return {
