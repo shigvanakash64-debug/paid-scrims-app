@@ -245,7 +245,9 @@ export const creditSignupBonus = async ({ userId, matchId = null }) => {
 
 export const creditCashback = async ({ userId, matchEntryFee, matchId }) => {
   const settings = await getSettings();
-  if (!settings.cashbackEnabled) return { success: false, message: 'Cashback disabled' };
+  if (!getRewardFeatureState().cashbackEnabled || !settings.cashbackEnabled) {
+    return { success: false, message: 'Cashback disabled' };
+  }
   const user = await User.findById(userId);
   if (!user) return { success: false, message: 'User not found' };
   const cashbackAmount = Number(matchEntryFee || 0) * (Number(settings.cashbackPercentage || 0) / 100);

@@ -238,7 +238,7 @@ function App() {
       })();
 
       const pathScreen = typeof window !== 'undefined' && window.location.pathname === '/payment-status' ? 'payment-status' : null;
-      const fallbackScreen = 'home';
+      const fallbackScreen = 'wallpaper-home';
       const targetScreen = pathScreen || (savedScreen && VALID_SCREENS.includes(savedScreen) ? savedScreen : fallbackScreen);
 
       if (!token) {
