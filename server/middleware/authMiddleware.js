@@ -49,6 +49,17 @@ export const adminMiddleware = (req, res, next) => {
   next();
 };
 
+export const shouldRequirePhoneVerification = (user) => {
+  if (!user) return false;
+
+  const phone = typeof user.phone === 'string' ? user.phone.trim() : user.phone;
+  if (!phone) {
+    return false;
+  }
+
+  return !user.phoneVerified;
+};
+
 export const requireVerifiedPhone = async (req, res, next) => {
   try {
     if (!req.userId) {
@@ -60,7 +71,7 @@ export const requireVerifiedPhone = async (req, res, next) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    if (!user.phoneVerified) {
+    if (shouldRequirePhoneVerification(user)) {
       return res.status(403).json({
         success: false,
         code: 'PHONE_NOT_VERIFIED',
