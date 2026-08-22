@@ -34,10 +34,25 @@ const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m =
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
+const ENTRY_CHOICE_KEY = 'clutchzone_entry_choice';
 const VALID_SCREENS = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
+
+const getStoredEntryChoice = () => {
+  if (typeof window === 'undefined') return null;
+  const choice = localStorage.getItem(ENTRY_CHOICE_KEY);
+  return choice === 'clutch-zone' || choice === 'wallpaper-store' ? choice : null;
+};
 
 const getInitialScreen = () => {
   if (typeof window === 'undefined') return 'home';
+
+  const savedEntryChoice = getStoredEntryChoice();
+  if (savedEntryChoice === 'clutch-zone') {
+    return 'login';
+  }
+  if (savedEntryChoice === 'wallpaper-store') {
+    return 'wallpaper-home';
+  }
 
   const path = window.location.pathname || '';
   const pathLower = path.toLowerCase();
@@ -59,7 +74,7 @@ const getInitialScreen = () => {
   }
 
   const savedScreen = localStorage.getItem('clutchzone_currentScreen');
-  return savedScreen && VALID_SCREENS.includes(savedScreen) ? savedScreen : 'home';
+  return savedScreen && VALID_SCREENS.includes(savedScreen) ? savedScreen : 'wallpaper-home';
 };
 
 // Helper function to register OneSignal player ID with backend
@@ -142,6 +157,60 @@ const checkNotificationStatus = async (token) => {
   }
 };
 
+const EntryChoiceOverlay = ({ onChoose }) => (
+  <div style={{
+    position: 'fixed',
+    inset: 0,
+    zIndex: 1000,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    background: 'rgba(6, 8, 12, 0.72)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+  }}>
+    <div style={{
+      width: '100%',
+      maxWidth: 980,
+      background: 'linear-gradient(180deg, rgba(17,17,17,0.96), rgba(10,10,10,0.96))',
+      border: '1px solid rgba(255, 106, 0, 0.45)',
+      borderRadius: 28,
+      boxShadow: '0 25px 80px rgba(0,0,0,0.45)',
+      padding: 20,
+    }}>
+      <div style={{ textAlign: 'center', marginBottom: 20 }}>
+        <div style={{ fontSize: 11, letterSpacing: '0.28em', textTransform: 'uppercase', color: '#A1A1A1', marginBottom: 10 }}>Clutch Zone</div>
+        <h2 style={{ margin: 0, color: '#fff', fontSize: 'clamp(1.8rem, 3vw, 3rem)', lineHeight: 1.1 }}>What would you like to explore?</h2>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 18 }}>
+        <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 22, padding: 18, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#FFB066', marginBottom: 10 }}>Clutch Zone</div>
+            <div style={{ color: '#fff', fontWeight: 700, fontSize: 24, marginBottom: 8 }}>Compete. Win. Get Paid.</div>
+            <p style={{ margin: 0, color: '#B8B8B8', lineHeight: 1.6 }}>Jump into skill-based matches, wallet actions, and live gaming features.</p>
+          </div>
+          <button type="button" onClick={() => onChoose('clutch-zone')} style={{ marginTop: 18, width: '100%', background: '#FF6A00', color: '#090909', border: 'none', borderRadius: 14, padding: '14px 18px', fontWeight: 800, fontSize: 15, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            Enter Clutch Zone
+          </button>
+        </div>
+
+        <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 22, padding: 18, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#7CD4FF', marginBottom: 10 }}>Wallpaper Store</div>
+            <div style={{ color: '#fff', fontWeight: 700, fontSize: 24, marginBottom: 8 }}>Premium wallpapers</div>
+            <p style={{ margin: 0, color: '#B8B8B8', lineHeight: 1.6 }}>Browse the wallpaper catalog and continue through the store experience.</p>
+          </div>
+          <button type="button" onClick={() => onChoose('wallpaper-store')} style={{ marginTop: 18, width: '100%', background: '#0F172A', color: '#fff', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px 18px', fontWeight: 800, fontSize: 15, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            Enter Wallpaper Store
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 function App() {
   const [currentScreen, setCurrentScreen] = useState(getInitialScreen);
   const [screenHistory, setScreenHistory] = useState([]);
@@ -150,6 +219,7 @@ function App() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedWallpaper, setSelectedWallpaper] = useState(null);
   const [pendingAction, setPendingAction] = useState(null);
+  const [entryChoice, setEntryChoice] = useState(getStoredEntryChoice);
   const lastScrollPosRef = useRef(0);
   const { currentMatch, setMatch, clearMatch, refreshMatch } = useMatch();
   const { user, updateUser, clearUser } = useUser();
@@ -346,6 +416,19 @@ function App() {
     clearMatch();
     setScreenHistory([]);
     navigateTo('wallpaper-home', null, true);
+  };
+
+  const handleEntryChoice = (choice) => {
+    setEntryChoice(choice);
+    localStorage.setItem(ENTRY_CHOICE_KEY, choice);
+
+    if (choice === 'clutch-zone') {
+      setPendingAction('clutch-zone');
+      setCurrentScreen('login');
+      return;
+    }
+
+    setCurrentScreen('wallpaper-home');
   };
 
   const handleLogin = async ({ username, password }) => {
@@ -649,7 +732,20 @@ function App() {
       if (currentScreen === 'login') {
         return <LoginScreen onLogin={handleLogin} onNavigateRegister={() => setCurrentScreen('register')} />;
       }
-      return <WallpaperHomeScreen user={user} onScreenChange={handleScreenChange} onOpenConfirmExit={() => setShowConfirmModal(true)} />;
+
+      const shouldShowEntryOverlay = currentScreen === 'wallpaper-home' && !entryChoice && !localStorage.getItem(TOKEN_KEY);
+      const wallpaperView = <WallpaperHomeScreen user={user} onScreenChange={handleScreenChange} onOpenConfirmExit={() => setShowConfirmModal(true)} />;
+
+      if (shouldShowEntryOverlay) {
+        return (
+          <>
+            <div style={{ pointerEvents: 'none', filter: 'blur(1.5px)', opacity: 0.3 }}>{wallpaperView}</div>
+            <EntryChoiceOverlay onChoose={handleEntryChoice} />
+          </>
+        );
+      }
+
+      return wallpaperView;
     }
     // Admin route protection
     if (currentScreen === 'admin') {
