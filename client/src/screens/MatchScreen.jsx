@@ -54,6 +54,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const isMatchActive = activeMatch?.status === 'ongoing' || activeMatch?.status === 'completed';
   const isCancelled = activeMatch?.status === 'cancelled';
   const isFinalStatus = ['completed', 'cancelled', 'disputed'].includes(activeMatch?.status);
+  const hasOpponent = (activeMatch?.players?.length || 0) > 1;
   const hasBothPaid = (activeMatch?.paidUsers?.length || 0) >= (activeMatch?.players?.length || 0);
   const canCancelMatch = !isMatchActive && !isCancelled && !hasBothPaid;
 
@@ -210,7 +211,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   };
 
   const handleConfirmEntry = async () => {
-    if (!matchId) return;
+    if (!matchId || !hasOpponent) return;
     setShowPaymentStep(true);
     await handlePayWithWallet();
   };
@@ -370,10 +371,13 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
             <p className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1]">Confirm your entry</p>
             <h2 className="mt-2 text-xl font-semibold">You are about to join this match.</h2>
             <p className="mt-2 text-sm text-[#A1A1A1]">Tap confirm to proceed to the entry fee payment step for CZ{currentMatch?.entry || 0}.</p>
+            {!hasOpponent && (
+              <p className="mt-2 text-sm text-[#F59E0B]">Waiting for an opponent to join before payment is available.</p>
+            )}
             <button
               type="button"
               onClick={handleConfirmEntry}
-              disabled={paying || currentMatch?.paidUsers?.includes(user?.id)}
+              disabled={!hasOpponent || paying || currentMatch?.paidUsers?.includes(user?.id)}
               className="mt-4 w-full rounded-3xl bg-[#FF6A00] px-5 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black transition hover:bg-[#e65b00] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {paying ? 'Processing…' : 'Confirm'}
