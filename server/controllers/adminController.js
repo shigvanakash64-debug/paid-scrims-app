@@ -447,8 +447,10 @@ export const getAllPayments = async (req, res) => {
 export const getAdminLogs = async (req, res) => {
   try {
     const { limit = 50 } = req.query;
+    const activitySince = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
     const matches = await Match.find()
+      .where('updatedAt').gte(activitySince)
       .populate('players', 'username')
       .populate('result.winner', 'username')
       .sort({ updatedAt: -1 })
@@ -497,6 +499,7 @@ export const getAdminLogs = async (req, res) => {
 
     const withdrawals = await User.aggregate([
       { $unwind: '$wallet.pendingWithdrawals' },
+      { $match: { 'wallet.pendingWithdrawals.processedAt': { $gte: activitySince } } },
       { $sort: { 'wallet.pendingWithdrawals.processedAt': -1 } },
       { $limit: parseInt(limit) },
       {
@@ -523,7 +526,7 @@ export const getAdminLogs = async (req, res) => {
     const transactionEvents = users
       .flatMap((user) => {
         return (user.wallet?.transactions || [])
-          .filter((transaction) => transaction.type === 'match_win')
+          .filter((transaction) => transaction.type === 'match_win' && new Date(transaction.timestamp) >= activitySince)
           .map((transaction) => ({
             id: `${user.username}-${transaction.matchId}-win`,
             timestamp: transaction.timestamp,
