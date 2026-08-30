@@ -41,7 +41,8 @@ const BRMatchSchema = new mongoose.Schema(
     // Scheduled date and time for the match
     scheduledDateTime: {
       type: Date,
-      required: true,
+      required: false,
+      default: null,
     },
     roomId: {
       type: String,
