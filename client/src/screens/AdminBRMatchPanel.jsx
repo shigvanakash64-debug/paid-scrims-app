@@ -379,6 +379,21 @@ export const AdminBRMatchPanel = () => {
                     >
                       <Edit2 size={14} /> View
                     </button>
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={() => {
+                        setSelectedMatch(match);
+                        setTimeout(() => {
+                          const modal = document.querySelector('.admin-br-detail-modal');
+                          if (modal) {
+                            const editBtn = modal.querySelector('[data-edit-trigger="true"]');
+                            if (editBtn) editBtn.click();
+                          }
+                        }, 0);
+                      }}
+                    >
+                      <Edit2 size={14} /> Edit
+                    </button>
                     {match.status !== 'CLOSED' && (
                       <button
                         className="btn btn-sm btn-danger"

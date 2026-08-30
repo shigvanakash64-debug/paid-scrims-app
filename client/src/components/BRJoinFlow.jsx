@@ -3,6 +3,18 @@ import { AlertCircle, Loader } from 'lucide-react';
 import { Button } from './Button';
 import { Card } from './Card';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
+const parseJsonResponse = async (response) => {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await response.text();
+    throw new Error(text.includes('<!doctype html>') ? 'Backend API is unavailable right now.' : 'Invalid API response');
+  }
+
+  return response.json();
+};
+
 /**
  * BRJoinFlow - Handles the 2-step BR match joining process
  * Step 1: JOIN - deduct entry fee from wallet
@@ -38,7 +50,7 @@ export const BRJoinFlow = ({
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/br-participant/${match._id}/join`, {
+      const response = await fetch(`${API_BASE}/br-participant/${match._id}/join`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,11 +59,11 @@ export const BRJoinFlow = ({
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to join match');
+        const data = await parseJsonResponse(response).catch(() => null);
+        throw new Error(data?.error || 'Failed to join match');
       }
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
       setSuccess(data.message);
       setError('');
       setTimeout(() => setStep(2), 500); // Move to step 2
@@ -80,7 +92,7 @@ export const BRJoinFlow = ({
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/br-participant/${match._id}/confirm`, {
+      const response = await fetch(`${API_BASE}/br-participant/${match._id}/confirm`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,11 +102,11 @@ export const BRJoinFlow = ({
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to confirm registration');
+        const data = await parseJsonResponse(response).catch(() => null);
+        throw new Error(data?.error || 'Failed to confirm registration');
       }
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
       setSuccess(data.message);
       setTimeout(() => {
         onJoinSuccess(data.participant);
