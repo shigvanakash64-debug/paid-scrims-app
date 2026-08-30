@@ -19,6 +19,7 @@ import walletRoutes from "./routes/walletRoutes.js";
 import ticketRoutes from "./routes/ticketRoutes.js";
 import rewardRoutes from "./routes/rewardRoutes.js";
 import wallpaperRoutes from "./routes/wallpaperRoutes.js";
+import brRoutes from "./routes/brRoutes.js";
 import User from "./models/User.js";
 import { initializeCronJobs, stopCronJobs } from "./utils/cronJobs.js";
 
@@ -261,6 +262,8 @@ app.use("/api/cashfree", matchLimiter, (await import("./routes/cashfreeRoutes.js
 app.use("/api/rewards", matchLimiter, rewardRoutes);
 app.use("/api/wallpapers", wallpaperRoutes);
 app.use("/api/wallpaper", wallpaperRoutes);
+app.use("/api/br-match", matchLimiter, brRoutes);
+app.use("/api/br-participant", matchLimiter, brRoutes);
 app.use("/api/admin", adminLimiter, adminRoutes);
 
 const PORT = process.env.PORT || 5000;
