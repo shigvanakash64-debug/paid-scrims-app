@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit2, X, Loader, AlertCircle } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { AdminBRMatchResultsView } from '../components/AdminBRMatchResultsView';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -25,6 +26,7 @@ export const AdminBRMatchPanel = () => {
   const [error, setError] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
+  const [selectedMatchForResults, setSelectedMatchForResults] = useState(null);
   const [formData, setFormData] = useState({
     matchName: '',
     entryFee: '',
@@ -404,9 +406,9 @@ export const AdminBRMatchPanel = () => {
                   <td className="actions">
                     <button
                       className="btn btn-sm btn-secondary"
-                      onClick={() => handleViewMatch(match)}
+                      onClick={() => setSelectedMatchForResults(match)}
                     >
-                      <Edit2 size={14} /> View
+                      <Edit2 size={14} /> Result
                     </button>
                     <button
                       className="btn btn-sm btn-primary"
@@ -442,6 +444,14 @@ export const AdminBRMatchPanel = () => {
             )));
             setSelectedMatch(updatedMatch);
           }}
+        />
+      )}
+
+      {/* Match Results View Modal */}
+      {selectedMatchForResults && (
+        <AdminBRMatchResultsView
+          matchId={selectedMatchForResults._id}
+          onClose={() => setSelectedMatchForResults(null)}
         />
       )}
     </div>

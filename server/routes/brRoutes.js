@@ -74,6 +74,13 @@ router.get('/:matchId/room', authMiddleware, brParticipantController.getBRRoomCr
 router.get('/:matchId/check-registration', authMiddleware, brParticipantController.checkBRRegistration);
 
 /**
+ * GET USER'S PARTICIPATED BR MATCHES
+ * GET /api/br-participant/my-matches
+ * NOTE: Must come BEFORE /:matchId route to avoid being caught by parameterized route
+ */
+router.get('/my-matches', authMiddleware, brParticipantController.getUserBRMatches);
+
+/**
  * GET PARTICIPANTS FOR A MATCH
  * GET /api/br-participant/:matchId
  */

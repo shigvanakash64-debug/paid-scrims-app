@@ -296,3 +296,29 @@ export const checkBRRegistration = async (req, res) => {
     res.status(500).json({ error: 'Failed to check registration status' });
   }
 };
+
+/**
+ * Get user's participated BR matches (User only)
+ */
+export const getUserBRMatches = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    // Get all participations for this user
+    const participations = await BRParticipant.find({ userId })
+      .select('matchId')
+      .distinct('matchId');
+
+    // Get match details for those participations
+    const matches = await BRMatch.find({ _id: { $in: participations } })
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      matches,
+    });
+  } catch (error) {
+    console.error('Error fetching user BR matches:', error);
+    res.status(500).json({ error: 'Failed to fetch your BR matches' });
+  }
+};
