@@ -253,6 +253,21 @@ export const AdminBRMatchPanel = () => {
               </div>
 
               <div className="form-group">
+                <label htmlFor="perKillReward">Per Kill (₹) *</label>
+                <input
+                  type="number"
+                  id="perKillReward"
+                  name="perKillReward"
+                  value={formData.perKillReward}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 10"
+                  min="0"
+                  step="1"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
                 <label htmlFor="scrimType">Scrim Type *</label>
                 <select
                   id="scrimType"
