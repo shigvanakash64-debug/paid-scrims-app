@@ -44,10 +44,14 @@ export const StoreHeader = ({ user, currentScreen, onNavigate, onBack, canGoBack
                     <button className="menu-item" type="button" onClick={() => handleNavigate('wallpaper-collection')}>Collection</button>
                     <button className="menu-item" type="button" onClick={() => handleNavigate('wallpaper-library')}>My Library</button>
                     <button className="menu-item" type="button" onClick={() => handleNavigate('about-us')}>About Us</button>
-                    <div className="menu-divider" />
-                    <button className="menu-item" type="button" onClick={() => { setMenuOpen(false); if (onLogout) onLogout(); }}>
-                      Logout
-                    </button>
+                    {isAdmin && (
+                      <>
+                        <div className="menu-divider" />
+                        <button className="menu-item" type="button" onClick={() => { setMenuOpen(false); if (onLogout) onLogout(); }}>
+                          Logout
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

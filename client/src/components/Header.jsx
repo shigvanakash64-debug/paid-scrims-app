@@ -66,10 +66,14 @@ export const Header = ({ user, currentScreen, onNavigate, onBack, canGoBack, onL
                       </button>
                     </>
                   )}
-                  <div className="menu-divider" />
-                  <button className="menu-item" type="button" onClick={() => { setMenuOpen(false); if (onLogout) onLogout(); }}>
-                    Logout
-                  </button>
+                  {isAdmin && (
+                    <>
+                      <div className="menu-divider" />
+                      <button className="menu-item" type="button" onClick={() => { setMenuOpen(false); if (onLogout) onLogout(); }}>
+                        Logout
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             )}
