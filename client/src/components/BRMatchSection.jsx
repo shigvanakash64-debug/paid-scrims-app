@@ -5,6 +5,18 @@ import BRJoinFlow from './BRJoinFlow';
 import BRDetailView from './BRDetailView';
 import { Button } from './Button';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
+const parseJsonResponse = async (response) => {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await response.text();
+    throw new Error(text.includes('<!doctype html>') ? 'Backend API is unavailable right now.' : 'Invalid API response');
+  }
+
+  return response.json();
+};
+
 /**
  * BRMatchSection - Displays BR matches in a section
  * Integrates into the main Clutch Zone interface
@@ -26,17 +38,18 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
     setError('');
     try {
       const query = filter === 'ALL' ? '' : `?status=${filter}`;
-      const response = await fetch(`/api/br-match/list${query}`, {
+      const response = await fetch(`${API_BASE}/br-match/list${query}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch BR matches');
+        const data = await parseJsonResponse(response).catch(() => null);
+        throw new Error(data?.error || 'Failed to fetch BR matches');
       }
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
       setMatches(data.matches || []);
       
       // Build registration map
@@ -84,15 +97,19 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
 
   // Handle successful join
   const handleJoinSuccess = (participant) => {
+    const matchId = joinFlowMatch?._id;
     setJoinFlowMatch(null);
-    setRegistrations({
-      ...registrations,
-      [selectedMatch._id]: {
-        isRegistered: true,
-        inGameName: participant.inGameName,
-      },
-    });
-    // Refresh matches
+
+    if (matchId) {
+      setRegistrations((prev) => ({
+        ...prev,
+        [matchId]: {
+          isRegistered: true,
+          inGameName: participant.inGameName,
+        },
+      }));
+    }
+
     fetchMatches();
   };
 

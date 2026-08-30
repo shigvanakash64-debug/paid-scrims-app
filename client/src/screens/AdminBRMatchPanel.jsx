@@ -3,6 +3,18 @@ import { Plus, Edit2, X, Loader, AlertCircle } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
+const parseJsonResponse = async (response) => {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await response.text();
+    throw new Error(text.includes('<!doctype html>') ? 'Backend API is unavailable right now.' : 'Invalid API response');
+  }
+
+  return response.json();
+};
+
 /**
  * AdminBRMatchPanel - BR Match management for admins
  * Allows creating, editing, closing BR matches
@@ -28,17 +40,18 @@ export const AdminBRMatchPanel = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/br-match/list', {
+      const response = await fetch(`${API_BASE}/br-match/list`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch BR matches');
+        const data = await parseJsonResponse(response).catch(() => null);
+        throw new Error(data?.error || 'Failed to fetch BR matches');
       }
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
       setMatches(data.matches || []);
     } catch (err) {
       setError(err.message);
@@ -68,29 +81,37 @@ export const AdminBRMatchPanel = () => {
     setError('');
 
     // Validate form
-    if (!formData.matchName || !formData.entryFee || !formData.perKillReward || 
-        !formData.timerDuration || !formData.roomId || !formData.roomPassword) {
-      setError('Please fill in all required fields');
+    if (!formData.matchName || !formData.entryFee || !formData.perKillReward || !formData.timerDuration) {
+      setError('Please fill in match name, entry fee, per-kill reward, and timer duration');
+      return;
+    }
+
+    if (Number(formData.timerDuration) < 1 || Number(formData.timerDuration) > 7200) {
+      setError('Timer duration must be between 1 minute and 5 days');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch('/api/br-match/create', {
+      const response = await fetch(`${API_BASE}/br-match/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          roomId: formData.roomId || '',
+          roomPassword: formData.roomPassword || '',
+        }),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create BR match');
+        const data = await parseJsonResponse(response).catch(() => null);
+        throw new Error(data?.error || 'Failed to create BR match');
       }
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
       setMatches([data.match, ...matches]);
       setShowCreateForm(false);
       setFormData({
@@ -117,7 +138,7 @@ export const AdminBRMatchPanel = () => {
 
     setError('');
     try {
-      const response = await fetch(`/api/br-match/${matchId}/close`, {
+      const response = await fetch(`${API_BASE}/br-match/${matchId}/close`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}`,
@@ -125,7 +146,8 @@ export const AdminBRMatchPanel = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to close match');
+        const data = await parseJsonResponse(response).catch(() => null);
+        throw new Error(data?.error || 'Failed to close match');
       }
 
       setMatches((prev) =>
@@ -218,13 +240,18 @@ export const AdminBRMatchPanel = () => {
                   onChange={handleInputChange}
                   required
                 >
-                  <option value="Only Fist">Only Fist</option>
-                  <option value="Bolt Action">Bolt Action</option>
-                  <option value="AR Only">AR Only</option>
-                  <option value="SMG Only">SMG Only</option>
-                  <option value="Sniper Only">Sniper Only</option>
-                  <option value="No Healing">No Healing</option>
-                  <option value="Custom">Custom</option>
+                  <option value="Normal Headshot">Normal Headshot</option>
+                  <option value="Bodyshot">Bodyshot</option>
+                  <option value="Only One Tap">Only One Tap</option>
+                  <option value="Only Punch">Only Punch</option>
+                  <option value="Only Desert">Only Desert</option>
+                  <option value="Only Melee Weapon">Only Melee Weapon</option>
+                  <option value="Only Knife Throw">Only Knife Throw</option>
+                  <option value="Only SMG Headshot">Only SMG Headshot</option>
+                  <option value="Only AR Headshot">Only AR Headshot</option>
+                  <option value="Only AWM Bodyshot">Only AWM Bodyshot</option>
+                  <option value="Only Grenade">Only Grenade</option>
+                  <option value="Rank Clash Squad">Rank Clash Squad</option>
                 </select>
               </div>
             </div>
@@ -255,7 +282,7 @@ export const AdminBRMatchPanel = () => {
                   onChange={handleInputChange}
                   placeholder="e.g., 30"
                   min="1"
-                  max="120"
+                  max="7200"
                   step="1"
                   required
                 />
@@ -271,8 +298,7 @@ export const AdminBRMatchPanel = () => {
                   name="roomId"
                   value={formData.roomId}
                   onChange={handleInputChange}
-                  placeholder="e.g., 123456789"
-                  required
+                  placeholder="Optional; can be added later"
                 />
               </div>
 
@@ -284,8 +310,7 @@ export const AdminBRMatchPanel = () => {
                   name="roomPassword"
                   value={formData.roomPassword}
                   onChange={handleInputChange}
-                  placeholder="e.g., ABC123"
-                  required
+                  placeholder="Optional; can be added later"
                 />
               </div>
             </div>
@@ -401,14 +426,14 @@ const AdminBRMatchDetail = ({ match, onClose, onRefresh }) => {
   const fetchParticipants = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/br-match/${match._id}/participants-admin`, {
+      const response = await fetch(`${API_BASE}/br-match/${match._id}/participants-admin`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}`,
         },
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await parseJsonResponse(response);
         setParticipants(data.participants || []);
       }
     } catch (err) {
@@ -420,7 +445,7 @@ const AdminBRMatchDetail = ({ match, onClose, onRefresh }) => {
 
   const handleUpdateRoom = async () => {
     try {
-      const response = await fetch(`/api/br-match/${match._id}`, {
+      const response = await fetch(`${API_BASE}/br-match/${match._id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -435,6 +460,9 @@ const AdminBRMatchDetail = ({ match, onClose, onRefresh }) => {
       if (response.ok) {
         setEditMode(false);
         onRefresh();
+      } else {
+        const data = await parseJsonResponse(response).catch(() => null);
+        console.error(data?.error || 'Error updating room details');
       }
     } catch (err) {
       console.error('Error updating room details:', err);

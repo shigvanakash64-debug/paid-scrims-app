@@ -16,12 +16,12 @@ export const createBRMatch = async (req, res) => {
       req.body;
 
     // Validate required fields
-    if (!matchName || entryFee === undefined || !scrimType || perKillReward === undefined || !timerDuration || !roomId || !roomPassword) {
+    if (!matchName || entryFee === undefined || !scrimType || perKillReward === undefined || !timerDuration) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     // Validate numeric values
-    if (entryFee < 0 || perKillReward < 0 || timerDuration < 1 || timerDuration > 120) {
+    if (entryFee < 0 || perKillReward < 0 || timerDuration < 1 || timerDuration > 7200) {
       return res.status(400).json({ error: 'Invalid field values' });
     }
 
@@ -31,8 +31,8 @@ export const createBRMatch = async (req, res) => {
       scrimType,
       perKillReward,
       timerDuration,
-      roomId,
-      roomPassword,
+      roomId: roomId || '',
+      roomPassword: roomPassword || '',
       maxPlayers: 50, // Fixed at 50
       createdBy: req.userId,
       status: 'OPEN',
@@ -161,8 +161,8 @@ export const updateBRMatch = async (req, res) => {
     if (scrimType) match.scrimType = scrimType;
     if (perKillReward !== undefined) match.perKillReward = perKillReward;
     if (timerDuration !== undefined) match.timerDuration = timerDuration;
-    if (roomId) match.roomId = roomId;
-    if (roomPassword) match.roomPassword = roomPassword;
+    if (roomId !== undefined) match.roomId = roomId || '';
+    if (roomPassword !== undefined) match.roomPassword = roomPassword || '';
     if (status) match.status = status;
 
     match.updatedAt = new Date();

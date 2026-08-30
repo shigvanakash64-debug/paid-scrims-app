@@ -103,6 +103,117 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('live-opponents');
 
+  const renderTabContent = () => {
+    if (activeTab === 'br-matches') {
+      return <BRMatchSection user={user} onMatchSelect={onMatchSelect} />;
+    }
+
+    if (activeTab === 'my-matches') {
+      return (
+        <div className="section">
+          <div className="section-label">Your Active Match</div>
+          {activeMatch ? (
+            <div className="match-card pinned-match">
+              <div className="match-card-header">
+                <div>
+                  <div className="match-tag">YOUR MATCH</div>
+                  <div className="match-title">
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                    >
+                      {showOpponentJoinedDot && (
+                        <span
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: '50%',
+                            background: '#ef4444',
+                            display: 'inline-block',
+                          }}
+                        />
+                      )}
+                      {activeMatch.mode} · {activeMatch.type} · CZ{activeMatch.entryFee}
+                    </span>
+                  </div>
+                </div>
+                <div className={`trust-pill ${getTrustClass(currentUser?.trustScore || 0)}`}>
+                  TG{currentUser?.trustScore ?? 0}
+                </div>
+              </div>
+              {activeMatch.skillSetting && (
+                <div className="match-meta-row" style={{ marginTop: 8 }}>
+                  <span>Skill: {activeMatch.skillSetting}</span>
+                </div>
+              )}
+              <div className="match-meta-row">
+                <span>{activeMatch.status}</span>
+                <span>Prize Pool CZ{activeMatch.prizePool}</span>
+              </div>
+              <div className="match-actions">
+                <button className="btn-outline" type="button" onClick={() => onScreenChange('match')}>
+                  View Match
+                </button>
+                <button className="btn-outline" type="button" onClick={handleCancelMatch} disabled={!canCancelMatch}>
+                  {canCancelMatch ? 'Cancel Match' : 'Cancel Locked'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-title">No active match yet</div>
+              <div className="empty-copy">Create a match from the home tab to get started.</div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="section">
+        <div className="section-announce">
+          {error || `Live feed · ${liveMatches.length} matches available`}
+        </div>
+        {liveMatches.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-title">No live matches</div>
+            <div className="empty-copy">Try another filter or create a match.</div>
+          </div>
+        ) : (
+          <div className="live-match-list">
+            {liveMatches.map((item) => (
+              <div key={item.id || item._id} className="match-card">
+                <div className="match-card-header">
+                  <div>
+                    <div className="match-tag">{item.game || 'Free Fire'}</div>
+                    <div className="match-title">{item.mode} · {item.type}</div>
+                  </div>
+                  <div className={`trust-pill ${getTrustClass(item.trustScore ?? 90)}`}>{item.trustScore ?? 90}</div>
+                </div>
+                <div className="match-meta-row">
+                  <span>Entry CZ{item.entryFee || item.entry || 0}</span>
+                  <span>Prize CZ{item.prizePool || 0}</span>
+                </div>
+                <div className="match-meta-row">
+                  <span>{item.skillSetting || 'Skill Off'}</span>
+                  <span>{item.status || 'Waiting for opponent'}</span>
+                </div>
+                <div className="match-actions">
+                  <button className="btn-outline" type="button" onClick={() => handleJoin(item)}>
+                    Join
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const filteredSamples = useMemo(
     () => sampleMatches.filter(
       (item) =>
@@ -277,11 +388,15 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         >
           Live Opponents
         </button>
+        <button
+          className={`pairing-tab ${activeTab === 'br-matches' ? 'active' : ''}`}
+          onClick={() => setActiveTab('br-matches')}
+        >
+          BR Match
+        </button>
       </div>
 
-      <div style={{ marginTop: 18 }}>
-        <BRMatchSection user={user} onMatchSelect={onMatchSelect} />
-      </div>
+      {renderTabContent()}
 
       <div className="section" style={{ paddingBottom: 12 }}>
         <div className="section-announce">

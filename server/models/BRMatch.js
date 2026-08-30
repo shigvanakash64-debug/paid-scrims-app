@@ -16,7 +16,21 @@ const BRMatchSchema = new mongoose.Schema(
     scrimType: {
       type: String,
       required: true,
-      enum: ['Only Fist', 'Bolt Action', 'AR Only', 'SMG Only', 'Sniper Only', 'No Healing', 'Custom'],
+      enum: [
+        'Normal Headshot',
+        'Bodyshot',
+        'Only One Tap',
+        'Only Punch',
+        'Only Desert',
+        'Only Melee Weapon',
+        'Only Knife Throw',
+        'Only SMG Headshot',
+        'Only AR Headshot',
+        'Only AWM Bodyshot',
+        'Only Grenade',
+        'Rank Clash Squad',
+        'Only Fist',
+      ],
       default: 'Only Fist',
     },
     perKillReward: {
@@ -29,17 +43,17 @@ const BRMatchSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 1,
-      max: 120,
+      max: 7200,
     },
     roomId: {
       type: String,
-      required: true,
       trim: true,
+      default: '',
     },
     roomPassword: {
       type: String,
-      required: true,
       trim: true,
+      default: '',
     },
     maxPlayers: {
       type: Number,
