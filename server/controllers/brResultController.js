@@ -26,7 +26,7 @@ export const submitMatchResult = async (req, res) => {
     }
 
     // Check if user is participant in this match
-    const participant = await BRParticipant.findOne({ matchId, userId: req.userId });
+    const participant = await BRParticipant.findOne({ brMatchId: matchId, userId: req.userId });
     if (!participant) {
       return res.status(403).json({ error: 'You are not a participant in this match' });
     }
@@ -110,7 +110,7 @@ export const getMatchResults = async (req, res) => {
       .sort({ submittedAt: -1 });
 
     // Get in-game names from participants
-    const participants = await BRParticipant.find({ matchId });
+    const participants = await BRParticipant.find({ brMatchId: matchId });
     const participantMap = {};
     participants.forEach((p) => {
       participantMap[p.userId?.toString()] = p.inGameName;

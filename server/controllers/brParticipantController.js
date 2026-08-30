@@ -306,8 +306,8 @@ export const getUserBRMatches = async (req, res) => {
 
     // Get all participations for this user
     const participations = await BRParticipant.find({ userId })
-      .select('matchId')
-      .distinct('matchId');
+      .select('brMatchId')
+      .distinct('brMatchId');
 
     // Get match details for those participations
     const matches = await BRMatch.find({ _id: { $in: participations } })
