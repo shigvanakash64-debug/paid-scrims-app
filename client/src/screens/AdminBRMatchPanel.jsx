@@ -30,7 +30,8 @@ export const AdminBRMatchPanel = () => {
     entryFee: '',
     scrimType: 'Only Fist',
     perKillReward: '',
-    timerDuration: '',
+    matchDate: '',
+    matchTime: '',
     roomId: '',
     roomPassword: '',
   });
@@ -70,7 +71,7 @@ export const AdminBRMatchPanel = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name.includes('Fee') || name.includes('Reward') || name.includes('Duration') ? 
+      [name]: name.includes('Fee') || name.includes('Reward') ? 
         (value === '' ? '' : parseFloat(value)) : value,
     }));
   };
@@ -81,18 +82,29 @@ export const AdminBRMatchPanel = () => {
     setError('');
 
     // Validate form
-    if (!formData.matchName || !formData.entryFee || !formData.perKillReward || !formData.timerDuration) {
-      setError('Please fill in match name, entry fee, per-kill reward, and timer duration');
+    if (!formData.matchName || !formData.entryFee || !formData.perKillReward || !formData.matchDate || !formData.matchTime) {
+      setError('Please fill in match name, entry fee, per-kill reward, date and time');
       return;
     }
 
-    if (Number(formData.timerDuration) < 1 || Number(formData.timerDuration) > 7200) {
-      setError('Timer duration must be between 1 minute and 5 days');
-      return;
-    }
-
-    setLoading(true);
+    // Parse and validate date/time
     try {
+      const [hours, minutes] = formData.matchTime.split(':');
+      const dateObj = new Date(`${formData.matchDate}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`);
+      
+      if (isNaN(dateObj.getTime())) {
+        setError('Invalid date or time format');
+        return;
+      }
+
+      if (dateObj <= new Date()) {
+        setError('Match must be scheduled for a future date and time');
+        return;
+      }
+
+      const scheduledDateTime = dateObj.toISOString();
+
+      setLoading(true);
       const response = await fetch(`${API_BASE}/br-match/create`, {
         method: 'POST',
         headers: {
@@ -100,7 +112,11 @@ export const AdminBRMatchPanel = () => {
           'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}`,
         },
         body: JSON.stringify({
-          ...formData,
+          matchName: formData.matchName,
+          entryFee: parseFloat(formData.entryFee),
+          scrimType: formData.scrimType,
+          perKillReward: parseFloat(formData.perKillReward),
+          scheduledDateTime,
           roomId: formData.roomId || '',
           roomPassword: formData.roomPassword || '',
         }),
@@ -119,7 +135,8 @@ export const AdminBRMatchPanel = () => {
         entryFee: '',
         scrimType: 'Only Fist',
         perKillReward: '',
-        timerDuration: '',
+        matchDate: '',
+        matchTime: '',
         roomId: '',
         roomPassword: '',
       });
@@ -262,32 +279,25 @@ export const AdminBRMatchPanel = () => {
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="perKillReward">Per Kill Reward (₹) *</label>
+                <label htmlFor="matchDate">Match Date *</label>
                 <input
-                  type="number"
-                  id="perKillReward"
-                  name="perKillReward"
-                  value={formData.perKillReward}
+                  type="date"
+                  id="matchDate"
+                  name="matchDate"
+                  value={formData.matchDate}
                   onChange={handleInputChange}
-                  placeholder="e.g., 10"
-                  min="0"
-                  step="1"
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label htmlFor="timerDuration">Timer Duration (minutes) *</label>
+                <label htmlFor="matchTime">Match Time (12 Hour Format) *</label>
                 <input
-                  type="number"
-                  id="timerDuration"
-                  name="timerDuration"
-                  value={formData.timerDuration}
+                  type="time"
+                  id="matchTime"
+                  name="matchTime"
+                  value={formData.matchTime}
                   onChange={handleInputChange}
-                  placeholder="e.g., 30"
-                  min="1"
-                  max="7200"
-                  step="1"
                   required
                 />
               </div>
@@ -519,6 +529,10 @@ const AdminBRMatchDetail = ({ match, onClose, onRefresh, onUpdated }) => {
               <div>
                 <span className="label">Per Kill:</span>
                 <span className="value">₹{match.perKillReward}</span>
+              </div>
+              <div>
+                <span className="label">Scheduled:</span>
+                <span className="value">{new Date(match.scheduledDateTime).toLocaleString()}</span>
               </div>
             </div>
           </div>

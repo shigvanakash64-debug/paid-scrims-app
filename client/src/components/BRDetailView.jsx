@@ -153,8 +153,8 @@ export const BRDetailView = ({
                   <span className="value">₹{match.perKillReward}</span>
                 </div>
                 <div className="info-item">
-                  <span className="label">Timer</span>
-                  <span className="value">{match.timerDuration}m</span>
+                  <span className="label">Scheduled Date/Time</span>
+                  <span className="value">{new Date(match.scheduledDateTime).toLocaleString()}</span>
                 </div>
               </div>
             </div>

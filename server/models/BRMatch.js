@@ -38,12 +38,10 @@ const BRMatchSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    // Timer duration in minutes (informational only, does NOT auto-close match)
-    timerDuration: {
-      type: Number,
+    // Scheduled date and time for the match
+    scheduledDateTime: {
+      type: Date,
       required: true,
-      min: 1,
-      max: 7200,
     },
     roomId: {
       type: String,

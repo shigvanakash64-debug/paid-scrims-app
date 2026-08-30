@@ -15,14 +15,16 @@ export const BRMatchCard = ({
   onViewDetails = () => {},
   user = null,
 }) => {
-  // Format timer display (MM:SS)
-  const formatTimer = (minutes) => {
-    if (minutes >= 60) {
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      return `${hours}h ${mins}m`;
-    }
-    return `${minutes}m`;
+  // Format scheduled date/time
+  const formatScheduledDateTime = (isoString) => {
+    const date = new Date(isoString);
+    return date.toLocaleString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   // Get status badge color
@@ -79,11 +81,11 @@ export const BRMatchCard = ({
           </div>
         </div>
 
-        {/* Right column: Timer */}
+        {/* Right column: Scheduled Date/Time */}
         <div className="br-match-right">
           <div className="br-match-stat">
-            <span className="label">Timer</span>
-            <span className="value timer">{formatTimer(match.timerDuration)}</span>
+            <span className="label">Scheduled</span>
+            <span className="value timer">{formatScheduledDateTime(match.scheduledDateTime)}</span>
           </div>
         </div>
       </div>

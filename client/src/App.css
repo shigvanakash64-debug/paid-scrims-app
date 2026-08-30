@@ -482,3 +482,33 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .pairing-tab{flex:1;padding:14px 0;text-align:center;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);background:transparent;border:none;cursor:pointer;transition:color .12s}
 .pairing-tab.active{color:var(--orange);border-bottom:2px solid var(--orange)}
 
+
+/* Date and Time Input Styling */
+.form-group input[type="date"],
+.form-group input[type="time"]{
+  background:var(--bg);
+  border:1px solid var(--border);
+  padding:10px 12px;
+  border-radius:6px;
+  color:#fff;
+  font-family:inherit;
+  width:100%;
+}
+
+.form-group input[type="date"]:focus,
+.form-group input[type="time"]:focus{
+  border-color:var(--orange);
+  outline:none;
+}
+
+.form-group input[type="time"]{
+  font-family:'Courier New',monospace;
+}
+
+/* Match Scheduled Date/Time Display */
+.scheduled-datetime{
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;
+  color:var(--orange);
+  font-weight:600;
+}

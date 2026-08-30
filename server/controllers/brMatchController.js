@@ -12,17 +12,27 @@ export const createBRMatch = async (req, res) => {
       return res.status(403).json({ error: 'Unauthorized. Admin access required.' });
     }
 
-    const { matchName, entryFee, scrimType, perKillReward, timerDuration, roomId, roomPassword } =
+    const { matchName, entryFee, scrimType, perKillReward, scheduledDateTime, roomId, roomPassword } =
       req.body;
 
     // Validate required fields
-    if (!matchName || entryFee === undefined || !scrimType || perKillReward === undefined || !timerDuration) {
+    if (!matchName || entryFee === undefined || !scrimType || perKillReward === undefined || !scheduledDateTime) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     // Validate numeric values
-    if (entryFee < 0 || perKillReward < 0 || timerDuration < 1 || timerDuration > 7200) {
+    if (entryFee < 0 || perKillReward < 0) {
       return res.status(400).json({ error: 'Invalid field values' });
+    }
+
+    // Validate scheduledDateTime is in the future
+    const scheduledDate = new Date(scheduledDateTime);
+    if (isNaN(scheduledDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid date/time format' });
+    }
+
+    if (scheduledDate <= new Date()) {
+      return res.status(400).json({ error: 'Match must be scheduled for a future date/time' });
     }
 
     const brMatch = new BRMatch({
@@ -30,7 +40,7 @@ export const createBRMatch = async (req, res) => {
       entryFee,
       scrimType,
       perKillReward,
-      timerDuration,
+      scheduledDateTime: scheduledDate,
       roomId: roomId || '',
       roomPassword: roomPassword || '',
       maxPlayers: 50, // Fixed at 50
@@ -148,7 +158,7 @@ export const updateBRMatch = async (req, res) => {
     }
 
     const { matchId } = req.params;
-    const { matchName, scrimType, perKillReward, timerDuration, roomId, roomPassword, status } = req.body;
+    const { matchName, scrimType, perKillReward, scheduledDateTime, roomId, roomPassword, status } = req.body;
 
     const match = await BRMatch.findById(matchId);
 
@@ -160,7 +170,13 @@ export const updateBRMatch = async (req, res) => {
     if (matchName) match.matchName = matchName;
     if (scrimType) match.scrimType = scrimType;
     if (perKillReward !== undefined) match.perKillReward = perKillReward;
-    if (timerDuration !== undefined) match.timerDuration = timerDuration;
+    if (scheduledDateTime) {
+      const scheduledDate = new Date(scheduledDateTime);
+      if (isNaN(scheduledDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid date/time format' });
+      }
+      match.scheduledDateTime = scheduledDate;
+    }
     if (roomId !== undefined) match.roomId = roomId || '';
     if (roomPassword !== undefined) match.roomPassword = roomPassword || '';
     if (status) match.status = status;
