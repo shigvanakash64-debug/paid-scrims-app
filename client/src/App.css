@@ -388,6 +388,17 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .detail-content{display:grid;gap:16px}
 .detail-section{display:grid;gap:10px;padding:12px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:12px}
 .section-title{font-size:13px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.5px}
+.section-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.section-header .section-title{margin:0}
+.refresh-btn{background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;padding:6px 8px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.refresh-btn:hover:not(:disabled){color:var(--orange);border-color:var(--orange)}
+.refresh-btn:disabled{opacity:.5;cursor:not-allowed}
+.refresh-btn.spin{animation:spin 1s linear infinite}
+
+@keyframes spin{
+  from{transform:rotate(0)}
+  to{transform:rotate(360deg)}
+}
 
 .info-grid{display:grid;gap:8px}
 .info-item{display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--bg);border-radius:6px;font-size:12px}

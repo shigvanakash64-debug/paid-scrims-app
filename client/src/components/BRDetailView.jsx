@@ -1,7 +1,19 @@
 import { useState, useEffect } from 'react';
-import { X, Copy, Loader, AlertCircle } from 'lucide-react';
+import { X, Copy, Loader, AlertCircle, RefreshCw } from 'lucide-react';
 import { Card } from './Card';
 import { Button } from './Button';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
+const parseJsonResponse = async (response) => {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await response.text();
+    throw new Error(text.includes('<!doctype html>') ? 'Backend API is unavailable right now.' : 'Invalid API response');
+  }
+
+  return response.json();
+};
 
 /**
  * BRDetailView - Displays full details of a BR match
@@ -16,6 +28,7 @@ export const BRDetailView = ({
   const [roomDetails, setRoomDetails] = useState(null);
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [copiedField, setCopiedField] = useState('');
 
@@ -31,7 +44,7 @@ export const BRDetailView = ({
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`/api/br-participant/${match._id}/room`, {
+      const response = await fetch(`${API_BASE}/br-participant/${match._id}/room`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}`,
         },
@@ -41,7 +54,7 @@ export const BRDetailView = ({
         throw new Error('Failed to fetch room details');
       }
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
       setRoomDetails(data);
     } catch (err) {
       setError(err.message);
@@ -52,7 +65,7 @@ export const BRDetailView = ({
 
   const fetchParticipants = async () => {
     try {
-      const response = await fetch(`/api/br-participant/${match._id}`, {
+      const response = await fetch(`${API_BASE}/br-participant/${match._id}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}`,
         },
@@ -62,7 +75,7 @@ export const BRDetailView = ({
         throw new Error('Failed to fetch participants');
       }
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
       setParticipants(data.participants || []);
     } catch (err) {
       console.error('Error fetching participants:', err);
@@ -73,6 +86,29 @@ export const BRDetailView = ({
     navigator.clipboard.writeText(text);
     setCopiedField(fieldName);
     setTimeout(() => setCopiedField(''), 2000);
+  };
+
+  const handleRefreshRoomDetails = async () => {
+    setRefreshing(true);
+    try {
+      const response = await fetch(`${API_BASE}/br-participant/${match._id}/room`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to refresh room details');
+      }
+
+      const data = await parseJsonResponse(response);
+      setRoomDetails(data);
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -126,7 +162,17 @@ export const BRDetailView = ({
             {/* Room Credentials (if registered) */}
             {userRegistration?.isRegistered && (
               <div className="detail-section room-section">
-                <h3 className="section-title">Room Details</h3>
+                <div className="section-header">
+                  <h3 className="section-title">Room Details</h3>
+                  <button
+                    className="refresh-btn"
+                    onClick={handleRefreshRoomDetails}
+                    disabled={refreshing}
+                    title="Refresh room details"
+                  >
+                    <RefreshCw size={16} className={refreshing ? 'spin' : ''} />
+                  </button>
+                </div>
                 {loading ? (
                   <div className="loading-placeholder">
                     <Loader size={20} className="spin" />
