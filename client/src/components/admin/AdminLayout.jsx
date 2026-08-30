@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminDashboard } from '../../screens/AdminDashboard';
+import { AdminBRMatchPanel } from '../../screens/AdminBRMatchPanel';
 import { UsersPanel } from '../../screens/UsersPanel';
 import { WithdrawalsPanel } from '../../screens/WithdrawalsPanel';
 import { DisputesPanel } from '../../screens/DisputesPanel';
 
 const SCREENS = {
   DASHBOARD: 'dashboard',
-    USERS: 'users',
-    WITHDRAWALS: 'withdrawals',
-    DISPUTES: 'disputes',
+  BR_MATCHES: 'br-matches',
+  USERS: 'users',
+  WITHDRAWALS: 'withdrawals',
+  DISPUTES: 'disputes',
 };
 
 export const AdminLayout = () => {
@@ -20,6 +22,8 @@ export const AdminLayout = () => {
     switch (currentScreen) {
       case SCREENS.DASHBOARD:
         return <AdminDashboard onNavigate={setCurrentScreen} />;
+      case SCREENS.BR_MATCHES:
+        return <AdminBRMatchPanel />;
       case SCREENS.USERS:
         return <UsersPanel />;
       case SCREENS.WITHDRAWALS:

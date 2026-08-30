@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import BRMatchSection from '../components/BRMatchSection';
 import { useMatch } from '../contexts/MatchContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useUser } from '../contexts/UserContext';
@@ -276,6 +277,10 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         >
           Live Opponents
         </button>
+      </div>
+
+      <div style={{ marginTop: 18 }}>
+        <BRMatchSection user={user} onMatchSelect={onMatchSelect} />
       </div>
 
       <div className="section" style={{ paddingBottom: 12 }}>
