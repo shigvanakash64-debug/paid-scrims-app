@@ -163,6 +163,10 @@ export const AdminBRMatchPanel = () => {
     setSelectedMatch(match);
   };
 
+  const handleEditMatch = (match) => {
+    setSelectedMatch({ ...match, editMode: true });
+  };
+
   return (
     <div className="admin-br-panel">
       <div className="panel-header">
@@ -381,16 +385,7 @@ export const AdminBRMatchPanel = () => {
                     </button>
                     <button
                       className="btn btn-sm btn-primary"
-                      onClick={() => {
-                        setSelectedMatch(match);
-                        setTimeout(() => {
-                          const modal = document.querySelector('.admin-br-detail-modal');
-                          if (modal) {
-                            const editBtn = modal.querySelector('[data-edit-trigger="true"]');
-                            if (editBtn) editBtn.click();
-                          }
-                        }, 0);
-                      }}
+                      onClick={() => handleEditMatch(match)}
                     >
                       <Edit2 size={14} /> Edit
                     </button>
@@ -416,6 +411,12 @@ export const AdminBRMatchPanel = () => {
           match={selectedMatch}
           onClose={() => setSelectedMatch(null)}
           onRefresh={fetchMatches}
+          onUpdated={(updatedMatch) => {
+            setMatches((prev) => prev.map((item) => (
+              item._id === updatedMatch._id ? updatedMatch : item
+            )));
+            setSelectedMatch(updatedMatch);
+          }}
         />
       )}
     </div>
@@ -425,13 +426,13 @@ export const AdminBRMatchPanel = () => {
 /**
  * AdminBRMatchDetail - Shows detailed view of a BR match
  */
-const AdminBRMatchDetail = ({ match, onClose, onRefresh }) => {
+const AdminBRMatchDetail = ({ match, onClose, onRefresh, onUpdated }) => {
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editMode, setEditMode] = useState(false);
+  const [editMode, setEditMode] = useState(Boolean(match.editMode));
   const [editData, setEditData] = useState({
-    roomId: match.roomId,
-    roomPassword: match.roomPassword,
+    roomId: match.roomId || '',
+    roomPassword: match.roomPassword || '',
   });
 
   useEffect(() => {
@@ -473,8 +474,10 @@ const AdminBRMatchDetail = ({ match, onClose, onRefresh }) => {
       });
 
       if (response.ok) {
+        const data = await parseJsonResponse(response);
         setEditMode(false);
         onRefresh();
+        onUpdated?.(data.match);
       } else {
         const data = await parseJsonResponse(response).catch(() => null);
         console.error(data?.error || 'Error updating room details');
@@ -526,6 +529,7 @@ const AdminBRMatchDetail = ({ match, onClose, onRefresh }) => {
               <h4>Room Details</h4>
               {!editMode && (
                 <button
+                  type="button"
                   className="btn btn-sm btn-secondary"
                   onClick={() => setEditMode(true)}
                 >
