@@ -5,6 +5,13 @@ import * as brParticipantController from '../controllers/brParticipantController
 
 const router = express.Router();
 
+/**
+ * GET USER'S PARTICIPATED BR MATCHES
+ * GET /api/br-participant/my-matches
+ * NOTE: Must come before the generic match routes below.
+ */
+router.get('/my-matches', authMiddleware, brParticipantController.getUserBRMatches);
+
 // ========== BR MATCH ROUTES (Admin and Public) ==========
 
 /**
@@ -72,13 +79,6 @@ router.get('/:matchId/room', authMiddleware, brParticipantController.getBRRoomCr
  * NOTE: Must come BEFORE /:matchId route to avoid being caught by parameterized route
  */
 router.get('/:matchId/check-registration', authMiddleware, brParticipantController.checkBRRegistration);
-
-/**
- * GET USER'S PARTICIPATED BR MATCHES
- * GET /api/br-participant/my-matches
- * NOTE: Must come BEFORE /:matchId route to avoid being caught by parameterized route
- */
-router.get('/my-matches', authMiddleware, brParticipantController.getUserBRMatches);
 
 /**
  * GET PARTICIPANTS FOR A MATCH
