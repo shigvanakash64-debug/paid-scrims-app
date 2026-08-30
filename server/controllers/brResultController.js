@@ -198,7 +198,7 @@ export const verifyMatchResult = async (req, res) => {
 
     res.json({
       success: true,
-      message: Result marked as ,
+      message: `Result marked as ${status}`,
       result,
     });
   } catch (error) {
