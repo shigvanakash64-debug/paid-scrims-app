@@ -2,11 +2,13 @@
 import axios from 'axios';
 import { Timer } from '../components/Timer';
 import { useMatch } from '../contexts/MatchContext';
+import { BRUserMatches } from '../components/BRUserMatches';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
   const { refreshMatch, clearMatch } = useMatch();
+  const [showBRResults, setShowBRResults] = useState(false);
   const fileInputRef = useRef(null);
   const [winner, setWinner] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
@@ -140,8 +142,33 @@ export const ResultScreen = ({ match, onScreenChange, onUserUpdate }) => {
       <div id="screen-result" className="screen-result">
         <div className="hero">
           <div className="screen-title">SUBMIT RESULT</div>
-          <div className="screen-sub">No active match available</div>
+          {!showBRResults && (
+            <div className="screen-sub">No active match available</div>
+          )}
         </div>
+
+        {!showBRResults && (
+          <div className="no-match-actions">
+            <button 
+              className="br-results-toggle-btn"
+              onClick={() => setShowBRResults(true)}
+            >
+              📍 Submit BR Match Results
+            </button>
+          </div>
+        )}
+
+        {showBRResults && (
+          <>
+            <button 
+              className="back-to-regular-btn"
+              onClick={() => setShowBRResults(false)}
+            >
+              ← Back to Regular Results
+            </button>
+            <BRUserMatches />
+          </>
+        )}
       </div>
     );
   }

@@ -105,9 +105,27 @@ export const getMatchResults = async (req, res) => {
       return res.status(404).json({ error: 'BR match not found' });
     }
 
-    // Get all results for this match
+    // Get all results for this match with participant info
     const results = await BRMatchResult.find({ matchId })
       .sort({ submittedAt: -1 });
+
+    // Get in-game names from participants
+    const participants = await BRParticipant.find({ matchId });
+    const participantMap = {};
+    participants.forEach((p) => {
+      participantMap[p.userId?.toString()] = p.inGameName;
+    });
+
+    // Enrich results with in-game names
+    const enrichedResults = results.map((result) => ({
+      _id: result._id,
+      userId: result.userId,
+      username: result.username,
+      inGameName: participantMap[result.userId?.toString()] || 'N/A',
+      kills: result.kills,
+      verificationStatus: result.verificationStatus,
+      submittedAt: result.submittedAt,
+    }));
 
     res.json({
       success: true,
@@ -117,7 +135,7 @@ export const getMatchResults = async (req, res) => {
         scrimType: match.scrimType,
         perKillReward: match.perKillReward,
       },
-      results,
+      results: enrichedResults,
       totalSubmissions: results.length,
     });
   } catch (error) {
@@ -148,5 +166,43 @@ export const getUserKillsForMatch = async (req, res) => {
   } catch (error) {
     console.error('Error fetching user kills:', error);
     res.status(500).json({ error: 'Failed to fetch kills' });
+  }
+};
+
+/**
+ * Verify/Reject result submission (ADMIN ONLY)
+ */
+export const verifyMatchResult = async (req, res) => {
+  try {
+    if (!req.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const { resultId } = req.params;
+    const { status } = req.body;
+
+    // Validate status
+    if (!['verified', 'cheating'].includes(status)) {
+      return res.status(400).json({ error: 'Status must be either verified or cheating' });
+    }
+
+    // Get result
+    const result = await BRMatchResult.findById(resultId);
+    if (!result) {
+      return res.status(404).json({ error: 'Result not found' });
+    }
+
+    // Update status
+    result.verificationStatus = status;
+    await result.save();
+
+    res.json({
+      success: true,
+      message: Result marked as ,
+      result,
+    });
+  } catch (error) {
+    console.error('Error verifying result:', error);
+    res.status(500).json({ error: 'Failed to verify result' });
   }
 };

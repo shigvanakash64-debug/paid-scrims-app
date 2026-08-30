@@ -160,8 +160,20 @@ export const BRUserMatches = () => {
                   
                   {result && (
                     <div className="match-result">
-                      <span className="label">Your Kills:</span>
-                      <span className="value kills">{result.kills}</span>
+                      <div className="result-info">
+                        <div className="result-row">
+                          <span className="label">Your Kills:</span>
+                          <span className="value kills">{result.kills}</span>
+                        </div>
+                        <div className="result-row">
+                          <span className="label">Status:</span>
+                          <span className={`status-badge status-${result.verificationStatus}`}>
+                            {result.verificationStatus === 'verified' && '✓ Verified'}
+                            {result.verificationStatus === 'cheating' && '✗ Cheating'}
+                            {result.verificationStatus === 'pending' && '◐ Pending'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

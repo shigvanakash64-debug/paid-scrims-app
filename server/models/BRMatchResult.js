@@ -22,6 +22,11 @@ const BRMatchResultSchema = new mongoose.Schema(
       min: 0,
       default: 0,
     },
+    verificationStatus: {
+      type: String,
+      enum: ['pending', 'verified', 'cheating'],
+      default: 'pending',
+    },
     submittedAt: {
       type: Date,
       default: Date.now,

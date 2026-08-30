@@ -130,7 +130,24 @@ export const BRMatchResultScreen = ({ match, onClose }) => {
             <div className="success-icon">✓</div>
             <h3>Result Submitted!</h3>
             <p>Your kill count: <strong>{userResult.kills}</strong></p>
-            <p className="success-subtitle">Admin will review your result</p>
+            <p className="verification-note">
+              {userResult.verificationStatus === 'verified' && (
+                <span className="status-verified">✓ Verified by Admin</span>
+              )}
+              {userResult.verificationStatus === 'cheating' && (
+                <span className="status-cheating">✗ Marked as Cheating</span>
+              )}
+              {userResult.verificationStatus === 'pending' && (
+                <span className="status-pending">◐ Pending Admin Review</span>
+              )}
+            </p>
+            <p className="success-subtitle">
+              {userResult.verificationStatus === 'verified' 
+                ? 'Your result has been verified by admin' 
+                : userResult.verificationStatus === 'cheating'
+                ? 'This result has been flagged'
+                : 'Admin will review your result soon'}
+            </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="result-form">

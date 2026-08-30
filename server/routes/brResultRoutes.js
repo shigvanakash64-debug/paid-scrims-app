@@ -33,4 +33,11 @@ router.get('/:matchId/results', authMiddleware, brResultController.getMatchResul
  */
 router.get('/:matchId/user/:userId', brResultController.getUserKillsForMatch);
 
+/**
+ * VERIFY/REJECT RESULT (Admin only)
+ * PATCH /api/br-result/:resultId/verify
+ * Body: { status: "verified" | "cheating" }
+ */
+router.patch('/:resultId/verify', authMiddleware, brResultController.verifyMatchResult);
+
 export default router;
