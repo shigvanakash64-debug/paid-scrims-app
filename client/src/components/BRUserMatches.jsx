@@ -26,35 +26,18 @@ export const BRUserMatches = () => {
       setLoading(true);
       setError('');
       try {
-        // Get all BR matches first
-        const matchesResponse = await fetch(`${API_BASE}/br-match/list`, {
+        const response = await fetch(`${API_BASE}/br-participant/my-matches`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}`,
           },
         });
 
-        if (!matchesResponse.ok) {
-          throw new Error('Failed to fetch matches');
+        const data = await parseJsonResponse(response);
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch your BR matches');
         }
 
-        const matchesData = await parseJsonResponse(matchesResponse);
-        const allMatches = matchesData.matches || [];
-
-        // Get user's participants
-        const participantsResponse = await fetch(`${API_BASE}/br-participant/my-matches`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}`,
-          },
-        }).catch(() => null);
-
-        let userParticipantMatchIds = [];
-        if (participantsResponse?.ok) {
-          const participantsData = await parseJsonResponse(participantsResponse);
-          userParticipantMatchIds = participantsData.matches?.map(m => m.matchId || m._id) || [];
-        }
-
-        // Filter matches user participated in
-        const userMatches = allMatches.filter(m => userParticipantMatchIds.includes(m._id));
+        const userMatches = data.matches || [];
 
         // Fetch results for each match
         const resultsMap = {};
