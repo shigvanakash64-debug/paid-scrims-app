@@ -1,5 +1,5 @@
 import express from 'express';
-import authMiddleware from '../middleware/authMiddleware.js';
+import { authMiddleware } from '../middleware/authMiddleware.js';
 import * as brMatchController from '../controllers/brMatchController.js';
 import * as brParticipantController from '../controllers/brParticipantController.js';
 
