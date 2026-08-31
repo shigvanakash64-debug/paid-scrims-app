@@ -73,16 +73,41 @@ const notificationLimiter = rateLimit({
   message: { error: 'Too many notification requests, please try again later.' }
 });
 
+const envAllowedOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const allowedOrigins = [
-  "https://www.clutchzone.in",
-  "https://clutchzone.in",
-  "http://localhost:5173",
-  "http://localhost:3000",
+  ...new Set([
+    ...envAllowedOrigins,
+    "https://www.clutchzone.in",
+    "https://clutchzone.in",
+    "http://localhost:5173",
+    "http://localhost:3000",
+  ]),
 ];
 
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    const hostname = (() => {
+      try {
+        return new URL(origin).hostname.toLowerCase();
+      } catch {
+        return origin.toLowerCase();
+      }
+    })();
+
+    const isAllowed = allowedOrigins.includes(origin)
+      || hostname === "clutchzone.in"
+      || hostname.endsWith(".clutchzone.in");
+
+    if (isAllowed) {
       callback(null, true);
       return;
     }
