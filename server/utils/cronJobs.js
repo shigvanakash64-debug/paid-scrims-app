@@ -179,66 +179,7 @@ export const initializeCronJobs = (userModel, options = {}) => {
   });
 
   console.log(`[CRON] Initialized - Running every minute for deadline checks and auto-resolution`);
-
-  // Initialize broadcast notification job (Every 10 minutes) only when explicitly enabled.
-  if (process.env.ENABLE_NOTIFICATION_JOBS === 'true') {
-    broadcastNotificationJobInstance = cron.schedule("*/10 * * * *", async () => {
-      try {
-        // Get count of waiting matches
-        const waitingMatches = await Match.countDocuments({ status: "waiting" });
-
-        if (waitingMatches === 0) {
-          return;
-        }
-
-        console.log(
-          `[CRON - BROADCAST] Found ${waitingMatches} waiting matches, sending notifications`
-        );
-
-        await sendBroadcastNotification(
-          `🔥 ${waitingMatches} Matches Waiting`,
-          `There are ${waitingMatches} matches waiting for players. Join now and compete! 💸`,
-          {
-            priority: 9,
-            data: {
-              eventType: "matches_available",
-              count: waitingMatches,
-            },
-          }
-        );
-      } catch (error) {
-        console.error("[CRON - BROADCAST ERROR]:", error.message);
-      }
-    });
-
-    console.log(`[CRON] Broadcast notifications initialized - Running every 10 minutes`);
-
-    // Initialize retention notification job (Every 6 hours)
-    // Sends notifications to inactive users (> 24 hours)
-    retentionNotificationJobInstance = cron.schedule("0 */6 * * *", async () => {
-      try {
-        console.log(`[CRON - RETENTION] Checking for inactive users (24+ hours)`);
-
-        const result = await sendRetentionNotification(24);
-
-        if (result.success) {
-          console.log(
-            `[CRON - RETENTION] Sent notifications to ${result.recipients} inactive users`
-          );
-        } else {
-          console.log(
-            `[CRON - RETENTION] No inactive users to notify or error occurred`
-          );
-        }
-      } catch (error) {
-        console.error("[CRON - RETENTION ERROR]:", error.message);
-      }
-    });
-
-    console.log(`[CRON] Retention notifications initialized - Running every 6 hours`);
-  } else {
-    console.log(`[CRON] Broadcast and retention notifications are disabled (ENABLE_NOTIFICATION_JOBS != true)`);
-  }
+  console.log(`[CRON] Broadcast and retention notifications are disabled by default to reduce backend load`);
 };
 
 /**

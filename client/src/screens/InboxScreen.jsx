@@ -22,6 +22,12 @@ export const InboxScreen = ({ user, onUserUpdate }) => {
     setNotifications(filterRecentNotifications(user?.notifications || []));
   }, [user?.notifications]);
 
+  useEffect(() => {
+    if (user?.id) {
+      void fetchNotifications();
+    }
+  }, [user?.id]);
+
   const fetchNotifications = async () => {
     try {
       setLoading(true);

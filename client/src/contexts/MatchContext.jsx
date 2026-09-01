@@ -21,8 +21,8 @@ export const MatchProvider = ({ children }) => {
   const [previousPlayerCount, setPreviousPlayerCount] = useState(0);
   const refreshInFlightRef = useRef(false);
 
-  // Polling interval for active matches (every 30 seconds to avoid backend rate limiting)
-  const POLLING_INTERVAL = 60000;
+  // Polling interval for active matches with a lighter backend footprint.
+  const POLLING_INTERVAL = 120000;
 
   useEffect(() => {
     const storedMatch = localStorage.getItem('clutchzone_currentMatch');
