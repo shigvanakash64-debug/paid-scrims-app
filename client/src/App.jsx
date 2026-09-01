@@ -35,7 +35,7 @@ const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m =
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 const ENTRY_CHOICE_KEY = 'clutchzone_entry_choice';
-const VALID_SCREENS = ['home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
+const VALID_SCREENS = ['entry', 'home', 'match', 'result', 'pairing', 'profile', 'wallet', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
 
 const getStoredEntryChoice = () => {
   if (typeof window === 'undefined') return null;
@@ -44,7 +44,7 @@ const getStoredEntryChoice = () => {
 };
 
 const getInitialScreen = () => {
-  if (typeof window === 'undefined') return 'home';
+  if (typeof window === 'undefined') return 'entry';
 
   const savedEntryChoice = getStoredEntryChoice();
   if (savedEntryChoice === 'clutch-zone') {
@@ -74,7 +74,11 @@ const getInitialScreen = () => {
   }
 
   const savedScreen = localStorage.getItem('clutchzone_currentScreen');
-  return savedScreen && VALID_SCREENS.includes(savedScreen) ? savedScreen : 'wallpaper-home';
+  if (savedScreen && VALID_SCREENS.includes(savedScreen)) {
+    return savedScreen;
+  }
+
+  return 'entry';
 };
 
 // Helper function to register OneSignal player ID with backend
@@ -419,10 +423,11 @@ function App() {
   };
 
   const handleEntryChoice = (choice) => {
-    setEntryChoice(choice);
-    localStorage.setItem(ENTRY_CHOICE_KEY, choice);
+    const normalizedChoice = choice === 'clutch-zone' || choice === 'wallpaper-store' ? choice : 'wallpaper-store';
+    setEntryChoice(normalizedChoice);
+    localStorage.setItem(ENTRY_CHOICE_KEY, normalizedChoice);
 
-    if (choice === 'clutch-zone') {
+    if (normalizedChoice === 'clutch-zone') {
       setPendingAction('clutch-zone');
       setCurrentScreen('login');
       return;
@@ -520,6 +525,12 @@ function App() {
 
   const openClutchZone = () => {
     setShowConfirmModal(false);
+
+    if (!getStoredEntryChoice()) {
+      localStorage.setItem(ENTRY_CHOICE_KEY, 'clutch-zone');
+      setEntryChoice('clutch-zone');
+    }
+
     if (user) {
       navigateTo('home', null, true);
     } else {
@@ -726,6 +737,10 @@ function App() {
     const isAdmin = user?.role === 'admin' || user?.isAdmin === true;
 
     if (!user) {
+      if (currentScreen === 'entry') {
+        return <EntryChoiceOverlay onChoose={handleEntryChoice} />;
+      }
+
       if (currentScreen === 'register') {
         return <RegisterScreen onRegister={handleRegister} onNavigateLogin={() => setCurrentScreen('login')} />;
       }
@@ -733,19 +748,11 @@ function App() {
         return <LoginScreen onLogin={handleLogin} onNavigateRegister={() => setCurrentScreen('register')} />;
       }
 
-      const shouldShowEntryOverlay = currentScreen === 'wallpaper-home' && !entryChoice && !localStorage.getItem(TOKEN_KEY);
-      const wallpaperView = <WallpaperHomeScreen user={user} onScreenChange={handleScreenChange} onOpenConfirmExit={() => setShowConfirmModal(true)} />;
-
-      if (shouldShowEntryOverlay) {
-        return (
-          <>
-            <div style={{ pointerEvents: 'none', filter: 'blur(1.5px)', opacity: 0.3 }}>{wallpaperView}</div>
-            <EntryChoiceOverlay onChoose={handleEntryChoice} />
-          </>
-        );
+      if (currentScreen === 'wallpaper-home' && !entryChoice && !localStorage.getItem(TOKEN_KEY)) {
+        return <EntryChoiceOverlay onChoose={handleEntryChoice} />;
       }
 
-      return wallpaperView;
+      return <WallpaperHomeScreen user={user} onScreenChange={handleScreenChange} onOpenConfirmExit={() => setShowConfirmModal(true)} />;
     }
     // Admin route protection
     if (currentScreen === 'admin') {
