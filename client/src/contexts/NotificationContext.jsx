@@ -132,7 +132,7 @@ export const NotificationProvider = ({ children }) => {
     void syncNotifications();
     const intervalId = window.setInterval(() => {
       void syncNotifications();
-    }, 5000);
+    }, 60000);
 
     return () => window.clearInterval(intervalId);
   }, [queueNotification, user?.id]);

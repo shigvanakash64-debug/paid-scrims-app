@@ -2,24 +2,25 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+const filterRecentNotifications = (items = []) => {
+  const cutoff = Date.now() - SEVEN_DAYS_MS;
+  return items.filter((notification) => {
+    if (!notification?.createdAt) return true;
+    const createdAt = new Date(notification.createdAt).getTime();
+    return Number.isFinite(createdAt) ? createdAt >= cutoff : true;
+  });
+};
 
 export const InboxScreen = ({ user, onUserUpdate }) => {
-  const [notifications, setNotifications] = useState(user?.notifications || []);
+  const [notifications, setNotifications] = useState(filterRecentNotifications(user?.notifications || []));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    setNotifications(user?.notifications || []);
+    setNotifications(filterRecentNotifications(user?.notifications || []));
   }, [user?.notifications]);
-
-  useEffect(() => {
-    fetchNotifications();
-
-    // Poll for new notifications every 30 seconds (reduced from 5 to prevent rate limiting)
-    const interval = setInterval(fetchNotifications, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   const fetchNotifications = async () => {
     try {
@@ -30,8 +31,9 @@ export const InboxScreen = ({ user, onUserUpdate }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const userData = response.data.user;
-      setNotifications(userData.notifications || []);
-      if (onUserUpdate) onUserUpdate(userData);
+      const recentNotifications = filterRecentNotifications(userData.notifications || []);
+      setNotifications(recentNotifications);
+      if (onUserUpdate) onUserUpdate({ ...userData, notifications: recentNotifications });
     } catch (err) {
       console.error('fetchNotifications error', err);
       setError('Unable to load notifications.');
@@ -94,13 +96,6 @@ export const InboxScreen = ({ user, onUserUpdate }) => {
           <p className="text-sm text-[#A1A1A1] mt-2">Track recent match updates, opponent joins, and payout notifications.</p>
         </div>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={fetchNotifications}
-            className="rounded-xl border border-[#1F1F1F] bg-[#111111] px-4 py-3 text-sm text-white hover:border-[#FF6A00] transition"
-          >
-            Refresh
-          </button>
           <button
             type="button"
             onClick={handleMarkAllRead}

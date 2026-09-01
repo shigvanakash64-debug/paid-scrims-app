@@ -24,41 +24,57 @@ const sendError = (res, status, message, error) => {
   });
 };
 
-const sanitizeUser = (user) => ({
-  id: user._id.toString(),
-  username: user.username,
-  phone: user.phone || null,
-  phoneVerified: !!user.phoneVerified,
-  role: user.role || 'user',
-  isAdmin: user.role === 'admin',
-  ffUid: user.ffUid || "",
-  wallet: {
-    balance: user.wallet?.balance || 0,
-    bonusBalance: user.wallet?.bonusBalance || 0,
-    referralEarningsBalance: user.wallet?.referralEarningsBalance || 0,
-    referralCode: user.wallet?.referralCode || null,
-    usedReferralCode: user.wallet?.usedReferralCode || null,
-    transactions: user.wallet?.transactions || [],
-    pendingWithdrawals: user.wallet?.pendingWithdrawals || [],
-    pendingDeposits: user.wallet?.pendingDeposits || [],
-  },
-  trustScore: user.trustScore,
-  matchesPlayed: user.matchesPlayed,
-  matchesWon: user.matchesWon,
-  matchesLost: user.matchesLost,
-  disputesRaised: user.disputesRaised,
-  disputesLost: user.disputesLost,
-  notifications: (user.notifications || []).map((notification) => ({
-    id: notification._id?.toString ? notification._id.toString() : undefined,
-    type: notification.type,
-    message: notification.message,
-    link: notification.link,
-    relatedMatch: notification.relatedMatch,
-    read: notification.read,
-    createdAt: notification.createdAt,
-  })),
-  unreadNotifications: (user.notifications || []).filter((notification) => !notification.read).length,
-});
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+const getRecentNotifications = (notifications = []) => {
+  const cutoff = Date.now() - SEVEN_DAYS_MS;
+
+  return (notifications || []).filter((notification) => {
+    if (!notification?.createdAt) return true;
+    const createdAt = new Date(notification.createdAt).getTime();
+    return Number.isFinite(createdAt) ? createdAt >= cutoff : true;
+  });
+};
+
+const sanitizeUser = (user) => {
+  const recentNotifications = getRecentNotifications(user.notifications || []);
+
+  return {
+    id: user._id.toString(),
+    username: user.username,
+    phone: user.phone || null,
+    phoneVerified: !!user.phoneVerified,
+    role: user.role || 'user',
+    isAdmin: user.role === 'admin',
+    ffUid: user.ffUid || "",
+    wallet: {
+      balance: user.wallet?.balance || 0,
+      bonusBalance: user.wallet?.bonusBalance || 0,
+      referralEarningsBalance: user.wallet?.referralEarningsBalance || 0,
+      referralCode: user.wallet?.referralCode || null,
+      usedReferralCode: user.wallet?.usedReferralCode || null,
+      transactions: user.wallet?.transactions || [],
+      pendingWithdrawals: user.wallet?.pendingWithdrawals || [],
+      pendingDeposits: user.wallet?.pendingDeposits || [],
+    },
+    trustScore: user.trustScore,
+    matchesPlayed: user.matchesPlayed,
+    matchesWon: user.matchesWon,
+    matchesLost: user.matchesLost,
+    disputesRaised: user.disputesRaised,
+    disputesLost: user.disputesLost,
+    notifications: recentNotifications.map((notification) => ({
+      id: notification._id?.toString ? notification._id.toString() : undefined,
+      type: notification.type,
+      message: notification.message,
+      link: notification.link,
+      relatedMatch: notification.relatedMatch,
+      read: notification.read,
+      createdAt: notification.createdAt,
+    })),
+    unreadNotifications: recentNotifications.filter((notification) => !notification.read).length,
+  };
+};
 
 export const register = async (req, res) => {
   try {
@@ -187,6 +203,13 @@ export const getMe = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
+
+    const recentNotifications = getRecentNotifications(user.notifications || []);
+    if (recentNotifications.length !== (user.notifications || []).length) {
+      user.notifications = recentNotifications;
+      await user.save();
+    }
+
     await ensureReferralCodeForUser(user._id, user.username);
     const refreshedUser = await User.findById(req.userId);
     return res.json({ user: sanitizeUser(refreshedUser) });
@@ -205,6 +228,8 @@ export const markNotificationRead = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
+    const filteredNotifications = getRecentNotifications(user.notifications || []);
+    user.notifications = filteredNotifications;
     const notification = user.notifications.id(notificationId);
     if (!notification) {
       return res.status(404).json({ error: 'Notification not found' });
@@ -223,7 +248,7 @@ export const markAllNotificationsRead = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    user.notifications = (user.notifications || []).map((notification) => ({
+    user.notifications = getRecentNotifications(user.notifications || []).map((notification) => ({
       ...notification.toObject(),
       read: true,
     }));
