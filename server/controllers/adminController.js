@@ -270,8 +270,7 @@ export const getDashboardStats = async (req, res) => {
 
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    const activeStatuses = ['ongoing', 'disputed'];
+    const retentionCutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
 
     const [activeMatches, totalUsers, pendingPayments, disputes] = await Promise.all([
       Match.countDocuments({
@@ -288,11 +287,20 @@ export const getDashboardStats = async (req, res) => {
         ],
       }),
       User.countDocuments({ isBanned: false }),
-      Match.countDocuments({ status: 'payment_pending' }),
-      Match.countDocuments({ status: 'disputed' })
+      Match.countDocuments({
+        status: 'payment_pending',
+        updatedAt: { $gte: retentionCutoff },
+      }),
+      Match.countDocuments({
+        status: 'disputed',
+        updatedAt: { $gte: retentionCutoff },
+      })
     ]);
 
-    const completedMatches = await Match.find({ status: 'completed' }).select('entry');
+    const completedMatches = await Match.find({
+      status: 'completed',
+      updatedAt: { $gte: retentionCutoff },
+    }).select('entry');
     const systemBalance = completedMatches.reduce((sum, match) => sum + calculateCommission(match.entry), 0);
     const rewardAnalytics = await getRewardDashboard();
 
@@ -333,8 +341,31 @@ export const getAllMatches = async (req, res) => {
   try {
     const { status = null, limit = 50, page = 1 } = req.query;
     const skip = (page - 1) * limit;
+    const retentionCutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    const staleStatuses = ['completed', 'cancelled', 'disputed'];
 
-    const filter = status && status !== 'all' ? { status } : {};
+    let filter = {};
+
+    if (status && status !== 'all') {
+      filter.status = status;
+      if (staleStatuses.includes(status)) {
+        filter.updatedAt = { $gte: retentionCutoff };
+      }
+    } else if (status === 'all') {
+      filter = {
+        $or: [
+          { status: { $nin: staleStatuses } },
+          { status: { $in: staleStatuses }, updatedAt: { $gte: retentionCutoff } },
+        ],
+      };
+    } else {
+      filter = {
+        $or: [
+          { status: { $nin: staleStatuses } },
+          { status: { $in: staleStatuses }, updatedAt: { $gte: retentionCutoff } },
+        ],
+      };
+    }
 
     const matches = await Match.find(filter)
       .populate('players', 'username trustScore')

@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import Match from "../models/Match.js";
+import BRMatch from "../models/BRMatch.js";
 import { batchAutoResolveMatches } from "./autoResolveMatch.js";
 import { cleanupExpiredUploads } from "./cleanupExpiredUploads.js";
 import { refundPaidUsers } from "./refund.js";
@@ -13,6 +14,61 @@ let broadcastNotificationJobInstance = null;
 let retentionNotificationJobInstance = null;
 
 const RESULT_DEADLINE_MS = 5 * 60 * 1000;
+const MATCH_TIMEOUT_MS = 2 * 60 * 60 * 1000;
+const RETENTION_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
+
+const expireUnmatchedWaitingMatches = async () => {
+  const cutoff = new Date(Date.now() - MATCH_TIMEOUT_MS);
+  const matches = await Match.find({
+    status: 'waiting',
+    createdAt: { $lt: cutoff },
+    players: { $size: 1 },
+  });
+
+  for (const match of matches) {
+    match.status = 'cancelled';
+    match.canceledBy = match.creator;
+    match.adminMessages = match.adminMessages || [];
+    match.adminMessages.push({
+      sender: 'system',
+      text: 'Match auto-cancelled because no opponent joined within 2 hours.',
+      createdAt: new Date(),
+    });
+    await match.save();
+  }
+
+  return matches.length;
+};
+
+const pruneClosedBRMatches = async () => {
+  const cutoff = new Date(Date.now() - RETENTION_WINDOW_MS);
+
+  const result = await BRMatch.deleteMany({
+    status: { $in: ['CLOSED', 'COMPLETED'] },
+    updatedAt: { $lt: cutoff },
+  });
+
+  if (result.deletedCount > 0) {
+    console.log(`[CRON] Deleted ${result.deletedCount} old BR matches older than 2 days`);
+  }
+
+  return result.deletedCount;
+};
+
+const pruneClosedMatches = async () => {
+  const cutoff = new Date(Date.now() - RETENTION_WINDOW_MS);
+
+  const result = await Match.deleteMany({
+    status: { $in: ['completed', 'cancelled', 'disputed'] },
+    updatedAt: { $lt: cutoff },
+  });
+
+  if (result.deletedCount > 0) {
+    console.log(`[CRON] Deleted ${result.deletedCount} old matches older than 2 days`);
+  }
+
+  return result.deletedCount;
+};
 
 const ensureResultDeadlines = async () => {
   const now = new Date();
@@ -123,6 +179,21 @@ export const initializeCronJobs = (userModel, options = {}) => {
       const cleanupResult = await cleanupExpiredUploads();
       if (cleanupResult.deletedCount > 0) {
         console.log(`[CRON] Removed ${cleanupResult.deletedCount} expired screenshots older than 48 hours`);
+      }
+
+      const expiredWaitingMatches = await expireUnmatchedWaitingMatches();
+      if (expiredWaitingMatches > 0) {
+        console.log(`[CRON] Cancelled ${expiredWaitingMatches} waiting matches that never found an opponent`);
+      }
+
+      const prunedBRMatches = await pruneClosedBRMatches();
+      if (prunedBRMatches > 0) {
+        console.log(`[CRON] Removed ${prunedBRMatches} stale BR matches older than 2 days`);
+      }
+
+      const prunedMatches = await pruneClosedMatches();
+      if (prunedMatches > 0) {
+        console.log(`[CRON] Removed ${prunedMatches} stale matches older than 2 days`);
       }
 
       const repairedMatches = await repairLegacyMatches(userModel, batchSize);

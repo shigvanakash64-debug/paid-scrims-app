@@ -92,10 +92,20 @@ export const getBRMatch = async (req, res) => {
 export const listBRMatches = async (req, res) => {
   try {
     const { status } = req.query;
+    const retentionCutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
 
     const filter = {};
+
     if (status) {
       filter.status = status;
+      if (['CLOSED', 'COMPLETED'].includes(status)) {
+        filter.updatedAt = { $gte: retentionCutoff };
+      }
+    } else {
+      filter.$or = [
+        { status: { $in: ['OPEN', 'FULL'] } },
+        { status: { $in: ['CLOSED', 'COMPLETED'] }, updatedAt: { $gte: retentionCutoff } },
+      ];
     }
 
     const matches = await BRMatch.find(filter)

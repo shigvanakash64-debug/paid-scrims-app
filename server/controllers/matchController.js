@@ -658,7 +658,7 @@ export const acceptMatch = async (req, res) => {
     match.players.push(userId);
     match.paymentUpi = await getNextPaymentUpi();
     match.status = 'payment_pending';
-    match.paymentDueAt = null;
+    match.paymentDueAt = new Date(Date.now() + 5 * 60 * 1000);
 
     match.adminMessages.push({
       sender: 'system',
