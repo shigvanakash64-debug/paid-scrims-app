@@ -23,6 +23,7 @@ import {
   adjustUserWallet,
   getAllUsers,
   deleteUser,
+  updateUserTitle,
   getAllWithdrawals,
   approveWithdrawal,
   rejectWithdrawal,
@@ -163,6 +164,7 @@ router.get("/users", authMiddleware, getAllUsers);
  * Delete a user account and related safe references
  */
 router.delete("/users/:userId", authMiddleware, deleteUser);
+router.put("/users/:userId/title", authMiddleware, updateUserTitle);
 
 /**
  * GET /api/admin/withdrawals

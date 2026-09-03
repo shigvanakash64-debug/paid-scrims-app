@@ -42,6 +42,7 @@ const sanitizeUser = (user) => {
   return {
     id: user._id.toString(),
     username: user.username,
+    title: user.title || '',
     phone: user.phone || null,
     phoneVerified: !!user.phoneVerified,
     role: user.role || 'user',

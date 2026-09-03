@@ -106,6 +106,21 @@ export const UsersPanel = () => {
     }
   };
 
+  const handleEditTitle = async (userId, currentTitle) => {
+    const title = prompt('Enter player title (leave blank to remove):', currentTitle || '');
+    if (title === null) return;
+    try {
+      const token = localStorage.getItem('clutchzone_token');
+      await axios.put(`${API_BASE}/admin/users/${userId}/title`, { title }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      showToast(title.trim() ? 'Title updated' : 'Title removed');
+      fetchUsers();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to update title', 'error');
+    }
+  };
+
   const handleDeleteUser = async (userId) => {
     const currentUserId = currentUser?._id || currentUser?.id;
     if (currentUserId && currentUserId.toString() === userId.toString()) {
@@ -167,6 +182,7 @@ export const UsersPanel = () => {
     trustScore: user.trustScore ?? 0,
     status: user.isBanned ? 'Banned' : 'Active',
     matchCount: user.matchesPlayed ?? 0,
+    title: user.title || '',
     isBanned: user.isBanned,
   }));
 
@@ -321,9 +337,11 @@ export const UsersPanel = () => {
                   trustScore={user.trustScore}
                   status={user.status}
                   matchCount={user.matchCount}
+                  title={user.title}
                   onBan={() => handleBanUnban(user.id, user.isBanned)}
                   onAdjustBalance={() => handleAdjustBalance(user.id)}
                   onViewHistory={() => handleViewHistory(user.id)}
+                  onEditTitle={() => handleEditTitle(user.id, user.title)}
                   onDelete={() => {
                     const currentUserId = currentUser?._id || currentUser?.id;
                     if (currentUserId && currentUserId.toString() === user.id?.toString()) {

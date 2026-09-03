@@ -5,6 +5,7 @@ import { AdminBRMatchPanel } from '../../screens/AdminBRMatchPanel';
 import { UsersPanel } from '../../screens/UsersPanel';
 import { WithdrawalsPanel } from '../../screens/WithdrawalsPanel';
 import { DisputesPanel } from '../../screens/DisputesPanel';
+import { AdminLeaderboardPanel } from '../../screens/AdminLeaderboardPanel';
 
 const SCREENS = {
   DASHBOARD: 'dashboard',
@@ -12,6 +13,7 @@ const SCREENS = {
   USERS: 'users',
   WITHDRAWALS: 'withdrawals',
   DISPUTES: 'disputes',
+  LEADERBOARD: 'leaderboard',
 };
 
 export const AdminLayout = () => {
@@ -30,6 +32,8 @@ export const AdminLayout = () => {
         return <WithdrawalsPanel />;
       case SCREENS.DISPUTES:
         return <DisputesPanel />;
+      case SCREENS.LEADERBOARD:
+        return <AdminLeaderboardPanel />;
       default:
         return <AdminDashboard />;
     }

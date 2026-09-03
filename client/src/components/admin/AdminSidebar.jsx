@@ -6,6 +6,7 @@ export const AdminSidebar = ({ currentScreen, onScreenChange, isMobile }) => {
     { id: 'disputes', label: 'Disputes', icon: '⚠️' },
     { id: 'withdrawals', label: 'Redemptions', icon: '💸' },
     { id: 'users', label: 'Users', icon: '👤' },
+    { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
   ];
 
   return (

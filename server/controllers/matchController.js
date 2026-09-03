@@ -19,7 +19,7 @@ const PAYMENT_UPIS = [
 ];
 const RESULT_DEADLINE_MS = 5 * 60 * 1000;
 
-const getNextPaymentUpi = async () => {
+export const getNextPaymentUpi = async () => {
   const lastMatch = await Match.findOne({ paymentUpi: { $exists: true, $ne: null } })
     .sort({ createdAt: -1 })
     .select('paymentUpi')
@@ -1062,7 +1062,7 @@ export const addChatMessage = async (req, res) => {
       return res.status(400).json({ error: 'matchId, text, and sender are required' });
     }
 
-    const allowedUserMessages = ['Paid', 'Issue', 'Not received room'];
+    const allowedUserMessages = ['Paid', 'Issue', 'Not received room', "Let's play", '5 min?', '10 min?', 'Join now', "I'm ready", 'GG', 'Rematch?', 'Wait 5 mins'];
     const allowedAdminMessages = ['Payment received', 'Room created', 'Match cancelled'];
 
     if (sender === 'user' && !allowedUserMessages.includes(text)) {
@@ -1080,6 +1080,10 @@ export const addChatMessage = async (req, res) => {
     const match = await Match.findById(matchId);
     if (!match) {
       return res.status(404).json({ error: 'Match not found' });
+    }
+
+    if (!req.isAdmin && !match.players.some((player) => player.toString() === userId.toString())) {
+      return res.status(403).json({ error: 'Only match participants can send messages' });
     }
 
     match.adminMessages.push({ sender, text });

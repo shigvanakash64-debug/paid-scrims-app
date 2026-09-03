@@ -286,6 +286,11 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
       handlePayWithWallet();
       return;
     }
+    const quickChatMessages = ["Let's play", '5 min?', '10 min?', 'Join now', "I'm ready", 'GG', 'Rematch?', 'Wait 5 mins'];
+    if (quickChatMessages.includes(action)) {
+      await addChatMessage('user', action);
+      return;
+    }
     await addChatMessage('user', action === 'Not received room' ? 'Not received room' : 'Issue');
   };
 

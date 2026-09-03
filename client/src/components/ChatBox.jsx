@@ -6,6 +6,14 @@ const bubbleStyles = {
 
 export const ChatBox = ({ messages, isAdmin, onUserAction, onAdminAction, status }) => {
   const userActions = [
+    { label: "Let's play", value: "Let's play" },
+    { label: '5 min?', value: '5 min?' },
+    { label: '10 min?', value: '10 min?' },
+    { label: 'Join now', value: 'Join now' },
+    { label: "I'm ready", value: "I'm ready" },
+    { label: 'GG', value: 'GG' },
+    { label: 'Rematch?', value: 'Rematch?' },
+    { label: 'Wait 5 mins', value: 'Wait 5 mins' },
     { label: 'I HAVE PAID', value: 'Paid' },
     { label: 'ISSUE', value: 'Issue' },
     { label: 'NOT RECEIVED ROOM', value: 'Not received room' },

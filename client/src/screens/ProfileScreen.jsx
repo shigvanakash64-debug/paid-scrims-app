@@ -108,6 +108,7 @@ export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
           <div className="avatar">{getInitials(currentUser.username)}</div>
           <div>
             <div className="profile-name">{currentUser.username}</div>
+            {currentUser.title && <div className="profile-id">({currentUser.title})</div>}
             <div className="profile-id">{currentUser.ffUid ? `UID: ${currentUser.ffUid}` : 'UID not added'}</div>
             <div className="profile-role">Role: {currentUser.role || 'user'}</div>
           </div>

@@ -946,6 +946,7 @@ export const getAllUsers = async (req, res) => {
       {
         $project: {
           username: 1,
+          title: 1,
           email: 1,
           trustScore: 1,
           isBanned: 1,
@@ -972,6 +973,21 @@ export const getAllUsers = async (req, res) => {
   } catch (error) {
     console.error("getAllUsers error:", error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const updateUserTitle = async (req, res) => {
+  try {
+    const title = String(req.body?.title || '').trim();
+    if (title.length > 60) {
+      return res.status(400).json({ error: 'Title must be 60 characters or fewer' });
+    }
+    const user = await User.findByIdAndUpdate(req.params.userId, { $set: { title } }, { new: true }).select('_id username title');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    return res.json({ success: true, user });
+  } catch (error) {
+    console.error('updateUserTitle error:', error);
+    return res.status(500).json({ error: 'Failed to update user title' });
   }
 };
 

@@ -248,6 +248,7 @@ export const DisputeCard = ({
 // UserCard - User in list
 export const UserCard = ({
   username,
+  title,
   walletBalance,
   trustScore,
   status,
@@ -255,6 +256,7 @@ export const UserCard = ({
   onBan,
   onAdjustBalance,
   onViewHistory,
+  onEditTitle,
   onDelete,
   isDeleting,
   isDeleteDisabled,
@@ -263,6 +265,7 @@ export const UserCard = ({
     <div className="flex items-start justify-between">
       <div>
         <p className="text-sm font-semibold text-white">{username}</p>
+        {title && <p className="mt-1 text-xs text-[#A1A1A1]">({title})</p>}
         <div className="flex gap-2 mt-2 text-xs">
           <span className="px-2 py-1 bg-[#1F1F1F] text-[#A1A1A1] rounded">
             {trustScore}⭐ Trust
@@ -298,6 +301,12 @@ export const UserCard = ({
         className="flex-1 border border-[#1F1F1F] text-[#A1A1A1] px-3 py-2 rounded text-xs font-semibold hover:bg-[#1F1F1F] transition"
       >
         Adjust
+      </button>
+      <button
+        onClick={onEditTitle}
+        className="flex-1 border border-[#1F1F1F] text-[#A1A1A1] px-3 py-2 rounded text-xs font-semibold hover:border-[#FF6A00] hover:text-[#FF6A00] transition"
+      >
+        Title
       </button>
       <button
         onClick={onBan}
