@@ -79,7 +79,7 @@ export const LeaderboardScreen = ({ user, onScreenChange, onMatchSelect }) => {
             <p className="mt-2 text-sm text-[#A1A1A1]">Top 100 players by total winnings.</p>
           </div>
           <button type="button" onClick={() => setPanelOpen((open) => !open)} className="relative rounded-2xl border border-[#2A2A2A] bg-[#111111] px-4 py-3 text-xl" aria-label="Open challenges">
-            ⚔️
+            🔔
             {pendingChallenges.length > 0 && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-[#EF4444]" />}
           </button>
         </div>
@@ -92,7 +92,7 @@ export const LeaderboardScreen = ({ user, onScreenChange, onMatchSelect }) => {
             <div className="mt-4 space-y-3">
               {pendingChallenges.length === 0 ? <p className="text-sm text-[#A1A1A1]">No pending challenges.</p> : pendingChallenges.map((challenge) => (
                 <div key={challenge._id} className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
-                  <p className="font-semibold">⚔️ {challenge.challenger?.username || 'Player'} challenged you</p>
+                  <p className="font-semibold">{challenge.challenger?.username || 'Player'} challenged you</p>
                   <p className="mt-2 text-sm text-[#A1A1A1]">{challenge.mode} • {challenge.type} • CZ{challenge.entry}</p>
                   <div className="mt-4 flex gap-2"><button type="button" onClick={() => handleChallengeAction(challenge._id, 'accept')} className="rounded-xl bg-[#FF6A00] px-4 py-2 text-sm font-semibold text-black">ACCEPT</button><button type="button" onClick={() => handleChallengeAction(challenge._id, 'decline')} className="rounded-xl border border-[#EF4444] px-4 py-2 text-sm font-semibold text-[#EF4444]">DECLINE</button></div>
                 </div>
@@ -107,8 +107,8 @@ export const LeaderboardScreen = ({ user, onScreenChange, onMatchSelect }) => {
             <div key={player._id || player.id} className="grid grid-cols-[48px_1fr_100px_110px] items-center gap-3 border-b border-[#1F1F1F] px-4 py-4 last:border-0 sm:grid-cols-[60px_1fr_140px_140px] sm:px-5">
               <span className="font-bold text-[#FF6A00]">#{player.rank}</span>
               <div><div className="font-semibold">{player.username}</div>{player.title && <div className="mt-1 text-xs text-[#A1A1A1]">({player.title})</div>}</div>
-              <span className="text-sm font-semibold">CZ{Number(player.totalWon || 0).toLocaleString()}</span>
-              <button type="button" disabled={String(player._id || player.id) === String(user?.id || user?._id)} onClick={() => setSelectedPlayer(player)} className="rounded-xl border border-[#FF6A00] px-2 py-2 text-xs font-semibold text-[#FF6A00] disabled:cursor-not-allowed disabled:opacity-30">⚔️ Challenge</button>
+              <span className="text-sm font-semibold">{Number(player.totalWon || 0).toLocaleString()}</span>
+              <button type="button" disabled={String(player._id || player.id) === String(user?.id || user?._id)} onClick={() => setSelectedPlayer(player)} className="rounded-xl border border-[#FF6A00] px-2 py-2 text-xs font-semibold text-[#FF6A00] disabled:cursor-not-allowed disabled:opacity-30">Challenge</button>
             </div>
           ))}
         </div>
