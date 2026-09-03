@@ -190,6 +190,9 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                   <div>
                     <div className="match-tag">{item.game || 'Free Fire'}</div>
                     <div className="match-title">{item.mode} · {item.type}</div>
+                    <div className="match-tag" style={{ marginTop: 6, marginBottom: 0 }}>
+                      Created by {item.creator?.username || item.creator || 'Player'}
+                    </div>
                   </div>
                   <div className={`trust-pill ${getTrustClass(item.trustScore ?? 90)}`}>{item.trustScore ?? 90}</div>
                 </div>
