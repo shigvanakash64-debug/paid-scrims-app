@@ -13,30 +13,29 @@ let broadcastNotificationJobInstance = null;
 let retentionNotificationJobInstance = null;
 
 const RESULT_DEADLINE_MS = 5 * 60 * 1000;
-const MATCH_TIMEOUT_MS = 2 * 60 * 60 * 1000;
 const RETENTION_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
 
-const expireUnmatchedWaitingMatches = async () => {
-  const cutoff = new Date(Date.now() - MATCH_TIMEOUT_MS);
+const cancelUnaffordableWaitingMatches = async () => {
   const matches = await Match.find({
     status: 'waiting',
-    createdAt: { $lt: cutoff },
     players: { $size: 1 },
-  });
+    paidUsers: { $size: 0 },
+  }).populate('creator', 'wallet.balance');
 
   for (const match of matches) {
+    if (Number(match.creator?.wallet?.balance || 0) >= Number(match.entry || 0)) continue;
     match.status = 'cancelled';
     match.canceledBy = match.creator;
     match.adminMessages = match.adminMessages || [];
     match.adminMessages.push({
       sender: 'system',
-      text: 'Match auto-cancelled because no opponent joined within 2 hours.',
+      text: 'Match cancelled because the creator no longer has enough wallet balance for the entry fee.',
       createdAt: new Date(),
     });
     await match.save();
   }
 
-  return matches.length;
+  return matches.filter((match) => match.status === 'cancelled').length;
 };
 
 const pruneClosedBRMatches = async () => {
@@ -145,6 +144,10 @@ export const initializeCronJobs = (userModel, options = {}) => {
       }
 
       // Waiting matches remain visible until their creator cancels them.
+      const unaffordableMatches = await cancelUnaffordableWaitingMatches();
+      if (unaffordableMatches > 0) {
+        console.log(`[CRON] Cancelled ${unaffordableMatches} unaffordable waiting matches`);
+      }
 
       const prunedBRMatches = await pruneClosedBRMatches();
       if (prunedBRMatches > 0) {

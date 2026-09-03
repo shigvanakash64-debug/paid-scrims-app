@@ -529,10 +529,18 @@ export const createMatch = async (req, res) => {
       return res.status(400).json({ error: 'Invalid entry fee' });
     }
 
-    // Get user for notifications (don't check balance for creating match)
+    // The creator must be able to cover their own entry fee before publishing.
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
+    }
+    const availableBalance = Number(user.wallet?.balance || 0);
+    if (availableBalance < parsedEntry) {
+      return res.status(400).json({
+        error: 'Insufficient wallet balance to create this match',
+        required: parsedEntry,
+        available: availableBalance,
+      });
     }
 
     // Prize pool is fixed per entry amount using the official tier table.
@@ -616,7 +624,7 @@ export const acceptMatch = async (req, res) => {
     }
 
     const match = await Match.findById(matchId)
-      .populate('creator', 'username onesignalPlayerId')
+      .populate('creator', 'username onesignalPlayerId wallet.balance')
       .populate('players', 'username');
     if (!match) {
       return res.status(404).json({ error: 'Match not found' });
@@ -624,6 +632,11 @@ export const acceptMatch = async (req, res) => {
 
     if (match.status !== 'waiting') {
       return res.status(400).json({ error: 'Match is not available for acceptance' });
+    }
+
+    const creatorBalance = Number(match.creator?.wallet?.balance || 0);
+    if (match.creator?._id && creatorBalance < Number(match.entry || 0)) {
+      return res.status(400).json({ error: 'The match creator no longer has sufficient wallet balance' });
     }
 
     if (match.players.some(p => p._id?.toString() === userId.toString())) {
