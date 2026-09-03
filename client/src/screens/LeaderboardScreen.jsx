@@ -19,18 +19,19 @@ export const LeaderboardScreen = ({ user, onScreenChange, onMatchSelect }) => {
   const [message, setMessage] = useState('');
 
   const loadData = async () => {
-    try {
-      const [leaderboardResponse, challengesResponse] = await Promise.all([
-        axios.get(`${API_BASE}/leaderboard`, authConfig()),
-        axios.get(`${API_BASE}/challenges`, authConfig()),
-      ]);
-      setPlayers(leaderboardResponse.data.players || []);
-      setChallenges(challengesResponse.data.challenges || []);
-    } catch (error) {
-      setMessage(error.response?.data?.error || 'Unable to load leaderboard');
-    } finally {
-      setLoading(false);
+    const [leaderboardResult, challengesResult] = await Promise.allSettled([
+      axios.get(`${API_BASE}/leaderboard`, authConfig()),
+      axios.get(`${API_BASE}/challenges`, authConfig()),
+    ]);
+    if (leaderboardResult.status === 'fulfilled') {
+      setPlayers(leaderboardResult.value.data.players || []);
+    } else {
+      setMessage(leaderboardResult.reason.response?.data?.error || 'Unable to load leaderboard');
     }
+    if (challengesResult.status === 'fulfilled') {
+      setChallenges(challengesResult.value.data.challenges || []);
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
