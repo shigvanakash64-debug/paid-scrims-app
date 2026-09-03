@@ -63,10 +63,12 @@ export const requestWalletWithdrawal = async ({ userId, amount, upi, wallet = 'm
     throw new Error('User not found');
   }
 
-  const selectedWallet = wallet === 'referral' ? 'referral' : 'main';
-  const availableBalance = selectedWallet === 'referral'
-    ? ensureNumber(user.wallet?.referralEarningsBalance || 0)
-    : ensureNumber(user.wallet?.balance || 0);
+  if (wallet === 'referral') {
+    throw new Error('Referral earnings cannot be withdrawn');
+  }
+
+  const selectedWallet = 'main';
+  const availableBalance = ensureNumber(user.wallet?.balance || 0);
 
   if (availableBalance < parsedAmount) {
     throw new Error('Insufficient balance for withdrawal');
@@ -121,7 +123,7 @@ export const approveWithdrawalRequest = async ({ withdrawalId, adminNote = '', a
     throw new Error('Withdrawal not found');
   }
 
-  const totalWithdrawableBalance = ensureNumber(user.wallet?.balance || 0) + ensureNumber(user.wallet?.referralEarningsBalance || 0);
+  const totalWithdrawableBalance = ensureNumber(user.wallet?.balance || 0);
   if (totalWithdrawableBalance < withdrawal.amount) {
     throw new Error('Insufficient balance for withdrawal');
   }
@@ -131,17 +133,7 @@ export const approveWithdrawalRequest = async ({ withdrawalId, adminNote = '', a
   withdrawal.adminNote = adminNote;
   withdrawal.processedBy = adminId || null;
 
-  let remainingAmount = withdrawal.amount;
-  if (ensureNumber(user.wallet?.balance || 0) >= remainingAmount) {
-    user.wallet.balance -= remainingAmount;
-    remainingAmount = 0;
-  } else {
-    remainingAmount -= ensureNumber(user.wallet?.balance || 0);
-    user.wallet.balance = 0;
-    if (remainingAmount > 0) {
-      user.wallet.referralEarningsBalance = Math.max(0, ensureNumber(user.wallet?.referralEarningsBalance || 0) - remainingAmount);
-    }
-  }
+  user.wallet.balance -= withdrawal.amount;
 
   user.wallet.transactions.push({
     type: 'withdrawal',

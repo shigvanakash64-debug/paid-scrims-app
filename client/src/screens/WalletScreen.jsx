@@ -49,7 +49,6 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
   const [transactions, setTransactions] = useState([]);
   const [activeTab, setActiveTab] = useState('deposit');
   const [withdrawalAmount, setRedeemalAmount] = useState('');
-  const [withdrawalWallet, setRedeemalWallet] = useState('main');
   const [upiId, setUpiId] = useState('');
   const [depositAmount, setDepositAmount] = useState('100');
   const [cashfreeLoading, setCashfreeLoading] = useState(false);
@@ -148,10 +147,8 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       return;
     }
 
-    const selectedBalance = withdrawalWallet === 'referral' ? referralEarningsBalance : balance;
-
-    if (amount > selectedBalance) {
-      setMessage(`Insufficient ${withdrawalWallet === 'referral' ? 'referral earnings' : 'main wallet'} balance`);
+    if (amount > balance) {
+      setMessage('Insufficient main wallet balance');
       return;
     }
 
@@ -160,7 +157,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       const token = localStorage.getItem('clutchzone_token');
       await axios.post(`${API_BASE}/wallet/withdraw`, {
         amount,
-        wallet: withdrawalWallet,
+        wallet: 'main',
         upi: normalizedUpi,
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -169,7 +166,6 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       setMessage('Your redemption request has been submitted successfully.\n\nThe request is under admin review.\n\nEstimated processing time: 24–48 hours.');
       setRedeemalAmount('');
       setUpiId('');
-      setRedeemalWallet('main');
       fetchWalletData(); // Refresh data
     } catch (error) {
       setMessage(error.response?.data?.error || 'Unable to submit redemption request. Please try again.');
@@ -434,24 +430,17 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-[#A1A1A1] mb-2">Select Wallet</label>
+              <label className="block text-sm text-[#A1A1A1] mb-2">Redeem From</label>
               <div className="grid gap-2 md:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setRedeemalWallet('main')}
-                  className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${withdrawalWallet === 'main' ? 'border-[#FF6A00] bg-[#1a0c00] text-white' : 'border-[#2A2A2A] bg-[#0B0B0B] text-[#A1A1A1]'}`}
-                >
+                <div className="rounded-2xl border border-[#FF6A00] bg-[#1a0c00] px-4 py-3 text-left text-sm font-semibold text-white">
                   Main Wallet
                   <div className="mt-1 text-xs font-normal text-[#A1A1A1]">CZ - {balance.toLocaleString()}</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRedeemalWallet('referral')}
-                  className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${withdrawalWallet === 'referral' ? 'border-[#FF6A00] bg-[#1a0c00] text-white' : 'border-[#2A2A2A] bg-[#0B0B0B] text-[#A1A1A1]'}`}
-                >
-                  Referral Wallet
+                </div>
+                <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-left text-sm font-semibold text-[#A1A1A1]">
+                  All Time Referral Money
                   <div className="mt-1 text-xs font-normal text-[#A1A1A1]">CZ - {referralEarningsBalance.toLocaleString()}</div>
-                </button>
+                  <div className="mt-1 text-xs font-normal text-[#737373]">View only</div>
+                </div>
               </div>
             </div>
             <div>
@@ -479,13 +468,13 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
 
             <button
               onClick={handleRedeemalRequest}
-              disabled={loading || !upiId.trim() || !withdrawalAmount || parseFloat(withdrawalAmount) < 100 || parseFloat(withdrawalAmount) > (withdrawalWallet === 'referral' ? referralEarningsBalance : balance)}
+              disabled={loading || !upiId.trim() || !withdrawalAmount || parseFloat(withdrawalAmount) < 100 || parseFloat(withdrawalAmount) > balance}
               className="w-full rounded-3xl bg-[#FF6A00] px-6 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black transition disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? 'Submitting...' : 'Request Redemption'}
             </button>
 
-            <div className="mt-2 text-xs text-[#A1A1A1]">Note: Minimum redemption is CZ100 for either wallet. Redemptions require admin approval and may take 24-48 hours.</div>
+            <div className="mt-2 text-xs text-[#A1A1A1]">Note: Minimum redemption is CZ100 from the Main Wallet. All Time Referral Money is view-only. Redemptions require admin approval and may take 24-48 hours.</div>
           </div>
         )}
       </div>

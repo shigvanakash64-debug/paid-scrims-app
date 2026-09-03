@@ -35,10 +35,12 @@ export const requestWithdrawal = async (req, res) => {
       });
     }
 
-    const selectedWallet = wallet === 'referral' ? 'referral' : 'main';
-    const availableBalance = selectedWallet === 'referral'
-      ? Number(user.wallet?.referralEarningsBalance || 0)
-      : Number(user.wallet?.balance || 0);
+    if (wallet === 'referral') {
+      return res.status(400).json({ error: 'Referral earnings cannot be withdrawn' });
+    }
+
+    const selectedWallet = 'main';
+    const availableBalance = Number(user.wallet?.balance || 0);
 
     if (availableBalance < parsedAmount) {
       return res.status(400).json({ error: 'Insufficient balance for withdrawal' });
@@ -101,7 +103,7 @@ export const getWalletBalance = async (req, res) => {
       balance: Number(user.wallet?.balance || 0),
       bonusBalance: Number(user.wallet?.bonusBalance || 0),
       referralEarningsBalance: Number(user.wallet?.referralEarningsBalance || 0),
-      totalWithdrawableBalance: Number(user.wallet?.balance || 0) + Number(user.wallet?.referralEarningsBalance || 0),
+      totalWithdrawableBalance: Number(user.wallet?.balance || 0),
       pendingWithdrawals: (user.wallet?.pendingWithdrawals || []).filter((withdrawal) => withdrawal.status === 'pending'),
       recentTransactions: (user.wallet?.transactions || []).slice(-10),
     });
