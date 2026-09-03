@@ -52,7 +52,7 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
               required
             />
           </label>
-          <label className="auth-field" style={{ display: 'none' }}>
+          <label className="auth-field">
             <span className="auth-label">Referral Code (Optional)</span>
             <input
               className="auth-input"

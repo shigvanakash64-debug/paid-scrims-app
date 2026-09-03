@@ -267,34 +267,64 @@ export const creditCashback = async ({ userId, matchEntryFee, matchId }) => {
   return { success: true, amount: cashbackAmount, balance: user.wallet.balance, bonusBalance: user.wallet.bonusBalance };
 };
 
-export const creditReferralCommission = async ({ referredUserId, platformFee, matchId }) => {
-  const settings = await getSettings();
-  if (!settings.referralEnabled) return { success: false, message: 'Referral rewards disabled' };
+export const creditReferralReward = async ({ referredUserId, matchId }) => {
   const referral = await Referral.findOne({ referredUser: referredUserId });
   if (!referral) return { success: false, message: 'No referral found' };
-  const commissionAmount = calculateReferralCommissionAmount(platformFee, settings.referralPercentage);
-  if (commissionAmount <= 0) return { success: false, message: 'No referral commission to credit' };
+
+  const qualifyingSpend = await Match.aggregate([
+    {
+      $match: {
+        players: referredUserId,
+        paidUsers: referredUserId,
+        status: 'completed',
+      },
+    },
+    { $group: { _id: null, total: { $sum: '$entry' } } },
+  ]);
+  const totalSpend = Number(qualifyingSpend[0]?.total || 0);
+  const threshold = Number(referral.rewardThreshold || 30);
+  const commissionAmount = Number(referral.rewardAmount || 5);
+
+  await Referral.updateOne(
+    { _id: referral._id },
+    { $set: { qualifyingMatchSpend: totalSpend, updatedAt: new Date() } },
+  );
+
+  if (totalSpend < threshold) {
+    return { success: false, message: 'Referral reward threshold not reached', qualifyingSpend: totalSpend };
+  }
+  if (commissionAmount <= 0) return { success: false, message: 'Referral reward amount is zero' };
 
   const referrer = await User.findById(referral.referrer);
   if (!referrer) return { success: false, message: 'Referrer not found' };
 
+  const rewardClaim = await Referral.findOneAndUpdate(
+    { _id: referral._id, rewardedAt: { $exists: false }, qualifyingMatchSpend: { $gte: threshold } },
+    {
+      $set: {
+        rewardedAt: new Date(),
+        status: 'active',
+        firstMatchDate: referral.firstMatchDate || new Date(),
+        updatedAt: new Date(),
+      },
+      $inc: { totalReferralCommissionEarned: commissionAmount },
+    },
+    { returnDocument: 'after' },
+  );
+  if (!rewardClaim) return { success: false, message: 'Referral reward already credited' };
+
   referrer.wallet.balance = Number((referrer.wallet.balance || 0) + commissionAmount);
   referrer.wallet.referralEarningsBalance = Number((referrer.wallet.referralEarningsBalance || 0) + commissionAmount);
-  referral.lifetimePlatformFeesGenerated += Number(platformFee || 0);
-  referral.totalReferralCommissionEarned += commissionAmount;
-  referral.status = 'active';
-  referral.firstMatchDate = referral.firstMatchDate || new Date();
-  await referral.save();
 
   referrer.wallet.transactions.push({
     type: 'referral',
     amount: commissionAmount,
-    description: `Referral commission for ${referredUserId}`,
+    description: `Referral reward for ${referredUserId}`,
     timestamp: new Date(),
     matchId,
   });
   await referrer.save();
-  return { success: true, amount: commissionAmount, balance: referrer.wallet.balance, referralEarningsBalance: referrer.wallet.referralEarningsBalance };
+  return { success: true, amount: commissionAmount, qualifyingSpend: totalSpend, balance: referrer.wallet.balance, referralEarningsBalance: referrer.wallet.referralEarningsBalance };
 };
 
 export const markFirstDeposit = async (userId, amount) => {

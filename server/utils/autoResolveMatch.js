@@ -1,6 +1,7 @@
 import Match from "../models/Match.js";
 import { processPayout } from "./payout.js";
 import { refundPlayers } from "./refund.js";
+import { creditReferralReward } from "./rewardService.js";
 
 /**
  * Auto-resolve match based on submission status and deadline
@@ -131,6 +132,9 @@ export const autoResolveMatch = async (match, userModel) => {
 
         try {
           const payoutInfo = await processPayout(match._id, winnerId, userModel);
+          for (const playerId of match.players) {
+            await creditReferralReward({ referredUserId: playerId, matchId: match._id });
+          }
 
           return {
             resolved: true,

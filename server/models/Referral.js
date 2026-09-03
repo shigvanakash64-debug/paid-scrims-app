@@ -39,6 +39,22 @@ const referralSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  qualifyingMatchSpend: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  rewardAmount: {
+    type: Number,
+    default: 5,
+    min: 0,
+  },
+  rewardThreshold: {
+    type: Number,
+    default: 30,
+    min: 0,
+  },
+  rewardedAt: Date,
   createdAt: {
     type: Date,
     default: Date.now,

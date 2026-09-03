@@ -10,7 +10,7 @@ import Match from "../models/Match.js";
 import Referral from "../models/Referral.js";
 import Ticket from "../models/Ticket.js";
 import { processPayout } from "../utils/payout.js";
-import { markFirstDeposit, updateReferralStatus, getRewardDashboard } from "../utils/rewardService.js";
+import { markFirstDeposit, updateReferralStatus, creditReferralReward, getRewardDashboard } from "../utils/rewardService.js";
 import {
   approveWithdrawalRequest,
   rejectWithdrawalRequest,
@@ -823,6 +823,9 @@ export const resolveDispute = async (req, res) => {
     }
 
     const payoutInfo = await processPayout(matchId, winnerId, User);
+    for (const playerId of players) {
+      await creditReferralReward({ referredUserId: playerId, matchId });
+    }
 
     // Update match metadata for admin resolution
     match.status = 'completed';
