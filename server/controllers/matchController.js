@@ -442,7 +442,6 @@ const serializeMatch = (match) => {
     skillSetting: record.skillSetting || 'Skill On',
     paidUsers: (record.paidUsers || []).map((u) => u.toString()),
     verifiedUsers: (record.verifiedUsers || []).map((u) => u.toString()),
-    paymentDueAt: record.paymentDueAt,
     resultDeadline: record.resultDeadline || null,
     startedAt: record.startedAt || null,
     paymentUpi: record.paymentUpi || null,
@@ -486,26 +485,6 @@ const serializeMatch = (match) => {
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   };
-};
-
-const cancelExpiredPayments = async () => {
-  const now = new Date();
-  const expiredMatches = await Match.find({
-    status: { $in: ['matched', 'payment_pending'] },
-    paymentDueAt: { $lte: now },
-  });
-
-  for (const expired of expiredMatches) {
-    if ((expired.paidUsers || []).length >= (expired.players || []).length) {
-      continue;
-    }
-    expired.status = 'cancelled';
-    expired.adminMessages.push({
-      sender: 'system',
-      text: 'Match auto-cancelled because payment was not completed in time.',
-    });
-    await expired.save();
-  }
 };
 
 export const getMatch = async (req, res) => {
@@ -657,7 +636,7 @@ export const acceptMatch = async (req, res) => {
     match.players.push(userId);
     match.paymentUpi = await getNextPaymentUpi();
     match.status = 'payment_pending';
-    match.paymentDueAt = new Date(Date.now() + 5 * 60 * 1000);
+    match.paymentDueAt = null;
 
     match.adminMessages.push({
       sender: 'system',
@@ -762,9 +741,7 @@ export const payMatchWithWallet = async (req, res) => {
       });
     } else {
       match.status = 'payment_pending';
-      if ((match.paidUsers || []).length === 1) {
-        match.paymentDueAt = new Date(Date.now() + 5 * 60 * 1000);
-      }
+      match.paymentDueAt = null;
     }
 
     await match.save();

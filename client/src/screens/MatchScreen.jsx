@@ -26,12 +26,6 @@ const statusLabels = {
   disputed: 'Disputed',
 };
 
-const formatTime = (seconds) => {
-  const minutes = String(Math.floor(seconds / 60)).padStart(2, '0');
-  const secs = String(seconds % 60).padStart(2, '0');
-  return `${minutes}:${secs}`;
-};
-
 export const MatchScreen = ({ match, user, onScreenChange }) => {
   const matchId = match?.id || match?._id;
   const { currentMatch, refreshMatch, updateMatchState, clearMatch } = useMatch();
@@ -40,7 +34,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [paying, setPaying] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(0);
   const [showPaymentStep, setShowPaymentStep] = useState(false);
   const [localRoomId, setLocalRoomId] = useState('');
   const [localPassword, setLocalPassword] = useState('');
@@ -79,7 +72,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     };
   });
 
-  const deadlineLabel = isCancelled ? '00:00' : formatTime(timeLeft);
   const currentStatusLabel = statusLabels[activeMatch?.status] || 'Unknown';
   const roomDetails = activeMatch?.roomDetails || { roomId: '', password: '' };
   const showRoomDetails = Boolean(roomDetails?.roomId || roomDetails?.password);
@@ -124,23 +116,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
 
     return () => clearTimeout(timer);
   }, [isFinalStatus, clearMatch, onScreenChange]);
-
-  useEffect(() => {
-    const isPaymentCountdownActive = activeMatch?.status === 'payment_pending';
-    if (!activeMatch?.paymentDueAt || !isPaymentCountdownActive || isCancelled) {
-      setTimeLeft(0);
-      return undefined;
-    }
-
-    const updateTimer = () => {
-      const diff = Math.max(new Date(activeMatch.paymentDueAt).getTime() - Date.now(), 0);
-      setTimeLeft(Math.floor(diff / 1000));
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [activeMatch?.paymentDueAt, activeMatch?.status, isCancelled]);
 
   const addLocalMessage = (sender, text) => {
     updateMatchState({
@@ -256,7 +231,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
 
   const handleCancelMatch = async () => {
     if (!canCancelMatch) {
-      alert('Cancellation is locked after both players have paid.');
+      alert('Cancellation is locked after an opponent joins. Both players must pay and play the match.');
       return;
     }
     try {
@@ -399,7 +374,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
           <PaymentCard
             amount={currentMatch.entry}
             walletBalance={currentUser?.wallet?.balance || user?.wallet?.balance || 0}
-            deadline={deadlineLabel}
             onPayWithWallet={handlePayWithWallet}
             isPaid={currentMatch?.paidUsers?.includes(user?.id)}
             paymentStatus={currentStatusLabel}

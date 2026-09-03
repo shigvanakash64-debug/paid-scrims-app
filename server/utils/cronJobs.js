@@ -3,7 +3,6 @@ import Match from "../models/Match.js";
 import BRMatch from "../models/BRMatch.js";
 import { batchAutoResolveMatches } from "./autoResolveMatch.js";
 import { cleanupExpiredUploads } from "./cleanupExpiredUploads.js";
-import { refundPaidUsers } from "./refund.js";
 import {
   sendBroadcastNotification,
   sendRetentionNotification,
@@ -84,42 +83,6 @@ const ensureResultDeadlines = async () => {
   }
 
   return matches.length;
-};
-
-const cancelPaymentTimeouts = async (userModel) => {
-  const now = new Date();
-  const matches = await Match.find({
-    status: { $in: ['matched', 'payment_pending'] },
-    paymentDueAt: { $exists: true, $lte: now },
-  });
-
-  const results = [];
-  for (const match of matches) {
-    if ((match.paidUsers || []).length >= (match.players || []).length) {
-      continue;
-    }
-
-    match.status = 'cancelled';
-    match.paymentDueAt = null;
-    match.adminMessages = match.adminMessages || [];
-    match.adminMessages.push({
-      sender: 'system',
-      text: 'Match auto-cancelled because payment was not completed in time.',
-      createdAt: new Date(),
-    });
-
-    await match.save();
-
-    const refundResult = await refundPaidUsers(match._id, userModel);
-
-    results.push({
-      matchId: match._id.toString(),
-      action: 'cancelled',
-      reason: 'payment timeout',
-      refund: refundResult,
-    });
-  }
-  return results;
 };
 
 const repairLegacyMatches = async (userModel, batchSize = 100) => {

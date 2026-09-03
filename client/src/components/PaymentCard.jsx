@@ -1,4 +1,4 @@
-export const PaymentCard = ({ amount, walletBalance, deadline, onPayWithWallet, isPaid, paymentStatus }) => {
+export const PaymentCard = ({ amount, walletBalance, onPayWithWallet, isPaid, paymentStatus }) => {
   const buttonLabel = isPaid ? 'Wallet payment completed' : 'Pay from wallet';
 
   return (
@@ -19,11 +19,7 @@ export const PaymentCard = ({ amount, walletBalance, deadline, onPayWithWallet, 
         <p className="mt-1 text-sm text-[#A1A1A1]">Entry fee will be deducted from your wallet as soon as you confirm payment.</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-3xl border border-[#1F1F1F] bg-[#0B0B0B] p-4 text-sm text-[#A1A1A1]">
-          <div className="uppercase tracking-[0.18em]">Timer</div>
-          <div className="mt-3 text-3xl font-semibold text-white">{deadline}</div>
-        </div>
+      <div className="grid gap-3">
         <div className="rounded-3xl border border-[#1F1F1F] bg-[#0B0B0B] p-4 text-sm text-[#A1A1A1]">
           <div className="uppercase tracking-[0.18em]">Payment flow</div>
           <p className="mt-3 text-sm text-[#E5E7EB]">Deposit money into your wallet first, then pay the entry fee directly from wallet when you join a match.</p>

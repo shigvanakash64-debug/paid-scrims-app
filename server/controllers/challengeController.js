@@ -76,7 +76,7 @@ export const acceptChallenge = async (req, res) => {
     if (activeMatch) return res.status(400).json({ error: 'One of these players already has an active match' });
     if (Number(challenger.wallet?.balance || 0) < challenge.entry || Number(target.wallet?.balance || 0) < challenge.entry) return res.status(400).json({ error: 'Both players need sufficient wallet balance' });
 
-    const match = await Match.create({ creator: challenger._id, players: [challenger._id, target._id], game: challenge.game, mode: challenge.mode, type: challenge.type, skillSetting: challenge.skillSetting, entry: challenge.entry, prizePool: prizePools[challenge.entry] || challenge.entry * 2, status: 'payment_pending', paymentUpi: await getNextPaymentUpi(), paymentDueAt: new Date(Date.now() + 5 * 60 * 1000), adminMessages: [{ sender: 'system', text: 'Challenge accepted. Coordinate your start time using Quick Chat.' }] });
+    const match = await Match.create({ creator: challenger._id, players: [challenger._id, target._id], game: challenge.game, mode: challenge.mode, type: challenge.type, skillSetting: challenge.skillSetting, entry: challenge.entry, prizePool: prizePools[challenge.entry] || challenge.entry * 2, status: 'payment_pending', paymentUpi: await getNextPaymentUpi(), paymentDueAt: null, adminMessages: [{ sender: 'system', text: 'Challenge accepted. Both players must pay before the match can start.' }] });
     challenge.match = match._id;
     await challenge.save();
     return res.json({ success: true, match });
