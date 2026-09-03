@@ -26,64 +26,6 @@ const typeOptions = [
 ];
 const entryOptions = [0, 5, 10, 20, 30, 50, 100, 200, 500, 1000];
 
-const sampleMatches = [
-  {
-    id: 'match-001',
-    mode: '1v1',
-    type: 'Headshot',
-    skillSetting: 'Skill Off',
-    entryFee: 50,
-    prizePool: 80,
-    creator: 'Akash_77',
-    trustScore: 82,
-    status: 'Waiting for opponent',
-  },
-  {
-    id: 'match-002',
-    mode: '1v1',
-    type: 'Bodyshot',
-    skillSetting: 'Skill On',
-    entryFee: 100,
-    prizePool: 170,
-    creator: 'Riya_09',
-    trustScore: 74,
-    status: 'Waiting for opponent',
-  },
-  {
-    id: 'match-003',
-    mode: '2v2',
-    type: 'Only One Tap',
-    skillSetting: 'Skill On',
-    entryFee: 200,
-    prizePool: 360,
-    creator: 'ShadowKing',
-    trustScore: 88,
-    status: 'Waiting for opponents',
-  },
-  {
-    id: 'match-004',
-    mode: '1v1',
-    type: 'Normal Headshot',
-    skillSetting: 'Skill Off',
-    entryFee: 30,
-    prizePool: 50,
-    creator: 'Nova_X',
-    trustScore: 65,
-    status: 'Waiting for opponent',
-  },
-  {
-    id: 'match-005',
-    mode: '3v3',
-    type: 'Only AWM Bodyshot',
-    skillSetting: 'Skill Off',
-    entryFee: 500,
-    prizePool: 900,
-    creator: 'AlphaRider',
-    trustScore: 91,
-    status: 'Waiting for teammates',
-  },
-];
-
 const getTrustClass = (score) => {
   if (score >= 80) return 'green';
   if (score >= 40) return 'yellow';
@@ -250,17 +192,6 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     );
   };
 
-  const filteredSamples = useMemo(
-    () => sampleMatches.filter(
-      (item) =>
-        (game === 'All' || item.game === game) &&
-        (mode === 'All' || item.mode === mode) &&
-        (type === 'All' || item.type === type) &&
-        (entry === 0 || item.entryFee === entry)
-    ),
-    [game, mode, type, entry]
-  );
-
   useEffect(() => {
     const fetchMatches = async () => {
       setLoading(true);
@@ -276,15 +207,15 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         const response = await axios.get(url);
         setMatches(response.data.matches || []);
       } catch (err) {
-        setError('Live marketplace offline. Showing active lobby.');
-        setMatches(filteredSamples);
+        setError('Live marketplace is temporarily unavailable.');
+        setMatches([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchMatches();
-  }, [game, mode, type, entry, filteredSamples]);
+  }, [game, mode, type, entry]);
 
   const handleCancelMatch = async () => {
     if (!activeMatch?.id) return;
