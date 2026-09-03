@@ -1062,11 +1062,10 @@ export const addChatMessage = async (req, res) => {
       return res.status(400).json({ error: 'matchId, text, and sender are required' });
     }
 
-    const allowedUserMessages = ['Paid', 'Issue', 'Not received room', "Let's play", '5 min?', '10 min?', 'Join now', "I'm ready", 'GG', 'Rematch?', 'Wait 5 mins'];
     const allowedAdminMessages = ['Payment received', 'Room created', 'Match cancelled'];
 
-    if (sender === 'user' && !allowedUserMessages.includes(text)) {
-      return res.status(400).json({ error: 'Invalid user message' });
+    if (sender === 'user' && (typeof text !== 'string' || text.trim().length === 0 || text.length > 300)) {
+      return res.status(400).json({ error: 'Message must be between 1 and 300 characters' });
     }
 
     if (sender === 'admin' && !req.isAdmin) {

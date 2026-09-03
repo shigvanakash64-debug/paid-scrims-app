@@ -307,17 +307,15 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const isMatchCreator = currentUser && activeMatchCreatorId && (currentUser.id === activeMatchCreatorId || currentUser._id === activeMatchCreatorId);
   const showOpponentJoinedDot = isMatchCreator && activeMatch?.players?.length > 1;
   const hasBothPaid = (activeMatch?.paidUsers?.length || 0) >= (activeMatch?.players?.length || 0);
-  const canCancelMatch = Boolean(activeMatch) && !['ongoing', 'completed', 'cancelled'].includes(String(activeMatch?.status || '').toLowerCase()) && !hasBothPaid;
+  const canCancelMatch = Boolean(activeMatch) && isMatchCreator && (activeMatch?.players?.length || 0) === 1 && !['ongoing', 'completed', 'cancelled'].includes(String(activeMatch?.status || '').toLowerCase());
   const isLiveMatch = (status) => {
     const value = String(status || '').toLowerCase();
     return !['ongoing', 'completed', 'cancelled'].includes(value);
   };
 
   const liveMatches = useMemo(() => {
-    const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
     const current = matches.filter((item) => {
-      const createdAt = new Date(item.createdAt).getTime();
-      return createdAt > twoHoursAgo;
+      return isLiveMatch(item.status);
     });
     if (activeMatch && isLiveMatch(activeMatch.status) && !current.some((item) => item.id === activeMatch.id)) {
       current.unshift(activeMatch);

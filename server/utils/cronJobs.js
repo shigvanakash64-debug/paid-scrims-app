@@ -181,10 +181,7 @@ export const initializeCronJobs = (userModel, options = {}) => {
         console.log(`[CRON] Removed ${cleanupResult.deletedCount} expired screenshots older than 48 hours`);
       }
 
-      const expiredWaitingMatches = await expireUnmatchedWaitingMatches();
-      if (expiredWaitingMatches > 0) {
-        console.log(`[CRON] Cancelled ${expiredWaitingMatches} waiting matches that never found an opponent`);
-      }
+      // Waiting matches remain visible until their creator cancels them.
 
       const prunedBRMatches = await pruneClosedBRMatches();
       if (prunedBRMatches > 0) {
@@ -202,12 +199,6 @@ export const initializeCronJobs = (userModel, options = {}) => {
         if (repairedCount > 0) {
           console.log(`[CRON] Repaired ${repairedCount} legacy matches`);
         }
-      }
-
-      // Handle payment timeouts for matches awaiting proof
-      const paymentTimeouts = await cancelPaymentTimeouts(userModel);
-      if (paymentTimeouts.length > 0) {
-        console.log(`[CRON] Cancelled ${paymentTimeouts.length} matches due to payment timeout`);
       }
 
       const matchesToProcess = await Match.find({
@@ -300,19 +291,18 @@ export const manualTriggerResolution = async (userModel) => {
 
     await ensureResultDeadlines();
     const cleanupResult = await cleanupExpiredUploads();
-    const paymentTimeouts = await cancelPaymentTimeouts(userModel);
     const matchesToProcess = await Match.find({
       status: 'result_pending',
       resultDeadline: { $exists: true, $lte: now },
       isPaid: false,
     }).lean();
 
-    if (matchesToProcess.length === 0 && paymentTimeouts.length === 0) {
+    if (matchesToProcess.length === 0) {
       console.log(`[MANUAL TRIGGER] No matches to process`);
       return {
         success: true,
         processed: 0,
-        cancelled: paymentTimeouts.length,
+        cancelled: 0,
         cleanup: cleanupResult,
         results: [],
       };
@@ -328,12 +318,11 @@ export const manualTriggerResolution = async (userModel) => {
     return {
       success: true,
       processed: matchesToProcess.length,
-      cancelled: paymentTimeouts.length,
+      cancelled: 0,
       cleanup: cleanupResult,
       resolved,
       failed,
       results,
-      paymentTimeouts,
     };
   } catch (error) {
     console.error("[MANUAL TRIGGER ERROR]:", error);

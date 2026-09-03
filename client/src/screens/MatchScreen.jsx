@@ -56,7 +56,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const isFinalStatus = ['completed', 'cancelled', 'disputed'].includes(activeMatch?.status);
   const hasOpponent = (activeMatch?.players?.length || 0) > 1;
   const hasBothPaid = (activeMatch?.paidUsers?.length || 0) >= (activeMatch?.players?.length || 0);
-  const canCancelMatch = !isMatchActive && !isCancelled && !hasBothPaid;
+  const canCancelMatch = !isMatchActive && !isCancelled && isMatchCreator && !hasOpponent;
 
   const players = useMemo(() => {
     return (activeMatch?.players || []).map((player, index) => {
@@ -107,6 +107,12 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
 
     fetchMatch();
   }, [matchId, refreshMatch]);
+
+  useEffect(() => {
+    if (!matchId || isFinalStatus) return undefined;
+    const interval = setInterval(() => refreshMatch(matchId), 5000);
+    return () => clearInterval(interval);
+  }, [matchId, isFinalStatus, refreshMatch]);
 
   useEffect(() => {
     if (!isFinalStatus) return undefined;
@@ -281,25 +287,18 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     }
   };
 
-  const handleUserAction = async (action) => {
-    if (action === 'Paid') {
-      handlePayWithWallet();
-      return;
-    }
-    const quickChatMessages = ["Let's play", '5 min?', '10 min?', 'Join now', "I'm ready", 'GG', 'Rematch?', 'Wait 5 mins'];
-    if (quickChatMessages.includes(action)) {
-      await addChatMessage('user', action);
-      return;
-    }
-    await addChatMessage('user', action === 'Not received room' ? 'Not received room' : 'Issue');
+  const handleLiveChatMessage = async (text) => {
+    await addChatMessage('user', text);
+    await refreshMatch(matchId);
   };
 
   const handleAdminAction = async (action) => {
     if (action === 'Match cancelled') {
-      await handleCancelMatch(true);
+      await handleCancelMatch();
       return;
     }
     await addChatMessage('admin', action);
+    await refreshMatch(matchId);
   };
 
   if (!match) {
@@ -352,6 +351,12 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
     <div className="min-h-screen bg-[#0B0B0B] px-4 pb-24 pt-6 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl space-y-6">
         <MatchHeader match={currentMatch} statusLabel={currentStatusLabel} />
+
+        <ChatBox
+          messages={currentMatch?.adminMessages || []}
+          onSendMessage={handleLiveChatMessage}
+          status={currentMatch?.status}
+        />
 
         {isFinalStatus && (
           <div className="rounded-3xl border border-[#444] bg-[#111111] p-5 text-center">
@@ -472,13 +477,6 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
           <RoomDetailsCard roomId={roomDetails.roomId} password={roomDetails.password} />
         )}
 
-        <ChatBox
-          messages={currentMatch?.adminMessages || []}
-          isAdmin={isAdmin}
-          onUserAction={handleUserAction}
-          onAdminAction={handleAdminAction}
-          status={currentMatch?.status}
-        />
       </div>
     </div>
   );
