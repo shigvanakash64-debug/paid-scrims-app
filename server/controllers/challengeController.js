@@ -91,3 +91,13 @@ export const declineChallenge = async (req, res) => {
   if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
   return res.json({ success: true, challenge });
 };
+
+export const cancelChallenge = async (req, res) => {
+  const challenge = await Challenge.findOneAndUpdate(
+    { _id: req.params.challengeId, challenger: req.userId, status: 'pending' },
+    { $set: { status: 'declined', declinedAt: new Date() } },
+    { new: true }
+  );
+  if (!challenge) return res.status(404).json({ error: 'Pending challenge not found' });
+  return res.json({ success: true, challenge });
+};

@@ -736,6 +736,10 @@ export const cancelMatch = async (req, res) => {
       return res.status(404).json({ error: "Match not found" });
     }
 
+    if ((match.players || []).length > 1) {
+      return res.status(400).json({ error: "Joined matches cannot be cancelled. Both players must pay and play." });
+    }
+
     // Refund paid players
     const paidUserIds = (match.paidUsers || []).map((user) => user.toString());
     for (const playerId of paidUserIds) {

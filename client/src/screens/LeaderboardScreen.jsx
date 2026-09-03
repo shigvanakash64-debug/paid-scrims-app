@@ -51,6 +51,8 @@ export const LeaderboardScreen = ({ user, onScreenChange, onMatchSelect }) => {
       setMessage(`Challenge sent to ${selectedPlayer.username}`);
       setSelectedPlayer(null);
       await loadData();
+      sessionStorage.setItem('clutchzone_open_my_matches', 'true');
+      onScreenChange('pairing');
     } catch (error) {
       setMessage(error.response?.data?.error || 'Unable to send challenge');
     }

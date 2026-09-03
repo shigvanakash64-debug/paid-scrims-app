@@ -970,37 +970,13 @@ export const cancelMatch = async (req, res) => {
       return res.status(400).json({ error: 'This match cannot be cancelled' });
     }
 
-    const hasBothPaid = (match.paidUsers || []).length >= (match.players || []).length;
-    if (!req.isAdmin && hasBothPaid) {
-      return res.status(400).json({ error: 'Cancellation is locked after both players have paid.' });
-    }
-
-    const paidUserIds = (match.paidUsers || []).map((player) => player.toString());
-    const requesterHasPaid = paidUserIds.includes(userId.toString());
-    const singlePaidMatch = paidUserIds.length === 1;
-
     const isParticipant = match.players.some((player) => player.toString() === userId.toString());
     if (!isParticipant && !req.isAdmin) {
       return res.status(403).json({ error: 'Only participants or admin can cancel the match' });
     }
 
-    if (!req.isAdmin && singlePaidMatch && requesterHasPaid) {
-      match.status = 'cancelled';
-      match.canceledBy = userId;
-      match.paymentDueAt = null;
-      match.adminMessages.push({
-        sender: 'system',
-        text: 'Match cancelled by the paid user. The paid player will be refunded.',
-      });
-
-      await match.save();
-
-      const refundResult = await refundPaidUsers(match._id, User);
-
-      return res.status(200).json({
-        match: serializeMatch(match),
-        refund: refundResult,
-      });
+    if (match.players.length > 1) {
+      return res.status(400).json({ error: 'Cancellation is locked after an opponent joins. Both players must pay and play the match.' });
     }
 
     const isCreator = match.creator.toString() === userId.toString();

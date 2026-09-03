@@ -5,6 +5,7 @@ import {
   getMyChallenges,
   acceptChallenge,
   declineChallenge,
+  cancelChallenge,
 } from '../controllers/challengeController.js';
 
 const router = express.Router();
@@ -13,5 +14,6 @@ router.get('/', getMyChallenges);
 router.post('/', requireVerifiedPhone, createChallenge);
 router.post('/:challengeId/accept', requireVerifiedPhone, acceptChallenge);
 router.post('/:challengeId/decline', declineChallenge);
+router.post('/:challengeId/cancel', cancelChallenge);
 
 export default router;
