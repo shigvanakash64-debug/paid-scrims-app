@@ -1,7 +1,7 @@
 import Challenge from '../models/Challenge.js';
 import Match from '../models/Match.js';
 import User from '../models/User.js';
-import { getNextPaymentUpi } from './matchController.js';
+import { getNextPaymentUpi, serializeMatch } from './matchController.js';
 
 const entryFees = [5, 10, 20, 30, 50, 100, 200, 500, 1000];
 const modes = ['1v1', '2v2', '3v3', '4v4'];
@@ -59,8 +59,21 @@ export const createChallenge = async (req, res) => {
 export const getMyChallenges = async (req, res) => {
   try {
     await expireChallenges();
-    const challenges = await populateChallenge(Challenge.find({ $or: [{ challenger: req.userId }, { challengedPlayer: req.userId }] }).sort({ createdAt: -1 }).limit(50));
-    return res.json({ success: true, challenges });
+    const challenges = await populateChallenge(
+      Challenge.find({ $or: [{ challenger: req.userId }, { challengedPlayer: req.userId }] })
+        .populate('match')
+        .populate('match.creator', 'username')
+        .populate('match.players', 'username')
+        .sort({ createdAt: -1 })
+        .limit(50)
+    );
+    return res.json({
+      success: true,
+      challenges: challenges.map((challenge) => {
+        const record = challenge.toObject();
+        return { ...record, match: record.match ? serializeMatch(record.match) : null };
+      }),
+    });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to load challenges' });
   }
@@ -79,7 +92,7 @@ export const acceptChallenge = async (req, res) => {
     const match = await Match.create({ creator: challenger._id, players: [challenger._id, target._id], game: challenge.game, mode: challenge.mode, type: challenge.type, skillSetting: challenge.skillSetting, entry: challenge.entry, prizePool: prizePools[challenge.entry] || challenge.entry * 2, status: 'payment_pending', paymentUpi: await getNextPaymentUpi(), paymentDueAt: null, adminMessages: [{ sender: 'system', text: 'Challenge accepted. Both players must pay before the match can start.' }] });
     challenge.match = match._id;
     await challenge.save();
-    return res.json({ success: true, match });
+    return res.json({ success: true, match: serializeMatch(match) });
   } catch (error) {
     console.error('acceptChallenge error:', error);
     return res.status(500).json({ error: 'Failed to accept challenge' });

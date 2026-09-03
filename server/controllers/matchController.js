@@ -416,7 +416,7 @@ export const rejectResult = async (req, res) => {
 /**
  * Get match details with result
  */
-const serializeMatch = (match) => {
+export const serializeMatch = (match) => {
   const record = match.toObject ? match.toObject() : match;
   return {
     id: record._id.toString(),

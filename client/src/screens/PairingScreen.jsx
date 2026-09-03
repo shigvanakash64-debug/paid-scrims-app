@@ -53,13 +53,24 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         const response = await axios.get(`${API_BASE}/challenges`, {
           headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
         });
-        setPendingChallenges(response.data.challenges || []);
+        const nextChallenges = response.data.challenges || [];
+        setPendingChallenges(nextChallenges);
+        const acceptedChallenge = nextChallenges.find((challenge) => (
+          challenge.status === 'accepted' && challenge.match &&
+          String(challenge.challenger?._id || challenge.challenger) === String(currentUser?.id || currentUser?._id)
+        ));
+        if (acceptedChallenge?.match) {
+          onMatchSelect?.(acceptedChallenge.match);
+          onScreenChange('match');
+        }
       } catch (err) {
         console.error('Failed to load challenges:', err);
       }
     };
     fetchChallenges();
-  }, []);
+    const interval = setInterval(fetchChallenges, 5000);
+    return () => clearInterval(interval);
+  }, [currentUser, onMatchSelect, onScreenChange]);
 
   const cancelChallenge = async (challengeId) => {
     try {

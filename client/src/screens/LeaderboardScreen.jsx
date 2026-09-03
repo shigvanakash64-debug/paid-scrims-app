@@ -65,7 +65,7 @@ export const LeaderboardScreen = ({ user, onScreenChange, onMatchSelect }) => {
       setChallenges((current) => current.map((challenge) => challenge._id === challengeId ? { ...challenge, status: action === 'accept' ? 'accepted' : 'declined' } : challenge));
       if (action === 'accept' && response.data.match) {
         onMatchSelect(response.data.match);
-        onScreenChange('pairing');
+        onScreenChange('match');
       }
     } catch (error) {
       setMessage(error.response?.data?.error || `Unable to ${action} challenge`);
