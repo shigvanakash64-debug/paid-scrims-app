@@ -1062,9 +1062,7 @@ export const addChatMessage = async (req, res) => {
 export const listMatches = async (req, res) => {
   try {
     const { game, mode, type, entry } = req.query;
-    // Exclude matches older than 2 hours
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-    const query = { status: 'waiting', createdAt: { $gte: twoHoursAgo } };
+    const query = { status: 'waiting' };
     if (game) query.game = game;
     if (mode) query.mode = mode;
     if (type) query.type = type;
