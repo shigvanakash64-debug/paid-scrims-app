@@ -1,35 +1,43 @@
 ﻿import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useUser } from '../contexts/UserContext';
+import { Copy, Pencil, Save } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
   const { user: currentUser } = useUser();
   const [uid, setUid] = useState(currentUser?.ffUid || '');
+  const [bio, setBio] = useState(currentUser?.bio || '');
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [rank, setRank] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [referralData, setReferralData] = useState(null);
 
   useEffect(() => {
     setUid(currentUser?.ffUid || '');
-  }, [currentUser?.ffUid]);
+    setBio(currentUser?.bio || '');
+  }, [currentUser?.ffUid, currentUser?.bio]);
 
   useEffect(() => {
-    const fetchReferralData = async () => {
+    const fetchProfileData = async () => {
       if (!currentUser) return;
       try {
         const token = localStorage.getItem('clutchzone_token');
-        const response = await axios.get(`${API_BASE}/rewards/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setReferralData(response.data);
+        const [referralResponse, leaderboardResponse] = await Promise.all([
+          axios.get(`${API_BASE}/rewards/me`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${API_BASE}/leaderboard`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        setReferralData(referralResponse.data);
+        const rankedPlayer = (leaderboardResponse.data.players || []).find((player) => String(player._id || player.id) === String(currentUser.id));
+        setRank(rankedPlayer?.rank || null);
       } catch (err) {
-        console.error('Failed to load referral data', err);
+        console.error('Failed to load profile data', err);
       }
     };
 
-    fetchReferralData();
+    fetchProfileData();
   }, [currentUser]);
 
   if (!currentUser) {
@@ -43,13 +51,12 @@ export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
     );
   }
 
-  const getInitials = (username) => {
-    const parts = username.split(/[^A-Za-z0-9]+/).filter(Boolean);
-    const initials = parts.map((part) => part[0].toUpperCase()).slice(0, 2).join('');
-    return initials || username.slice(0, 2).toUpperCase();
-  };
-
-  const history = currentUser?.history || [];
+  const matchesPlayed = Number(currentUser.matchesPlayed || 0);
+  const matchesWon = Number(currentUser.matchesWon || 0);
+  const winRate = matchesPlayed ? ((matchesWon / matchesPlayed) * 100).toFixed(1) : '0.0';
+  const totalEarnings = (currentUser.wallet?.transactions || [])
+    .filter((transaction) => transaction.type === 'match_win')
+    .reduce((total, transaction) => total + Math.max(Number(transaction.amount) || 0, 0), 0);
 
   const getDisplayReferralCode = () => {
     const fromApi = referralData?.referralCode || currentUser?.wallet?.referralCode;
@@ -97,74 +104,48 @@ export const ProfileScreen = ({ user, onUserUpdate, onProfileSave }) => {
     }
   };
 
+  const handleSaveBio = async () => {
+    setError('');
+    setMessage('');
+    try {
+      await onProfileSave?.({ bio: bio.slice(0, 150) });
+      setIsEditingBio(false);
+      setMessage('Bio saved successfully');
+    } catch (err) {
+      setError('Unable to save bio');
+    }
+  };
+
   return (
     <div id="screen-profile" className="screen-profile">
       <div className="hero">
         <div className="screen-title">PROFILE</div>
         <div className="screen-sub">Your competitive record</div>
       </div>
-      <div className="profile-hero">
-        <div className="profile-top">
-          <div className="avatar">{getInitials(currentUser.username)}</div>
-          <div>
-            <div className="profile-name">{currentUser.username}</div>
-            {currentUser.title && <div className="profile-id">({currentUser.title})</div>}
-            <div className="profile-id">{currentUser.ffUid ? `UID: ${currentUser.ffUid}` : 'UID not added'}</div>
-            <div className="profile-role">Role: {currentUser.role || 'user'}</div>
-          </div>
+      <section className="profile-card">
+        <div className="profile-name">{currentUser.username}</div>
+        <div className="profile-title">[ {currentUser.title || 'NO TITLE'} ]</div>
+        <div className="profile-bio-row">
+          <span className="profile-bio">{currentUser.bio || 'Add a bio...'}</span>
+          <button className="profile-icon-button" type="button" onClick={() => setIsEditingBio(true)} aria-label="Edit bio"><Pencil size={14} /></button>
         </div>
-        <div className="trust-section">
-          <div className="trust-label">
-            <span className="label-text">TG</span>
-            <span className="label-score">{currentUser.trustScore} / 100</span>
-          </div>
-          <div className="trust-bar">
-            <div className="trust-fill" style={{ width: `${currentUser.trustScore}%` }}></div>
-          </div>
-        </div>
-      </div>
-      <div className="profile-form">
-        {currentUser?.wallet?.referralCode && (
-          <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4 mb-4">
-            <div className="text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">Referral Code</div>
-            <div className="mt-2 text-lg font-semibold text-white">{getDisplayReferralCode() || 'Generating...'}</div>
-            <div className="mt-2 text-sm text-[#A1A1A1]">Share this code to earn rewards when your friends complete paid matches.</div>
-            <button className="btn-outline mt-3" type="button" onClick={copyReferralCode} disabled={!getDisplayReferralCode()}>COPY CODE</button>
-          </div>
-        )}
-        <label className="form-group">
-          <span className="form-label">Free Fire UID</span>
-          <input
-            className="form-input"
-            type="text"
-            value={uid}
-            onChange={(event) => setUid(event.target.value)}
-            placeholder="Enter your Free Fire UID"
-          />
-        </label>
-        <button className="btn-outline" type="button" onClick={handleSaveUid}>
-          SAVE UID
-        </button>
+        {isEditingBio && <div className="bio-editor"><textarea value={bio} maxLength={150} onChange={(event) => setBio(event.target.value)} autoFocus /><div className="bio-editor-footer"><span>{bio.length}/150</span><button className="compact-action" type="button" onClick={handleSaveBio}><Save size={13} /> SAVE</button></div></div>}
+        <div className="profile-details"><span>UID: {currentUser.ffUid || 'Not added'}</span><span>Role: {currentUser.role || 'user'}</span></div>
+        <div className="profile-rating"><span><b>#{rank || '--'}</b> RANK</span><span><b>TG {currentUser.trustScore || 0}</b> / 100</span></div>
+      </section>
+      <section className="profile-section">
+        <div className="profile-section-heading">PLAYER STATS</div>
+        <div className="profile-stats"><div><b>{matchesPlayed}</b><span>MATCHES</span></div><div><b>{matchesWon}</b><span>WINS</span></div><div><b>{winRate}%</b><span>WIN RATE</span></div><div><b>₹{totalEarnings.toLocaleString('en-IN')}</b><span>EARNINGS</span></div></div>
+      </section>
+      <div className="profile-streak">CURRENT STREAK: 0</div>
+      <section className="profile-section profile-account">
+        <div className="profile-section-heading">ACCOUNT</div>
+        <div className="account-row"><label>Free Fire UID<input type="text" value={uid} onChange={(event) => setUid(event.target.value)} placeholder="10 digits" /></label><button className="compact-action" type="button" onClick={handleSaveUid}><Save size={13} /> SAVE</button></div>
+        <div className="account-row"><span>Referral Code <b>{getDisplayReferralCode() || 'Generating...'}</b></span><button className="compact-action" type="button" onClick={copyReferralCode} disabled={!getDisplayReferralCode()}><Copy size={13} /> COPY</button></div>
+      </section>
+      <div className="profile-feedback">
         {error && <div className="form-error">{error}</div>}
         {message && <div className="form-success">{message}</div>}
-      </div>
-      <div style={{ padding: '0 16px 10px', display: 'flex', justifyContent: 'space-between' }}>
-        <span style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: '10px', letterSpacing: '3px', color: 'var(--dim)', textTransform: 'uppercase' }}>Match History</span>
-      </div>
-      <div style={{ borderTop: '1px solid var(--border)' }}>
-        {history.length === 0 ? (
-          <div className="hist-empty">No match history available.</div>
-        ) : (
-          history.map((item) => (
-            <div key={item.id} className="hist-row">
-              <div>
-                <div className="hist-mode">{item.mode}</div>
-                <div className="hist-meta">{item.meta}</div>
-              </div>
-              <div className={`result-chip ${item.result}`}>{item.result.toUpperCase()}</div>
-            </div>
-          ))
-        )}
       </div>
     </div>
   );

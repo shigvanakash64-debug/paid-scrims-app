@@ -488,6 +488,7 @@ function App() {
       alert('Profile updated successfully');
     } catch (error) {
       alert(error.response?.data?.error || 'Could not save profile changes');
+      throw error;
     }
   };
 

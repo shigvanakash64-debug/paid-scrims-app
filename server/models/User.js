@@ -13,6 +13,17 @@ const userSchema = new mongoose.Schema({
     maxlength: 60,
     default: '',
   },
+  bio: {
+    type: String,
+    trim: true,
+    maxlength: 150,
+    default: '',
+  },
+  ffUid: {
+    type: String,
+    trim: true,
+    default: '',
+  },
   password: {
     type: String,
     required: true

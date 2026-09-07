@@ -226,10 +226,31 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .txn-amount{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700}
 .txn-amount.credit{color:var(--success)}
 .txn-amount.debit{color:var(--danger)}
-.profile-hero{margin:16px;background:var(--card);border:1px solid var(--border);padding:16px}
+.profile-card{margin:0 16px 14px;background:var(--card);border:1px solid var(--border);padding:16px}
 .profile-top{display:flex;align-items:center;gap:14px;margin-bottom:14px}
 .avatar{width:50px;height:50px;background:#1a1a1a;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--orange)}
 .profile-name{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;letter-spacing:1px}
+.profile-title{color:var(--orange);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;margin-top:2px}
+.profile-bio-row{display:flex;align-items:flex-start;gap:8px;margin:14px 0 10px;color:var(--muted);font-size:13px;line-height:1.4;min-height:20px}
+.profile-bio{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3}
+.profile-icon-button{border:0;background:transparent;color:var(--orange);padding:2px;cursor:pointer;flex:none}
+.bio-editor{background:var(--bg);border:1px solid var(--border);padding:8px;margin-bottom:10px}
+.bio-editor textarea{display:block;width:100%;min-height:58px;resize:none;background:transparent;border:0;outline:0;color:#fff;font:13px 'Barlow',sans-serif}
+.bio-editor-footer{display:flex;align-items:center;justify-content:space-between;color:var(--dim);font-size:11px}
+.compact-action{display:inline-flex;align-items:center;gap:5px;background:transparent;border:1px solid var(--border);color:var(--orange);padding:6px 8px;font:700 11px 'Rajdhani',sans-serif;letter-spacing:1px;cursor:pointer}
+.compact-action:disabled{opacity:.5;cursor:not-allowed}
+.profile-details,.profile-rating{display:flex;justify-content:space-between;gap:12px;color:var(--dim);font:11px 'JetBrains Mono',monospace}
+.profile-rating{border-top:1px solid var(--border);margin-top:12px;padding-top:12px;color:var(--muted)}
+.profile-rating b{color:#fff;font-size:15px}
+.profile-section{margin:0 16px 14px}
+.profile-section-heading{color:var(--dim);font:700 11px 'Rajdhani',sans-serif;letter-spacing:2px;margin-bottom:8px}
+.profile-stats{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border)}
+.profile-stats div{padding:10px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
+.profile-stats div:nth-child(even){border-right:0}.profile-stats div:nth-last-child(-n+2){border-bottom:0}
+.profile-stats b,.profile-stats span{display:block}.profile-stats b{font:700 18px 'JetBrains Mono',monospace;color:#fff}.profile-stats span{color:var(--dim);font-size:10px;letter-spacing:1px;margin-top:3px}
+.profile-streak{margin:0 16px 14px;padding:10px 12px;border-left:2px solid var(--orange);background:#15100b;color:var(--orange);font:700 13px 'Rajdhani',sans-serif;letter-spacing:1px}
+.profile-account{border-top:1px solid var(--border);padding-top:12px}
+.account-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border);padding:8px 0;color:var(--muted);font-size:12px}.account-row:last-child{border-bottom:0}.account-row label{display:flex;align-items:center;gap:8px;min-width:0}.account-row input{width:112px;background:var(--bg);border:1px solid var(--border);color:#fff;padding:5px 7px;font:12px 'JetBrains Mono',monospace}.account-row span{display:flex;gap:8px;align-items:center}.account-row b{color:#fff;font-family:'JetBrains Mono',monospace}.profile-feedback{padding:0 16px 10px}
 .profile-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim);margin-top:2px}
 .trust-section .trust-label{display:flex;justify-content:space-between;margin-bottom:6px}
 .trust-section .label-text{font-size:12px;color:var(--muted)}

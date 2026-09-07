@@ -43,6 +43,7 @@ const sanitizeUser = (user) => {
     id: user._id.toString(),
     username: user.username,
     title: user.title || '',
+    bio: user.bio || '',
     phone: user.phone || null,
     phoneVerified: !!user.phoneVerified,
     role: user.role || 'user',
@@ -291,13 +292,20 @@ export const changePassword = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { ffUid } = req.body;
+    const { ffUid, bio } = req.body;
     const user = await User.findById(req.userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    user.ffUid = ffUid?.trim() || "";
+    if (ffUid !== undefined) user.ffUid = String(ffUid).trim();
+    if (bio !== undefined) {
+      const sanitizedBio = String(bio).replace(/[<>]/g, '').trim();
+      if (sanitizedBio.length > 150) {
+        return res.status(400).json({ error: "Bio must be 150 characters or fewer" });
+      }
+      user.bio = sanitizedBio;
+    }
     await user.save();
 
     return res.json({ user: sanitizeUser(user) });
