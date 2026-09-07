@@ -49,7 +49,8 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
   const isFinalStatus = ['completed', 'cancelled', 'disputed'].includes(activeMatch?.status);
   const hasOpponent = (activeMatch?.players?.length || 0) > 1;
   const hasBothPaid = (activeMatch?.paidUsers?.length || 0) >= (activeMatch?.players?.length || 0);
-  const canCancelMatch = !isMatchActive && !isCancelled && isMatchCreator && !hasOpponent;
+  const hasPaidUsers = (activeMatch?.paidUsers?.length || 0) > 0;
+  const canCancelMatch = !isMatchActive && !isCancelled && isMatchCreator && !hasOpponent && hasPaidUsers;
 
   const players = useMemo(() => {
     return (activeMatch?.players || []).map((player, index) => {
@@ -231,7 +232,7 @@ export const MatchScreen = ({ match, user, onScreenChange }) => {
 
   const handleCancelMatch = async () => {
     if (!canCancelMatch) {
-      alert('Cancellation is locked after an opponent joins. Both players must pay and play the match.');
+      alert('Only an admin can cancel this match before entry fees are paid.');
       return;
     }
     try {

@@ -989,7 +989,12 @@ export const cancelMatch = async (req, res) => {
       return res.status(403).json({ error: 'Only participants or admin can cancel the match' });
     }
 
-    if (match.players.length > 1) {
+    const hasPaidUsers = (match.paidUsers || []).length > 0;
+    if (!hasPaidUsers && !req.isAdmin) {
+      return res.status(403).json({ error: 'Only an admin can cancel a match before entry fees are paid' });
+    }
+
+    if (match.players.length > 1 && !req.isAdmin) {
       return res.status(400).json({ error: 'Cancellation is locked after an opponent joins. Both players must pay and play the match.' });
     }
 

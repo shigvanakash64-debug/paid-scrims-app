@@ -60,8 +60,13 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
           String(challenge.challenger?._id || challenge.challenger) === String(currentUser?.id || currentUser?._id)
         ));
         if (acceptedChallenge?.match) {
-          onMatchSelect?.(acceptedChallenge.match);
-          onScreenChange('match');
+          const matchId = acceptedChallenge.match.id || acceptedChallenge.match._id;
+          const redirectedMatchId = sessionStorage.getItem('clutchzone_accepted_challenge_redirect');
+          if (matchId && redirectedMatchId !== String(matchId)) {
+            sessionStorage.setItem('clutchzone_accepted_challenge_redirect', String(matchId));
+            onMatchSelect?.(acceptedChallenge.match);
+            onScreenChange('match');
+          }
         }
       } catch (err) {
         console.error('Failed to load challenges:', err);
@@ -282,7 +287,8 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const isMatchCreator = currentUser && activeMatchCreatorId && (currentUser.id === activeMatchCreatorId || currentUser._id === activeMatchCreatorId);
   const showOpponentJoinedDot = isMatchCreator && activeMatch?.players?.length > 1;
   const hasBothPaid = (activeMatch?.paidUsers?.length || 0) >= (activeMatch?.players?.length || 0);
-  const canCancelMatch = Boolean(activeMatch) && isMatchCreator && (activeMatch?.players?.length || 0) === 1 && !['ongoing', 'completed', 'cancelled'].includes(String(activeMatch?.status || '').toLowerCase());
+  const hasPaidUsers = (activeMatch?.paidUsers?.length || 0) > 0;
+  const canCancelMatch = Boolean(activeMatch) && isMatchCreator && (activeMatch?.players?.length || 0) === 1 && hasPaidUsers && !['ongoing', 'completed', 'cancelled'].includes(String(activeMatch?.status || '').toLowerCase());
   const isLiveMatch = (status) => {
     const value = String(status || '').toLowerCase();
     return !['ongoing', 'completed', 'cancelled'].includes(value);
