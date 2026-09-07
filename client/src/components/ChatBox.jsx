@@ -20,11 +20,11 @@ export const ChatBox = ({ messages, onSendMessage, status }) => {
         {messages.map((message) => (
           <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`${bubbleStyles[message.sender] || bubbleStyles.system} max-w-[85%] px-4 py-3 text-sm leading-6`}>
-              <div className="mb-1 flex items-center justify-between gap-2 text-xs uppercase tracking-[0.18em] text-[#A1A1A1]">
-                <span>{message.sender === 'admin' ? 'ADMIN' : message.sender === 'user' ? 'YOU' : 'SYSTEM'}</span>
+              <div className={`mb-1 flex items-center gap-2 text-xs uppercase tracking-[0.18em] font-semibold ${message.sender === 'user' ? 'justify-end text-black' : 'justify-between text-white'}`}>
+                {message.sender !== 'user' && <span>{message.sender === 'admin' ? 'ADMIN' : 'SYSTEM'}</span>}
                 <span>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
-              <p>{message.text}</p>
+              <p className="font-semibold text-current">{message.text}</p>
             </div>
           </div>
         ))}
