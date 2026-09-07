@@ -8,7 +8,6 @@ const modes = ['1v1', '2v2', '3v3', '4v4'];
 const types = ['Headshot', 'Normal Headshot', 'Bodyshot', 'Only One Tap', 'Only Punch', 'Only Desert', 'Only Melee Weapon', 'Only Knife Throw', 'Only SMG Headshot', 'Only AR Headshot', 'Only AWM Bodyshot', 'Only Grenade', 'Rank Clash Squad'];
 const prizePools = { 5: 7, 10: 15, 20: 35, 30: 50, 50: 80, 100: 170, 200: 360, 500: 900, 1000: 1800 };
 const activeMatchStatuses = ['waiting', 'payment_pending', 'verified', 'ongoing', 'result_pending', 'in-progress'];
-const activeMatchCutoff = () => new Date(Date.now() - 2 * 60 * 60 * 1000);
 
 const expireChallenges = async () => {
   await Challenge.updateMany({ status: 'pending', expiresAt: { $lte: new Date() } }, { $set: { status: 'expired' } });
@@ -34,7 +33,6 @@ export const createChallenge = async (req, res) => {
     const activeMatch = await Match.findOne({
       players: { $in: [challengerId, targetUserId] },
       status: { $in: activeMatchStatuses },
-      createdAt: { $gte: activeMatchCutoff() },
     });
     if (activeMatch) {
       const challengerHasMatch = activeMatch.players.some((player) => player.toString() === challengerId.toString());
@@ -85,7 +83,10 @@ export const acceptChallenge = async (req, res) => {
     if (!challenge) return res.status(400).json({ error: 'Challenge is no longer available' });
     const [challenger, target] = await Promise.all([User.findById(challenge.challenger), User.findById(challenge.challengedPlayer)]);
     if (!challenger || !target || challenger.isBanned || target.isBanned) return res.status(403).json({ error: 'Both players must be eligible' });
-    const activeMatch = await Match.findOne({ players: { $in: [challenger._id, target._id] }, status: { $in: activeMatchStatuses }, createdAt: { $gte: activeMatchCutoff() } });
+    const activeMatch = await Match.findOne({
+      players: { $in: [challenger._id, target._id] },
+      status: { $in: activeMatchStatuses },
+    });
     if (activeMatch) return res.status(400).json({ error: 'One of these players already has an active match' });
     if (Number(challenger.wallet?.balance || 0) < challenge.entry || Number(target.wallet?.balance || 0) < challenge.entry) return res.status(400).json({ error: 'Both players need sufficient wallet balance' });
 

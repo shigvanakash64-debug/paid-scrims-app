@@ -532,6 +532,14 @@ export const createMatch = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
+
+    const activeMatch = await Match.findOne({
+      players: userId,
+      status: { $in: ['waiting', 'payment_pending', 'verified', 'ongoing', 'result_pending', 'in-progress'] },
+    }).select('_id');
+    if (activeMatch) {
+      return res.status(400).json({ error: 'You already have an active match. Finish or cancel it before creating another.' });
+    }
     const availableBalance = Number(user.wallet?.balance || 0);
     if (availableBalance < parsedEntry) {
       return res.status(400).json({
@@ -639,6 +647,14 @@ export const acceptMatch = async (req, res) => {
 
     if (match.players.some(p => p._id?.toString() === userId.toString())) {
       return res.status(400).json({ error: 'You already joined this match' });
+    }
+
+    const activeMatch = await Match.findOne({
+      players: userId,
+      status: { $in: ['waiting', 'payment_pending', 'verified', 'ongoing', 'result_pending', 'in-progress'] },
+    }).select('_id');
+    if (activeMatch) {
+      return res.status(400).json({ error: 'You already have an active match. Finish or cancel it before joining another.' });
     }
 
     const opponent = await User.findById(userId).select('username onesignalPlayerId');
