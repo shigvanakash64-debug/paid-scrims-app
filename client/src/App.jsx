@@ -289,8 +289,6 @@ function App() {
           const refreshed = await refreshPromise;
           if (refreshed) {
             setMatch(refreshed);
-          } else {
-            clearMatch();
           }
         }
 

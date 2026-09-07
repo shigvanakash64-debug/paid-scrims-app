@@ -491,8 +491,6 @@ export const getMatch = async (req, res) => {
   try {
     const { matchId } = req.params;
 
-    await cancelExpiredPayments();
-
     const match = await Match.findById(matchId)
       .populate('creator', 'username')
       .populate('players', 'username')
@@ -1064,8 +1062,6 @@ export const addChatMessage = async (req, res) => {
 export const listMatches = async (req, res) => {
   try {
     const { game, mode, type, entry } = req.query;
-    await cancelExpiredPayments();
-
     // Exclude matches older than 2 hours
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
     const query = { status: 'waiting', createdAt: { $gte: twoHoursAgo } };

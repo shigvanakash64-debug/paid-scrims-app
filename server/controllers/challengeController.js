@@ -92,7 +92,10 @@ export const acceptChallenge = async (req, res) => {
     const match = await Match.create({ creator: challenger._id, players: [challenger._id, target._id], game: challenge.game, mode: challenge.mode, type: challenge.type, skillSetting: challenge.skillSetting, entry: challenge.entry, prizePool: prizePools[challenge.entry] || challenge.entry * 2, status: 'payment_pending', paymentUpi: await getNextPaymentUpi(), paymentDueAt: null, adminMessages: [{ sender: 'system', text: 'Challenge accepted. Both players must pay before the match can start.' }] });
     challenge.match = match._id;
     await challenge.save();
-    return res.json({ success: true, match: serializeMatch(match) });
+    const populatedMatch = await Match.findById(match._id)
+      .populate('creator', 'username')
+      .populate('players', 'username');
+    return res.json({ success: true, match: serializeMatch(populatedMatch) });
   } catch (error) {
     console.error('acceptChallenge error:', error);
     return res.status(500).json({ error: 'Failed to accept challenge' });
