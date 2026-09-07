@@ -6,6 +6,7 @@ import { UsersPanel } from '../../screens/UsersPanel';
 import { WithdrawalsPanel } from '../../screens/WithdrawalsPanel';
 import { DisputesPanel } from '../../screens/DisputesPanel';
 import { AdminLeaderboardPanel } from '../../screens/AdminLeaderboardPanel';
+import { AdminRequests } from '../../screens/AdminRequests';
 
 const SCREENS = {
   DASHBOARD: 'dashboard',
@@ -14,6 +15,7 @@ const SCREENS = {
   WITHDRAWALS: 'withdrawals',
   DISPUTES: 'disputes',
   LEADERBOARD: 'leaderboard',
+  MATCHES: 'matches',
 };
 
 export const AdminLayout = () => {
@@ -34,6 +36,8 @@ export const AdminLayout = () => {
         return <DisputesPanel />;
       case SCREENS.LEADERBOARD:
         return <AdminLeaderboardPanel />;
+      case SCREENS.MATCHES:
+        return <AdminRequests />;
       default:
         return <AdminDashboard />;
     }
