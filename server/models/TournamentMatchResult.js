@@ -10,6 +10,8 @@ const tournamentMatchResultSchema = new mongoose.Schema({
   tournamentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tournament', required: true },
   stageKey: { type: String, required: true },
   matchId: { type: mongoose.Schema.Types.ObjectId, required: true },
+  matchTitle: { type: String, required: true, trim: true },
+  resultType: { type: String, enum: ['normal', 'grand-finale'], default: 'normal' },
   status: { type: String, enum: ['draft', 'published'], default: 'draft' },
   entries: { type: [resultEntrySchema], default: [] },
   publishedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

@@ -191,6 +191,10 @@ const userSchema = new mongoose.Schema({
       matchId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Match'
+      },
+      tournamentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tournament'
       }
     }]
   },
