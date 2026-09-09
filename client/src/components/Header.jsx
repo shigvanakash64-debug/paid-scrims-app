@@ -12,6 +12,7 @@ export const Header = ({ user, currentScreen, onNavigate, onBack, canGoBack, onL
   };
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.isAdmin === true;
+  const isHost = currentUser?.role === 'host';
 
   const menuItems = [
     { key: 'profile', label: 'Profile', screen: 'profile' },
@@ -55,6 +56,14 @@ export const Header = ({ user, currentScreen, onNavigate, onBack, canGoBack, onL
                       {item.label}
                     </button>
                   ))}
+                  {isHost && (
+                    <>
+                      <div className="menu-divider" />
+                      <button className="menu-item" type="button" onClick={() => handleNavigate('host')} style={{ color: '#FF6A00', fontWeight: 'bold' }}>
+                        Host Dashboard
+                      </button>
+                    </>
+                  )}
                   {isAdmin && (
                     <>
                       <div className="menu-divider" />
