@@ -1,6 +1,26 @@
 import { Card } from './Card';
 
-export const TournamentCard = ({ tournament }) => {
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
+export const TournamentCard = ({ tournament, user, onJoined }) => {
+  const handleJoin = async () => {
+    if (!user) {
+      window.alert('Please login to join this tournament');
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE}/tournaments/${tournament._id}/join`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to join tournament');
+      window.alert('Tournament joined successfully');
+      onJoined?.();
+    } catch (error) {
+      window.alert(error.message);
+    }
+  };
   const stageCount = tournament.stages?.length || 0;
 
   return (
@@ -8,7 +28,7 @@ export const TournamentCard = ({ tournament }) => {
       <div className="br-match-header">
         <div className="br-match-title">
           <h3>{tournament.name}</h3>
-          <span className="br-status-badge text-green-400">TOURNAMENT</span>
+          <span className="br-status-badge text-green-400">OPEN FOR REGISTRATION</span>
         </div>
       </div>
       <div className="br-match-grid">
@@ -25,7 +45,10 @@ export const TournamentCard = ({ tournament }) => {
         </div>
       </div>
       <div className="br-match-actions">
-        <span className="registered-badge">{tournament.format} · {tournament.status}</span>
+        <span className="registered-badge">{tournament.format} · OPEN</span>
+        <button type="button" className="btn btn-sm btn-primary" onClick={handleJoin} disabled={tournament.successfulEntries >= tournament.maxTeams}>
+          {tournament.successfulEntries >= tournament.maxTeams ? 'Full' : 'Join'}
+        </button>
       </div>
     </Card>
   );

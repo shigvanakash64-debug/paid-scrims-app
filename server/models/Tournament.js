@@ -22,7 +22,7 @@ const tournamentSchema = new mongoose.Schema({
   retainedAmount: { type: Number, default: 0, min: 0 },
   clutchZoneFee: { type: Number, default: 0, min: 0 },
   hostShare: { type: Number, default: 0, min: 0 },
-  status: { type: String, enum: ['draft', 'upcoming', 'active', 'completed', 'cancelled'], default: 'upcoming' },
+  status: { type: String, enum: ['draft', 'open', 'upcoming', 'active', 'completed', 'cancelled'], default: 'open' },
   stages: { type: [tournamentStageSchema], default: [] },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });

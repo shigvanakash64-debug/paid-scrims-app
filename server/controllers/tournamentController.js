@@ -1,4 +1,6 @@
 import Tournament from '../models/Tournament.js';
+import TournamentParticipant from '../models/TournamentParticipant.js';
+import User from '../models/User.js';
 
 const calculateFinancials = (entryFee, successfulEntries) => {
   const totalCollection = entryFee * successfulEntries;
@@ -95,7 +97,7 @@ export const listMyTournaments = async (req, res) => {
 
 export const listPublicTournaments = async (req, res) => {
   try {
-    const tournaments = await Tournament.find({ status: { $in: ['upcoming', 'active'] } })
+    const tournaments = await Tournament.find({ status: { $in: ['open', 'upcoming', 'active'] } })
       .select('name game format entryFee maxTeams successfulEntries prizePool stages status createdBy createdAt')
       .populate('createdBy', 'username')
       .sort({ createdAt: -1 })
@@ -112,5 +114,66 @@ export const listPublicTournaments = async (req, res) => {
   } catch (error) {
     console.error('listPublicTournaments error:', error);
     return res.status(500).json({ error: 'Failed to load public tournaments' });
+  }
+};
+
+export const joinTournament = async (req, res) => {
+  try {
+    const { tournamentId } = req.params;
+    const existingParticipant = await TournamentParticipant.findOne({ tournamentId, userId: req.userId, status: 'registered' });
+    if (existingParticipant) {
+      return res.status(409).json({ error: 'You are already registered for this tournament' });
+    }
+
+    const tournament = await Tournament.findOneAndUpdate(
+      { _id: tournamentId, status: { $in: ['open', 'upcoming', 'active'] }, $expr: { $lt: ['$successfulEntries', '$maxTeams'] } },
+      { $inc: { successfulEntries: 1 } },
+      { new: true },
+    );
+    if (!tournament) {
+      return res.status(400).json({ error: 'Tournament is full or no longer accepting entries' });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { _id: req.userId, 'wallet.balance': { $gte: tournament.entryFee } },
+      {
+        $inc: { 'wallet.balance': -tournament.entryFee },
+        $push: {
+          'wallet.transactions': {
+            type: 'fee',
+            amount: -tournament.entryFee,
+            description: `Tournament entry fee: ${tournament.name}`,
+            timestamp: new Date(),
+          },
+        },
+      },
+      { new: true },
+    );
+
+    if (!user) {
+      await Tournament.findByIdAndUpdate(tournament._id, { $inc: { successfulEntries: -1 } });
+      return res.status(400).json({ error: 'Insufficient wallet balance' });
+    }
+
+    try {
+      await TournamentParticipant.create({
+        tournamentId: tournament._id,
+        userId: req.userId,
+        entryFee: tournament.entryFee,
+      });
+    } catch (error) {
+      await Tournament.findByIdAndUpdate(tournament._id, { $inc: { successfulEntries: -1 } });
+      await User.findByIdAndUpdate(req.userId, {
+        $inc: { 'wallet.balance': tournament.entryFee },
+        $pull: { 'wallet.transactions': { description: `Tournament entry fee: ${tournament.name}`, amount: -tournament.entryFee } },
+      });
+      if (error.code === 11000) return res.status(409).json({ error: 'You are already registered for this tournament' });
+      throw error;
+    }
+
+    return res.json({ success: true, message: 'Tournament registration successful', walletBalance: user.wallet.balance });
+  } catch (error) {
+    console.error('joinTournament error:', error);
+    return res.status(500).json({ error: 'Failed to join tournament' });
   }
 };

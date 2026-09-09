@@ -171,7 +171,7 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
       {!loading && matches.length > 0 && (
         <div className="br-matches-list">
           {tournaments.map((tournament) => (
-            <TournamentCard key={`tournament-${tournament._id}`} tournament={tournament} />
+            <TournamentCard key={`tournament-${tournament._id}`} tournament={tournament} user={user} onJoined={fetchMatches} />
           ))}
           {matches.map((match) => (
             <BRMatchCard
@@ -190,7 +190,7 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
       {!loading && matches.length === 0 && tournaments.length > 0 && (
         <div className="br-matches-list">
           {tournaments.map((tournament) => (
-            <TournamentCard key={`tournament-${tournament._id}`} tournament={tournament} />
+            <TournamentCard key={`tournament-${tournament._id}`} tournament={tournament} user={user} onJoined={fetchMatches} />
           ))}
         </div>
       )}
