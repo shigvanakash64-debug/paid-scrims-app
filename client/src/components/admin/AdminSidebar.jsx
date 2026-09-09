@@ -3,7 +3,6 @@ export const AdminSidebar = ({ currentScreen, onScreenChange, isMobile, mode = '
     ? [
       { id: 'dashboard', label: 'Dashboard', icon: '📊' },
       { id: 'tournaments', label: 'Tournaments', icon: '🏆' },
-      { id: 'br-matches', label: 'BR Matches', icon: '🎮' },
     ]
     : [
       { id: 'dashboard', label: 'Dashboard', icon: '📊' },

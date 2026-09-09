@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminDashboard } from '../../screens/AdminDashboard';
-import { AdminBRMatchPanel } from '../../screens/AdminBRMatchPanel';
 import { UsersPanel } from '../../screens/UsersPanel';
 import { WithdrawalsPanel } from '../../screens/WithdrawalsPanel';
 import { DisputesPanel } from '../../screens/DisputesPanel';
@@ -13,7 +12,6 @@ import { HostTournamentPanel } from '../../screens/HostTournamentPanel';
 
 const SCREENS = {
   DASHBOARD: 'dashboard',
-  BR_MATCHES: 'br-matches',
   TOURNAMENTS: 'tournaments',
   USERS: 'users',
   WITHDRAWALS: 'withdrawals',
@@ -30,8 +28,6 @@ export const AdminLayout = ({ mode = 'admin' }) => {
     switch (currentScreen) {
       case SCREENS.DASHBOARD:
         return mode === 'host' ? <HostDashboard onNavigate={setCurrentScreen} /> : <AdminDashboard onNavigate={setCurrentScreen} />;
-      case SCREENS.BR_MATCHES:
-        return <AdminBRMatchPanel />;
       case SCREENS.TOURNAMENTS:
         return <HostTournamentPanel onBack={() => setCurrentScreen(SCREENS.DASHBOARD)} />;
       case SCREENS.USERS:

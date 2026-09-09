@@ -1,5 +1,18 @@
 import Tournament from '../models/Tournament.js';
 
+const calculateFinancials = (entryFee, successfulEntries) => {
+  const totalCollection = entryFee * successfulEntries;
+  const prizePool = totalCollection * 0.7;
+  const retainedAmount = totalCollection * 0.3;
+  return {
+    totalCollection,
+    prizePool,
+    retainedAmount,
+    clutchZoneFee: retainedAmount * 0.2,
+    hostShare: retainedAmount * 0.8,
+  };
+};
+
 const buildStages = (format, customStages = []) => {
   if (format === 'multi-stage') {
     return [
@@ -26,7 +39,7 @@ const buildStages = (format, customStages = []) => {
 
 export const createTournament = async (req, res) => {
   try {
-    const { name, game = 'Free Fire', format, entryFee, maxTeams, customStages = [] } = req.body;
+    const { name, game = 'Free Fire', format, entryFee, maxTeams, successfulEntries = 0, customStages = [] } = req.body;
     if (!name || !format || entryFee === undefined || maxTeams === undefined) {
       return res.status(400).json({ error: 'Tournament name, format, entry fee and maximum teams are required' });
     }
@@ -39,9 +52,12 @@ export const createTournament = async (req, res) => {
 
     const numericEntryFee = Number(entryFee);
     const numericMaxTeams = Number(maxTeams);
-    if (!Number.isFinite(numericEntryFee) || numericEntryFee < 0 || !Number.isInteger(numericMaxTeams) || numericMaxTeams < 1) {
+    const numericSuccessfulEntries = Number(successfulEntries);
+    if (!Number.isFinite(numericEntryFee) || numericEntryFee < 0 || !Number.isInteger(numericMaxTeams) || numericMaxTeams < 1 || !Number.isInteger(numericSuccessfulEntries) || numericSuccessfulEntries < 0 || numericSuccessfulEntries > numericMaxTeams) {
       return res.status(400).json({ error: 'Invalid entry fee or maximum teams' });
     }
+
+    const financials = calculateFinancials(numericEntryFee, numericSuccessfulEntries);
 
     const tournament = await Tournament.create({
       name: name.trim(),
@@ -49,7 +65,8 @@ export const createTournament = async (req, res) => {
       format,
       entryFee: numericEntryFee,
       maxTeams: numericMaxTeams,
-      prizePool: numericEntryFee * numericMaxTeams,
+      successfulEntries: numericSuccessfulEntries,
+      ...financials,
       stages: buildStages(format, customStages),
       createdBy: req.userId,
     });
@@ -64,7 +81,12 @@ export const createTournament = async (req, res) => {
 export const listMyTournaments = async (req, res) => {
   try {
     const tournaments = await Tournament.find({ createdBy: req.userId }).sort({ createdAt: -1 }).lean();
-    return res.json({ success: true, tournaments });
+    const normalizedTournaments = tournaments.map((tournament) => ({
+      ...tournament,
+      ...calculateFinancials(tournament.entryFee, tournament.successfulEntries || 0),
+      successfulEntries: tournament.successfulEntries || 0,
+    }));
+    return res.json({ success: true, tournaments: normalizedTournaments });
   } catch (error) {
     console.error('listMyTournaments error:', error);
     return res.status(500).json({ error: 'Failed to load tournaments' });

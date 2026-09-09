@@ -28,7 +28,8 @@ export const HostTournamentPanel = ({ onBack }) => {
   const [created, setCreated] = useState(null);
 
   const updateForm = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
-  const prizePool = (Number(form.entryFee) || 0) * (Number(form.maxTeams) || 0);
+  const successfulEntries = 0;
+  const prizePool = (Number(form.entryFee) || 0) * successfulEntries * 0.7;
 
   const submit = async (event) => {
     event.preventDefault();

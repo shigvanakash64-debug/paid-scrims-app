@@ -36,7 +36,7 @@ export const getHosts = async (req, res) => {
       return grouped;
     }, {});
     const parentTournaments = await Tournament.find({ createdBy: { $in: hosts.map((host) => host._id) } })
-      .select('name format status entryFee maxTeams prizePool createdBy createdAt updatedAt')
+      .select('name format status entryFee maxTeams successfulEntries prizePool totalCollection retainedAmount clutchZoneFee hostShare createdBy createdAt updatedAt')
       .sort({ createdAt: -1 })
       .lean();
     const parentTournamentsByHost = parentTournaments.reduce((grouped, tournament) => {
