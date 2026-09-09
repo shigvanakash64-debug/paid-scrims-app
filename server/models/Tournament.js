@@ -1,5 +1,12 @@
 import mongoose from 'mongoose';
 
+const tournamentMatchSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  order: { type: Number, required: true },
+  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'TournamentParticipant' }],
+  status: { type: String, enum: ['pending', 'active', 'completed'], default: 'pending' },
+}, { _id: true });
+
 const tournamentStageSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   key: { type: String, required: true, trim: true },
@@ -7,6 +14,7 @@ const tournamentStageSchema = new mongoose.Schema({
   groups: { type: Number, default: 0, min: 0 },
   matchesPerGroup: { type: Number, default: 0, min: 0 },
   matchCount: { type: Number, default: 0, min: 0 },
+  matches: { type: [tournamentMatchSchema], default: [] },
   status: { type: String, enum: ['pending', 'active', 'completed'], default: 'pending' },
 }, { _id: false });
 

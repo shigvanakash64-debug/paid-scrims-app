@@ -1,6 +1,7 @@
 import Tournament from '../models/Tournament.js';
 import TournamentParticipant from '../models/TournamentParticipant.js';
 import User from '../models/User.js';
+import TournamentMatchResult from '../models/TournamentMatchResult.js';
 
 const calculateFinancials = (entryFee, successfulEntries) => {
   const totalCollection = entryFee * successfulEntries;
@@ -15,18 +16,37 @@ const calculateFinancials = (entryFee, successfulEntries) => {
   };
 };
 
+const ensureStageMatches = (tournament) => {
+  let changed = false;
+  tournament.stages.forEach((stage) => {
+    if (!stage.matches?.length && stage.matchCount > 0) {
+      stage.matches = Array.from({ length: stage.matchCount }, (_, index) => ({
+        name: `${stage.name} - Match ${index + 1}`,
+        order: index + 1,
+      }));
+      changed = true;
+    }
+  });
+  return changed;
+};
+
 const buildStages = (format, customStages = []) => {
+  const createMatches = (stageName, matchCount) => Array.from({ length: matchCount }, (_, index) => ({
+    name: `${stageName} - Match ${index + 1}`,
+    order: index + 1,
+  }));
+
   if (format === 'multi-stage') {
     return [
-      { name: 'Group Stage', key: 'groups', order: 1, groups: 5, matchesPerGroup: 3, matchCount: 15 },
-      { name: 'Quarter Final', key: 'quarter-final', order: 2, matchCount: 3 },
-      { name: 'Semi Final', key: 'semi-final', order: 3, matchCount: 3 },
-      { name: 'Grand Final', key: 'grand-final', order: 4, matchCount: 1 },
+      { name: 'Group Stage', key: 'groups', order: 1, groups: 5, matchesPerGroup: 3, matchCount: 15, matches: createMatches('Group Stage', 15) },
+      { name: 'Quarter Final', key: 'quarter-final', order: 2, matchCount: 3, matches: createMatches('Quarter Final', 3) },
+      { name: 'Semi Final', key: 'semi-final', order: 3, matchCount: 3, matches: createMatches('Semi Final', 3) },
+      { name: 'Grand Final', key: 'grand-final', order: 4, matchCount: 1, matches: createMatches('Grand Final', 1) },
     ];
   }
 
   if (format === 'single-match') {
-    return [{ name: 'Single Match', key: 'single-match', order: 1, matchCount: 1 }];
+    return [{ name: 'Single Match', key: 'single-match', order: 1, matchCount: 1, matches: createMatches('Single Match', 1) }];
   }
 
   return customStages
@@ -36,6 +56,7 @@ const buildStages = (format, customStages = []) => {
       key: `custom-${index + 1}`,
       order: index + 1,
       matchCount: Math.max(1, Number(stage.matches) || 1),
+      matches: createMatches(stage.name, Math.max(1, Number(stage.matches) || 1)),
     }));
 };
 
@@ -156,11 +177,16 @@ export const joinTournament = async (req, res) => {
     }
 
     try {
-      await TournamentParticipant.create({
+      const participant = await TournamentParticipant.create({
         tournamentId: tournament._id,
         userId: req.userId,
         entryFee: tournament.entryFee,
+        displayName: req.user?.username || 'Participant',
       });
+      await Tournament.updateOne(
+        { _id: tournament._id },
+        { $addToSet: { 'stages.$[].matches.$[].participants': participant._id } },
+      );
     } catch (error) {
       await Tournament.findByIdAndUpdate(tournament._id, { $inc: { successfulEntries: -1 } });
       await User.findByIdAndUpdate(req.userId, {
@@ -175,5 +201,99 @@ export const joinTournament = async (req, res) => {
   } catch (error) {
     console.error('joinTournament error:', error);
     return res.status(500).json({ error: 'Failed to join tournament' });
+  }
+};
+
+const findOwnedMatch = async (tournamentId, matchId, user) => {
+  const tournament = await Tournament.findById(tournamentId).populate('stages.matches.participants');
+  if (!tournament) return { error: 'Tournament not found', status: 404 };
+  if (user.role !== 'admin' && tournament.createdBy.toString() !== user._id.toString()) {
+    return { error: 'Tournament access required', status: 403 };
+  }
+  for (const stage of tournament.stages) {
+    const match = stage.matches.id(matchId);
+    if (match) return { tournament, stage, match };
+  }
+  return { error: 'Tournament match not found', status: 404 };
+};
+
+export const getTournamentManageView = async (req, res) => {
+  try {
+    const query = req.user.role === 'admin'
+      ? { _id: req.params.tournamentId }
+      : { _id: req.params.tournamentId, createdBy: req.userId };
+    const tournament = await Tournament.findOne(query).populate('stages.matches.participants');
+    if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+    if (ensureStageMatches(tournament)) await tournament.save();
+    const results = await TournamentMatchResult.find({ tournamentId: tournament._id }).lean();
+    return res.json({ success: true, tournament, results });
+  } catch (error) {
+    console.error('getTournamentManageView error:', error);
+    return res.status(500).json({ error: 'Failed to load tournament matches' });
+  }
+};
+
+export const saveTournamentMatchDraft = async (req, res) => {
+  try {
+    const found = await findOwnedMatch(req.params.tournamentId, req.params.matchId, req.user);
+    if (found.error) return res.status(found.status).json({ error: found.error });
+    const { tournament, stage, match } = found;
+    const entries = Array.isArray(req.body.entries) ? req.body.entries : [];
+    const participantMap = new Map(match.participants.map((participant) => [participant._id.toString(), participant]));
+    const seen = new Set();
+    const normalizedEntries = [];
+    for (const entry of entries) {
+      if (!participantMap.has(String(entry.participantId))) return res.status(400).json({ error: 'Participant is not assigned to this match' });
+      if (seen.has(String(entry.participantId))) return res.status(400).json({ error: 'Duplicate participant in result' });
+      const points = Number(entry.points);
+      if (!Number.isFinite(points) || points < 0) return res.status(400).json({ error: 'Points must be a valid non-negative number' });
+      seen.add(String(entry.participantId));
+      normalizedEntries.push({ participantId: entry.participantId, participantName: participantMap.get(String(entry.participantId)).displayName || 'Participant', points });
+    }
+    let result = await TournamentMatchResult.findOne({ tournamentId: tournament._id, matchId: match._id });
+    if (result?.status === 'published') {
+      return res.status(409).json({ error: 'Published results are locked' });
+    }
+    if (!result) {
+      result = new TournamentMatchResult({ tournamentId: tournament._id, matchId: match._id, stageKey: stage.key, status: 'draft' });
+    }
+    result.stageKey = stage.key;
+    result.entries = normalizedEntries;
+    await result.save();
+    return res.json({ success: true, result });
+  } catch (error) {
+    console.error('saveTournamentMatchDraft error:', error);
+    return res.status(500).json({ error: 'Failed to save result draft' });
+  }
+};
+
+export const publishTournamentMatchResult = async (req, res) => {
+  try {
+    const found = await findOwnedMatch(req.params.tournamentId, req.params.matchId, req.user);
+    if (found.error) return res.status(found.status).json({ error: found.error });
+    const result = await TournamentMatchResult.findOne({ tournamentId: req.params.tournamentId, matchId: req.params.matchId });
+    if (!result) return res.status(400).json({ error: 'Save a draft before publishing' });
+    if (result.status === 'published') return res.status(409).json({ error: 'Published results are locked' });
+    if (!result.entries.length) return res.status(400).json({ error: 'Add at least one result before publishing' });
+    result.status = 'published';
+    result.publishedBy = req.userId;
+    result.publishedAt = new Date();
+    await result.save();
+    return res.json({ success: true, result });
+  } catch (error) {
+    console.error('publishTournamentMatchResult error:', error);
+    return res.status(500).json({ error: 'Failed to publish result' });
+  }
+};
+
+export const getPublicTournamentMatches = async (req, res) => {
+  try {
+    const tournament = await Tournament.findOne({ _id: req.params.tournamentId, status: { $in: ['open', 'upcoming', 'active', 'completed'] } }).lean();
+    if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+    const results = await TournamentMatchResult.find({ tournamentId: tournament._id, status: 'published' }).lean();
+    return res.json({ success: true, tournament, results });
+  } catch (error) {
+    console.error('getPublicTournamentMatches error:', error);
+    return res.status(500).json({ error: 'Failed to load published results' });
   }
 };

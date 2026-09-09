@@ -9,6 +9,7 @@ import { AdminRequests } from '../../screens/AdminRequests';
 import { AdminHostsPanel } from '../../screens/AdminHostsPanel';
 import { HostDashboard } from '../../screens/HostDashboard';
 import { HostTournamentPanel } from '../../screens/HostTournamentPanel';
+import { HostTournamentMatchesPanel } from '../../screens/HostTournamentMatchesPanel';
 
 const SCREENS = {
   DASHBOARD: 'dashboard',
@@ -23,13 +24,16 @@ const SCREENS = {
 export const AdminLayout = ({ mode = 'admin' }) => {
   const [currentScreen, setCurrentScreen] = useState(SCREENS.DASHBOARD);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedTournamentId, setSelectedTournamentId] = useState(null);
 
   const renderScreen = () => {
     switch (currentScreen) {
       case SCREENS.DASHBOARD:
-        return mode === 'host' ? <HostDashboard onNavigate={setCurrentScreen} /> : <AdminDashboard onNavigate={setCurrentScreen} />;
+        return mode === 'host' ? <HostDashboard onNavigate={(screen, tournamentId) => { setSelectedTournamentId(tournamentId || null); setCurrentScreen(screen); }} /> : <AdminDashboard onNavigate={setCurrentScreen} />;
       case SCREENS.TOURNAMENTS:
         return <HostTournamentPanel onBack={() => setCurrentScreen(SCREENS.DASHBOARD)} />;
+      case 'tournament-matches':
+        return <HostTournamentMatchesPanel tournamentId={selectedTournamentId} onBack={() => setCurrentScreen(SCREENS.DASHBOARD)} />;
       case SCREENS.USERS:
         return <UsersPanel />;
       case SCREENS.WITHDRAWALS:

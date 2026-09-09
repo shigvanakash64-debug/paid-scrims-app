@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { Card } from './Card';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const TournamentCard = ({ tournament, user, onJoined }) => {
+  const [showResults, setShowResults] = useState(false);
+  const [results, setResults] = useState([]);
   const handleJoin = async () => {
     if (!user) {
       window.alert('Please login to join this tournament');
@@ -20,6 +23,13 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
     } catch (error) {
       window.alert(error.message);
     }
+  };
+
+  const handleViewResults = async () => {
+    setShowResults(true);
+    const response = await fetch(`${API_BASE}/tournaments/${tournament._id}/public-matches`);
+    const data = await response.json();
+    if (response.ok) setResults(data.results || []);
   };
   const stageCount = tournament.stages?.length || 0;
 
@@ -49,7 +59,9 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         <button type="button" className="btn btn-sm btn-primary" onClick={handleJoin} disabled={tournament.successfulEntries >= tournament.maxTeams}>
           {tournament.successfulEntries >= tournament.maxTeams ? 'Full' : 'Join'}
         </button>
+        <button type="button" className="btn btn-sm btn-secondary" onClick={handleViewResults}>View Results</button>
       </div>
+      {showResults && <div className="mt-4 border-t border-[#1F1F1F] pt-3"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-white">Published Results</span><button type="button" className="text-sm text-[#A1A1A1]" onClick={() => setShowResults(false)}>Close</button></div>{results.length === 0 ? <p className="mt-3 text-sm text-[#A1A1A1]">Result not published yet.</p> : <div className="mt-3 space-y-2">{results.map((result) => <div key={`${result.matchId}-${result._id}`} className="border-t border-[#1F1F1F] pt-2"><p className="text-xs text-[#FFB066]">{result.stageKey} · Match</p>{[...result.entries].sort((a, b) => b.points - a.points).map((entry, index) => <div key={entry.participantId} className="grid grid-cols-3 text-sm text-white"><span>{index + 1}</span><span>{entry.participantName}</span><span>{entry.points}</span></div>)}</div>)}</div>}</div>}
     </Card>
   );
 };
