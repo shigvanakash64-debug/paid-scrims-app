@@ -93,16 +93,16 @@ export const getUserMatchResult = async (req, res) => {
  */
 export const getMatchResults = async (req, res) => {
   try {
-    if (!req.isAdmin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
     const { matchId } = req.params;
 
     // Check if match exists
     const match = await BRMatch.findById(matchId);
     if (!match) {
       return res.status(404).json({ error: 'BR match not found' });
+    }
+
+    if (!req.isAdmin && (!req.user || req.user.role !== 'host' || match.createdBy.toString() !== req.userId.toString())) {
+      return res.status(403).json({ error: 'Host access required for this tournament' });
     }
 
     // Get all results for this match with participant info
@@ -174,10 +174,6 @@ export const getUserKillsForMatch = async (req, res) => {
  */
 export const verifyMatchResult = async (req, res) => {
   try {
-    if (!req.isAdmin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
     const { resultId } = req.params;
     const { status } = req.body;
 
@@ -190,6 +186,12 @@ export const verifyMatchResult = async (req, res) => {
     const result = await BRMatchResult.findById(resultId);
     if (!result) {
       return res.status(404).json({ error: 'Result not found' });
+    }
+
+    const match = await BRMatch.findById(result.matchId);
+    if (!match) return res.status(404).json({ error: 'BR match not found' });
+    if (!req.isAdmin && (!req.user || req.user.role !== 'host' || match.createdBy.toString() !== req.userId.toString())) {
+      return res.status(403).json({ error: 'Host access required for this tournament' });
     }
 
     // Update status

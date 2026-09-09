@@ -7,6 +7,7 @@ import TrustScoreEngine from "../utils/trustScore.js";
 import ScreenshotValidator from "../utils/screenshotValidation.js";
 import User from "../models/User.js";
 import Match from "../models/Match.js";
+import BRMatch from "../models/BRMatch.js";
 import Referral from "../models/Referral.js";
 import Ticket from "../models/Ticket.js";
 import { processPayout } from "../utils/payout.js";
@@ -15,6 +16,34 @@ import {
   approveWithdrawalRequest,
   rejectWithdrawalRequest,
 } from "../services/walletService.js";
+
+export const getHosts = async (req, res) => {
+  try {
+    const hosts = await User.find({ role: 'host' })
+      .select('username title bio createdAt updatedAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const tournaments = await BRMatch.find({ createdBy: { $in: hosts.map((host) => host._id) } })
+      .select('matchName status currentPlayers maxPlayers entryFee perKillReward scheduledDateTime createdBy createdAt updatedAt')
+      .sort({ createdAt: -1 })
+      .lean();
+    const tournamentsByHost = tournaments.reduce((grouped, tournament) => {
+      const key = tournament.createdBy.toString();
+      grouped[key] = grouped[key] || [];
+      grouped[key].push(tournament);
+      return grouped;
+    }, {});
+
+    return res.json({
+      success: true,
+      hosts: hosts.map((host) => ({ ...host, tournaments: tournamentsByHost[host._id.toString()] || [] })),
+    });
+  } catch (error) {
+    console.error('getHosts error:', error);
+    return res.status(500).json({ error: 'Failed to load hosts' });
+  }
+};
 
 /**
  * Admin endpoint to manually trigger match timeout resolution

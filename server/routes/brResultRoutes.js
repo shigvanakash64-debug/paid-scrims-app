@@ -1,5 +1,5 @@
 import express from 'express';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, hostMiddleware } from '../middleware/authMiddleware.js';
 import * as brResultController from '../controllers/brResultController.js';
 
 const router = express.Router();
@@ -24,7 +24,7 @@ router.get('/:matchId/my-result', authMiddleware, brResultController.getUserMatc
  * GET /api/br-result/:matchId/results
  * Auth: Required (admin)
  */
-router.get('/:matchId/results', authMiddleware, brResultController.getMatchResults);
+router.get('/:matchId/results', authMiddleware, hostMiddleware, brResultController.getMatchResults);
 
 /**
  * GET USER'S KILLS FOR A MATCH
@@ -38,6 +38,6 @@ router.get('/:matchId/user/:userId', brResultController.getUserKillsForMatch);
  * PATCH /api/br-result/:resultId/verify
  * Body: { status: "verified" | "cheating" }
  */
-router.patch('/:resultId/verify', authMiddleware, brResultController.verifyMatchResult);
+router.patch('/:resultId/verify', authMiddleware, hostMiddleware, brResultController.verifyMatchResult);
 
 export default router;

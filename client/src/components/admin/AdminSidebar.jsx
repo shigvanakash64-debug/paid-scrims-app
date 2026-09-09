@@ -1,21 +1,26 @@
-export const AdminSidebar = ({ currentScreen, onScreenChange, isMobile }) => {
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'matches', label: 'Matches', icon: '🎮' },
-    { id: 'br-matches', label: 'BR Matches', icon: '🏆' },
-    // Deposits removed: manual deposit approval flow deprecated
-    { id: 'disputes', label: 'Disputes', icon: '⚠️' },
-    { id: 'withdrawals', label: 'Redemptions', icon: '💸' },
-    { id: 'users', label: 'Users', icon: '👤' },
-    { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
-  ];
+export const AdminSidebar = ({ currentScreen, onScreenChange, isMobile, mode = 'admin' }) => {
+  const menuItems = mode === 'host'
+    ? [
+      { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+      { id: 'br-matches', label: 'Tournaments', icon: '🏆' },
+    ]
+    : [
+      { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+      { id: 'matches', label: 'Matches', icon: '🎮' },
+      { id: 'hosts', label: 'Hosts', icon: '🧑‍💼' },
+      // Deposits removed: manual deposit approval flow deprecated
+      { id: 'disputes', label: 'Disputes', icon: '⚠️' },
+      { id: 'withdrawals', label: 'Redemptions', icon: '💸' },
+      { id: 'users', label: 'Users', icon: '👤' },
+      { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
+    ];
 
   return (
     <div className="h-full bg-[#111111] border-r border-[#1F1F1F] flex flex-col">
       {/* Header */}
       <div className="p-6 border-b border-[#1F1F1F]">
-        <h2 className="text-xl font-bold text-[#FF6A00]">ADMIN</h2>
-        <p className="text-xs text-[#A1A1A1] mt-1">Operations Control</p>
+        <h2 className="text-xl font-bold text-[#FF6A00]">{mode === 'host' ? 'HOST' : 'ADMIN'}</h2>
+        <p className="text-xs text-[#A1A1A1] mt-1">{mode === 'host' ? 'Tournament Control' : 'Operations Control'}</p>
       </div>
 
       {/* Menu Items */}

@@ -1,5 +1,5 @@
 import express from 'express';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, hostMiddleware } from '../middleware/authMiddleware.js';
 import * as brMatchController from '../controllers/brMatchController.js';
 import * as brParticipantController from '../controllers/brParticipantController.js';
 
@@ -18,7 +18,7 @@ router.get('/my-matches', authMiddleware, brParticipantController.getUserBRMatch
  * CREATE BR MATCH (Admin only)
  * POST /api/br-match/create
  */
-router.post('/create', authMiddleware, brMatchController.createBRMatch);
+router.post('/create', authMiddleware, hostMiddleware, brMatchController.createBRMatch);
 
 /**
  * LIST ALL BR MATCHES
@@ -38,19 +38,19 @@ router.get('/:matchId', brMatchController.getBRMatch);
  * UPDATE BR MATCH (Admin only)
  * PATCH /api/br-match/:matchId
  */
-router.patch('/:matchId', authMiddleware, brMatchController.updateBRMatch);
+router.patch('/:matchId', authMiddleware, hostMiddleware, brMatchController.updateBRMatch);
 
 /**
  * CLOSE BR MATCH (Admin only)
  * POST /api/br-match/:matchId/close
  */
-router.post('/:matchId/close', authMiddleware, brMatchController.closeBRMatch);
+router.post('/:matchId/close', authMiddleware, hostMiddleware, brMatchController.closeBRMatch);
 
 /**
  * GET BR MATCH PARTICIPANTS (Admin only)
  * GET /api/br-match/:matchId/participants-admin
  */
-router.get('/:matchId/participants-admin', authMiddleware, brMatchController.getBRMatchParticipants);
+router.get('/:matchId/participants-admin', authMiddleware, hostMiddleware, brMatchController.getBRMatchParticipants);
 
 // ========== BR PARTICIPANT ROUTES (User Actions) ==========
 

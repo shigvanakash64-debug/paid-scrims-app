@@ -82,13 +82,17 @@ export const register = async (req, res) => {
   try {
     console.log("REGISTER BODY:", req.body);
 
-    let { username, password, phone: rawPhone, referralCode } = req.body;
+    let { username, password, phone: rawPhone, referralCode, role = 'user' } = req.body;
     username = username || req.body.name || req.body.userName || req.body.user;
     const phone = rawPhone ? normalizeIndianPhone(rawPhone) : null;
 
     if (!username || !password) {
       console.log("REGISTER MISSING FIELD:", { username, password });
       return res.status(400).json({ error: "In Game Name and password are required" });
+    }
+
+    if (!['user', 'host'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid account type' });
     }
 
     const normalizedUsername = username.trim().toLowerCase();
@@ -131,6 +135,7 @@ export const register = async (req, res) => {
       phoneOtpExpiresAt: null,
       phoneOtpAttempts: 0,
       phoneOtpLastSentAt: null,
+      role,
     });
     console.log("USER CREATED:", user._id, user.username);
 

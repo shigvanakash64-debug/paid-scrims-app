@@ -257,7 +257,7 @@ const userSchema = new mongoose.Schema({
   banExpiresAt: Date,
   role: {
     type: String,
-    enum: ['user', 'admin'],
+    enum: ['user', 'host', 'admin'],
     default: 'user',
   },
   wallpaperLibrary: [{

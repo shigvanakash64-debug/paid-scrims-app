@@ -7,6 +7,7 @@ import { WithdrawalsPanel } from '../../screens/WithdrawalsPanel';
 import { DisputesPanel } from '../../screens/DisputesPanel';
 import { AdminLeaderboardPanel } from '../../screens/AdminLeaderboardPanel';
 import { AdminRequests } from '../../screens/AdminRequests';
+import { AdminHostsPanel } from '../../screens/AdminHostsPanel';
 
 const SCREENS = {
   DASHBOARD: 'dashboard',
@@ -18,14 +19,14 @@ const SCREENS = {
   MATCHES: 'matches',
 };
 
-export const AdminLayout = () => {
+export const AdminLayout = ({ mode = 'admin' }) => {
   const [currentScreen, setCurrentScreen] = useState(SCREENS.DASHBOARD);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const renderScreen = () => {
     switch (currentScreen) {
       case SCREENS.DASHBOARD:
-        return <AdminDashboard onNavigate={setCurrentScreen} />;
+        return mode === 'host' ? <AdminBRMatchPanel /> : <AdminDashboard onNavigate={setCurrentScreen} />;
       case SCREENS.BR_MATCHES:
         return <AdminBRMatchPanel />;
       case SCREENS.USERS:
@@ -38,6 +39,8 @@ export const AdminLayout = () => {
         return <AdminLeaderboardPanel />;
       case SCREENS.MATCHES:
         return <AdminRequests />;
+      case 'hosts':
+        return <AdminHostsPanel />;
       default:
         return <AdminDashboard />;
     }
@@ -51,6 +54,7 @@ export const AdminLayout = () => {
           currentScreen={currentScreen}
           onScreenChange={setCurrentScreen}
           isMobile={false}
+          mode={mode}
         />
       </div>
 
@@ -75,6 +79,7 @@ export const AdminLayout = () => {
             setSidebarOpen(false);
           }}
           isMobile={true}
+          mode={mode}
         />
       </div>
 
@@ -82,7 +87,7 @@ export const AdminLayout = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile Header */}
         <div className="lg:hidden flex items-center justify-between px-4 py-4 border-b border-[#1F1F1F] bg-[#111111]">
-          <h1 className="text-lg font-semibold">Admin Panel</h1>
+          <h1 className="text-lg font-semibold">{mode === 'host' ? 'Host Dashboard' : 'Admin Panel'}</h1>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="text-[#FF6A00]"

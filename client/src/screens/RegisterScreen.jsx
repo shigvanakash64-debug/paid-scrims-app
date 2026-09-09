@@ -4,6 +4,7 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [referralCode, setReferralCode] = useState('');
+  const [role, setRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -16,6 +17,7 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
       username: username.trim(),
       password,
       referralCode: referralCode.trim(),
+      role,
     });
 
     setLoading(false);
@@ -51,6 +53,14 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
               placeholder="Create a password"
               required
             />
+          </label>
+          <label className="auth-field">
+            <span className="auth-label">Account Type</span>
+            <select className="auth-input" value={role} onChange={(event) => setRole(event.target.value)} required>
+              <option value="" disabled>Select account type</option>
+              <option value="user">User</option>
+              <option value="host">Host</option>
+            </select>
           </label>
           <label className="auth-field">
             <span className="auth-label">Referral Code (Optional)</span>

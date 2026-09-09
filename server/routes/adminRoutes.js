@@ -27,6 +27,7 @@ import {
   getAllWithdrawals,
   approveWithdrawal,
   rejectWithdrawal,
+  getHosts,
 } from "../controllers/adminController.js";
 import { getAllTickets } from "../controllers/ticketController.js";
 
@@ -158,6 +159,7 @@ router.post("/users/:userId/adjust-wallet", authMiddleware, adjustUserWallet);
  * Get all users with search and pagination
  */
 router.get("/users", authMiddleware, getAllUsers);
+router.get("/hosts", authMiddleware, getHosts);
 
 /**
  * DELETE /api/admin/users/:userId

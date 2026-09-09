@@ -7,9 +7,8 @@ import User from '../models/User.js';
  */
 export const createBRMatch = async (req, res) => {
   try {
-    // Verify admin
-    if (!req.isAdmin) {
-      return res.status(403).json({ error: 'Unauthorized. Admin access required.' });
+    if (!req.user || !['host', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Host access required.' });
     }
 
     const { matchName, entryFee, scrimType, perKillReward, scheduledDateTime, roomId, roomPassword } =
@@ -96,6 +95,10 @@ export const listBRMatches = async (req, res) => {
 
     const filter = {};
 
+    if (req.user?.role === 'host') {
+      filter.createdBy = req.userId;
+    }
+
     if (status) {
       filter.status = status;
       if (['CLOSED', 'COMPLETED'].includes(status)) {
@@ -163,10 +166,6 @@ export const listBRMatches = async (req, res) => {
  */
 export const updateBRMatch = async (req, res) => {
   try {
-    if (!req.isAdmin) {
-      return res.status(403).json({ error: 'Unauthorized. Admin access required.' });
-    }
-
     const { matchId } = req.params;
     const { matchName, scrimType, perKillReward, scheduledDateTime, roomId, roomPassword, status } = req.body;
 
@@ -174,6 +173,10 @@ export const updateBRMatch = async (req, res) => {
 
     if (!match) {
       return res.status(404).json({ error: 'BR match not found' });
+    }
+
+    if (!req.isAdmin && match.createdBy.toString() !== req.userId.toString()) {
+      return res.status(403).json({ error: 'You can only manage your own tournaments.' });
     }
 
     // Update allowed fields only
@@ -212,16 +215,16 @@ export const updateBRMatch = async (req, res) => {
  */
 export const closeBRMatch = async (req, res) => {
   try {
-    if (!req.isAdmin) {
-      return res.status(403).json({ error: 'Unauthorized. Admin access required.' });
-    }
-
     const { matchId } = req.params;
 
     const match = await BRMatch.findById(matchId);
 
     if (!match) {
       return res.status(404).json({ error: 'BR match not found' });
+    }
+
+    if (!req.isAdmin && match.createdBy.toString() !== req.userId.toString()) {
+      return res.status(403).json({ error: 'You can only manage your own tournaments.' });
     }
 
     match.status = 'CLOSED';
@@ -245,16 +248,16 @@ export const closeBRMatch = async (req, res) => {
  */
 export const getBRMatchParticipants = async (req, res) => {
   try {
-    if (!req.isAdmin) {
-      return res.status(403).json({ error: 'Unauthorized. Admin access required.' });
-    }
-
     const { matchId } = req.params;
 
     // Verify match exists
     const match = await BRMatch.findById(matchId);
     if (!match) {
       return res.status(404).json({ error: 'BR match not found' });
+    }
+
+    if (!req.isAdmin && match.createdBy.toString() !== req.userId.toString()) {
+      return res.status(403).json({ error: 'You can only view your own tournament participants.' });
     }
 
     const participants = await BRParticipant.find({ brMatchId: matchId, status: 'registered' })

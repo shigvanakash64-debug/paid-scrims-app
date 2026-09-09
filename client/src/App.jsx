@@ -32,11 +32,12 @@ import './App.css';
 
 // Lazy load admin dashboard
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
+const HostLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 const ENTRY_CHOICE_KEY = 'clutchzone_entry_choice';
-const VALID_SCREENS = ['entry', 'home', 'match', 'result', 'pairing', 'profile', 'wallet', 'leaderboard', 'settings', 'admin', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
+const VALID_SCREENS = ['entry', 'home', 'match', 'result', 'pairing', 'profile', 'wallet', 'leaderboard', 'settings', 'admin', 'host', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
 
 const getStoredEntryChoice = () => {
   if (typeof window === 'undefined') return null;
@@ -400,10 +401,10 @@ function App() {
 
     if (pendingAction === 'clutch-zone') {
       setPendingAction(null);
-      navigateTo('home', null, true);
+      navigateTo(userData?.role === 'admin' ? 'admin' : userData?.role === 'host' ? 'host' : 'home', null, true);
     } else {
       setPendingAction(null);
-      navigateTo('wallpaper-home', null, true);
+      navigateTo(userData?.role === 'admin' ? 'admin' : userData?.role === 'host' ? 'host' : 'wallpaper-home', null, true);
     }
 
     // Register OneSignal player ID after successful login
@@ -447,13 +448,14 @@ function App() {
     }
   };
 
-  const handleRegister = async ({ username, password, referralCode }) => {
+  const handleRegister = async ({ username, password, referralCode, role }) => {
     try {
       const normalizedUsername = username.trim().toLowerCase();
       const response = await axios.post(`${API_BASE}/auth/register`, {
         username: normalizedUsername,
         password,
         referralCode,
+        role,
       });
       setSession(response.data.user, response.data.token);
       return { success: true };
@@ -735,6 +737,7 @@ function App() {
 
     // Check if user is admin for admin routes
     const isAdmin = user?.role === 'admin' || user?.isAdmin === true;
+    const isHost = user?.role === 'host';
 
     if (!user) {
       if (currentScreen === 'entry') {
@@ -764,6 +767,19 @@ function App() {
       return (
         <Suspense fallback={<div className="loading-screen">Loading Admin Dashboard...</div>}>
           <AdminLayout />
+        </Suspense>
+      );
+    }
+
+    if (currentScreen === 'host') {
+      if (!isHost) {
+        alert('Host access required');
+        setCurrentScreen('home');
+        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} currentMatch={currentMatch} />;
+      }
+      return (
+        <Suspense fallback={<div className="loading-screen">Loading Host Dashboard...</div>}>
+          <HostLayout mode="host" />
         </Suspense>
       );
     }
