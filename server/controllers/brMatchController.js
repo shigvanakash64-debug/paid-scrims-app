@@ -7,7 +7,7 @@ import User from '../models/User.js';
  */
 export const createBRMatch = async (req, res) => {
   try {
-    if (!req.user || !['host', 'admin'].includes(req.user.role)) {
+    if (!req.user || req.user.role !== 'host') {
       return res.status(403).json({ error: 'Host access required.' });
     }
 

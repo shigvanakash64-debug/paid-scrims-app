@@ -92,3 +92,25 @@ export const listMyTournaments = async (req, res) => {
     return res.status(500).json({ error: 'Failed to load tournaments' });
   }
 };
+
+export const listPublicTournaments = async (req, res) => {
+  try {
+    const tournaments = await Tournament.find({ status: { $in: ['upcoming', 'active'] } })
+      .select('name game format entryFee maxTeams successfulEntries prizePool stages status createdBy createdAt')
+      .populate('createdBy', 'username')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({
+      success: true,
+      tournaments: tournaments.map((tournament) => ({
+        ...tournament,
+        ...calculateFinancials(tournament.entryFee, tournament.successfulEntries || 0),
+        successfulEntries: tournament.successfulEntries || 0,
+      })),
+    });
+  } catch (error) {
+    console.error('listPublicTournaments error:', error);
+    return res.status(500).json({ error: 'Failed to load public tournaments' });
+  }
+};

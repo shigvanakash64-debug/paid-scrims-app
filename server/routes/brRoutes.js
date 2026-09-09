@@ -1,5 +1,5 @@
 import express from 'express';
-import { authMiddleware, hostMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, hostMiddleware, hostOnlyMiddleware } from '../middleware/authMiddleware.js';
 import * as brMatchController from '../controllers/brMatchController.js';
 import * as brParticipantController from '../controllers/brParticipantController.js';
 
@@ -18,7 +18,7 @@ router.get('/my-matches', authMiddleware, brParticipantController.getUserBRMatch
  * CREATE BR MATCH (Admin only)
  * POST /api/br-match/create
  */
-router.post('/create', authMiddleware, hostMiddleware, brMatchController.createBRMatch);
+router.post('/create', authMiddleware, hostOnlyMiddleware, brMatchController.createBRMatch);
 
 /**
  * LIST ALL BR MATCHES

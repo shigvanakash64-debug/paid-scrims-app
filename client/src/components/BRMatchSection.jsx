@@ -3,6 +3,7 @@ import { Loader } from 'lucide-react';
 import BRMatchCard from './BRMatchCard';
 import BRJoinFlow from './BRJoinFlow';
 import BRDetailView from './BRDetailView';
+import TournamentCard from './TournamentCard';
 import { Button } from './Button';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -24,6 +25,7 @@ const parseJsonResponse = async (response) => {
  */
 export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
   const [matches, setMatches] = useState([]);
+  const [tournaments, setTournaments] = useState([]);
   const [registrations, setRegistrations] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,11 +40,11 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
     setError('');
     try {
       const query = filter === 'ALL' ? '' : `?status=${filter}`;
-      const response = await fetch(`${API_BASE}/br-match/list${query}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}`,
-        },
-      });
+      const headers = { 'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}` };
+      const [response, tournamentResponse] = await Promise.all([
+        fetch(`${API_BASE}/br-match/list${query}`, { headers }),
+        fetch(`${API_BASE}/tournaments/public`),
+      ]);
 
       if (!response.ok) {
         const data = await parseJsonResponse(response).catch(() => null);
@@ -51,6 +53,10 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
 
       const data = await parseJsonResponse(response);
       setMatches(data.matches || []);
+      if (tournamentResponse.ok) {
+        const tournamentData = await parseJsonResponse(tournamentResponse);
+        setTournaments(tournamentData.tournaments || []);
+      }
       
       // Build registration map
       const regMap = {};
@@ -155,7 +161,7 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
       )}
 
       {/* Matches list */}
-      {!loading && matches.length === 0 && (
+      {!loading && matches.length === 0 && tournaments.length === 0 && (
         <div className="empty-state">
           <p>No BR matches available</p>
           <p className="subtitle">Check back later!</p>
@@ -164,6 +170,9 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
 
       {!loading && matches.length > 0 && (
         <div className="br-matches-list">
+          {tournaments.map((tournament) => (
+            <TournamentCard key={`tournament-${tournament._id}`} tournament={tournament} />
+          ))}
           {matches.map((match) => (
             <BRMatchCard
               key={match._id}
@@ -174,6 +183,14 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
               onViewDetails={() => handleViewDetails(match)}
               user={user}
             />
+          ))}
+        </div>
+      )}
+
+      {!loading && matches.length === 0 && tournaments.length > 0 && (
+        <div className="br-matches-list">
+          {tournaments.map((tournament) => (
+            <TournamentCard key={`tournament-${tournament._id}`} tournament={tournament} />
           ))}
         </div>
       )}
