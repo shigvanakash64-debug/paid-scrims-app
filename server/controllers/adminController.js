@@ -8,6 +8,7 @@ import ScreenshotValidator from "../utils/screenshotValidation.js";
 import User from "../models/User.js";
 import Match from "../models/Match.js";
 import BRMatch from "../models/BRMatch.js";
+import Tournament from "../models/Tournament.js";
 import Referral from "../models/Referral.js";
 import Ticket from "../models/Ticket.js";
 import { processPayout } from "../utils/payout.js";
@@ -34,10 +35,24 @@ export const getHosts = async (req, res) => {
       grouped[key].push(tournament);
       return grouped;
     }, {});
+    const parentTournaments = await Tournament.find({ createdBy: { $in: hosts.map((host) => host._id) } })
+      .select('name format status entryFee maxTeams prizePool createdBy createdAt updatedAt')
+      .sort({ createdAt: -1 })
+      .lean();
+    const parentTournamentsByHost = parentTournaments.reduce((grouped, tournament) => {
+      const key = tournament.createdBy.toString();
+      grouped[key] = grouped[key] || [];
+      grouped[key].push(tournament);
+      return grouped;
+    }, {});
 
     return res.json({
       success: true,
-      hosts: hosts.map((host) => ({ ...host, tournaments: tournamentsByHost[host._id.toString()] || [] })),
+      hosts: hosts.map((host) => ({
+        ...host,
+        tournaments: tournamentsByHost[host._id.toString()] || [],
+        parentTournaments: parentTournamentsByHost[host._id.toString()] || [],
+      })),
     });
   } catch (error) {
     console.error('getHosts error:', error);

@@ -43,6 +43,7 @@ export const AdminHostsPanel = () => {
                 <tbody>{host.tournaments.map((tournament) => <tr key={tournament._id} className="border-t border-[#1F1F1F] text-white"><td className="py-2">{tournament.matchName}</td><td>{tournament.status}</td><td>{tournament.currentPlayers}/{tournament.maxPlayers}</td><td>{tournament.scheduledDateTime ? new Date(tournament.scheduledDateTime).toLocaleString() : 'Unscheduled'}</td></tr>)}</tbody>
               </table>
             </div>
+            {host.parentTournaments?.length > 0 && <div className="mt-5 border-t border-[#1F1F1F] pt-4"><h3 className="text-sm font-semibold text-white">Parent Tournaments</h3><div className="mt-2 space-y-2">{host.parentTournaments.map((tournament) => <div key={tournament._id} className="flex flex-wrap justify-between gap-2 text-sm"><span className="text-white">{tournament.name}</span><span className="text-[#A1A1A1]">{tournament.format} · {tournament.status} · ₹{tournament.prizePool}</span></div>)}</div></div>}
           </div>
         ))}
       </div>

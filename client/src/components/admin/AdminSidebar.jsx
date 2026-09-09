@@ -2,7 +2,8 @@ export const AdminSidebar = ({ currentScreen, onScreenChange, isMobile, mode = '
   const menuItems = mode === 'host'
     ? [
       { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-      { id: 'br-matches', label: 'Tournaments', icon: '🏆' },
+      { id: 'tournaments', label: 'Tournaments', icon: '🏆' },
+      { id: 'br-matches', label: 'BR Matches', icon: '🎮' },
     ]
     : [
       { id: 'dashboard', label: 'Dashboard', icon: '📊' },
