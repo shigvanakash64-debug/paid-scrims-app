@@ -46,12 +46,12 @@ export const createTournament = async (req, res) => {
 
     const numericEntryFee = Number(entryFee);
     const numericMaxTeams = Number(maxTeams);
-    const numericSuccessfulEntries = Number(successfulEntries);
+    const numericSuccessfulEntries = format === 'single-match' ? 0 : Number(successfulEntries);
     if (!Number.isFinite(numericEntryFee) || numericEntryFee < 0 || !Number.isInteger(numericMaxTeams) || numericMaxTeams < 1 || !Number.isInteger(numericSuccessfulEntries) || numericSuccessfulEntries < 0 || numericSuccessfulEntries > numericMaxTeams) {
       return res.status(400).json({ error: 'Invalid entry fee or maximum teams' });
     }
 
-    const financials = calculateFinancials(numericEntryFee, numericSuccessfulEntries);
+    const financials = format === 'single-match' ? { totalCollection: 0, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 } : calculateFinancials(numericEntryFee, numericSuccessfulEntries);
 
     const tournament = await Tournament.create({
       name: name.trim(),
@@ -75,11 +75,17 @@ export const createTournament = async (req, res) => {
 export const listMyTournaments = async (req, res) => {
   try {
     const tournaments = await Tournament.find({ createdBy: req.userId }).sort({ createdAt: -1 }).lean();
-    const normalizedTournaments = tournaments.map((tournament) => ({
-      ...tournament,
-      ...calculateFinancials(tournament.entryFee, tournament.successfulEntries || 0),
-      successfulEntries: tournament.successfulEntries || 0,
-    }));
+    const normalizedTournaments = tournaments.map((tournament) => {
+      const financials = tournament.format === 'single-match'
+        ? { totalCollection: 0, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
+        : calculateFinancials(tournament.entryFee, tournament.successfulEntries || 0);
+
+      return {
+        ...tournament,
+        ...financials,
+        successfulEntries: tournament.successfulEntries || 0,
+      };
+    });
     return res.json({ success: true, tournaments: normalizedTournaments });
   } catch (error) {
     console.error('listMyTournaments error:', error);
@@ -121,11 +127,17 @@ export const listPublicTournaments = async (req, res) => {
 
     return res.json({
       success: true,
-      tournaments: tournaments.map((tournament) => ({
-        ...tournament,
-        ...calculateFinancials(tournament.entryFee, tournament.successfulEntries || 0),
-        successfulEntries: tournament.successfulEntries || 0,
-      })),
+      tournaments: tournaments.map((tournament) => {
+        const financials = tournament.format === 'single-match'
+          ? { totalCollection: 0, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
+          : calculateFinancials(tournament.entryFee, tournament.successfulEntries || 0);
+
+        return {
+          ...tournament,
+          ...financials,
+          successfulEntries: tournament.successfulEntries || 0,
+        };
+      }),
     });
   } catch (error) {
     console.error('listPublicTournaments error:', error);

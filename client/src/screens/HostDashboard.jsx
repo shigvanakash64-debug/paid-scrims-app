@@ -12,6 +12,8 @@ export const HostDashboard = ({ onNavigate }) => {
   const [selectedMatchId, setSelectedMatchId] = useState(null);
   const [error, setError] = useState('');
 
+  const showPrizePool = (format) => format !== 'single-match';
+
   const loadDashboard = async () => {
     try {
       const headers = { Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` };
@@ -66,7 +68,7 @@ export const HostDashboard = ({ onNavigate }) => {
         {error && <p className="text-sm text-[#FCA5A5]">{error}</p>}
         {tournaments.length === 0 ? <Card><p className="text-sm text-[#A1A1A1]">No tournaments created yet.</p></Card> : (
           <div className="grid gap-4 md:grid-cols-2">
-            {tournaments.map((tournament) => <Card key={tournament._id}><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-white">{tournament.name}</h3><p className="mt-1 text-xs text-[#A1A1A1]">{tournament.game} · {tournament.format}</p></div><span className="text-xs text-[#FFB066]">{tournament.status}</span></div><div className="mt-4 grid grid-cols-3 gap-2 text-xs text-[#A1A1A1]"><span>Entry<br /><b className="text-white">₹{tournament.entryFee}</b></span><span>Paid Entries<br /><b className="text-white">{tournament.successfulEntries || 0}/{tournament.maxTeams}</b></span><span>Prize Pool<br /><b className="text-white">₹{Number(tournament.prizePool || 0).toLocaleString()}</b></span></div><div className="mt-4 flex gap-3"><Button variant="secondary" size="sm" className="flex-1" onClick={() => onNavigate?.('tournament-matches', tournament._id)}>Manage Matches & Results</Button><Button variant="secondary" size="sm" className="min-w-[78px]" onClick={() => handleDeleteTournament(tournament._id)}>Delete</Button></div></Card>)}
+            {tournaments.map((tournament) => <Card key={tournament._id}><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-white">{tournament.name}</h3><p className="mt-1 text-xs text-[#A1A1A1]">{tournament.game} · {tournament.format}</p></div><span className="text-xs text-[#FFB066]">{tournament.status}</span></div><div className={`mt-4 grid gap-2 text-xs text-[#A1A1A1] ${showPrizePool(tournament.format) ? 'grid-cols-3' : 'grid-cols-2'}`}><span>Entry<br /><b className="text-white">₹{tournament.entryFee}</b></span><span>Paid Entries<br /><b className="text-white">{tournament.successfulEntries || 0}/{tournament.maxTeams}</b></span>{showPrizePool(tournament.format) && <span>Prize Pool<br /><b className="text-white">₹{Number(tournament.prizePool || 0).toLocaleString()}</b></span>}</div><div className="mt-4 flex gap-3"><Button variant="secondary" size="sm" className="flex-1" onClick={() => onNavigate?.('tournament-matches', tournament._id)}>Manage Matches & Results</Button><Button variant="secondary" size="sm" className="min-w-[78px]" onClick={() => handleDeleteTournament(tournament._id)}>Delete</Button></div></Card>)}
           </div>
         )}
       </section>
