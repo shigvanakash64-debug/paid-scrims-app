@@ -297,9 +297,9 @@ export const saveTournamentMatchDraft = async (req, res) => {
 
       if (tournament.format === 'single-match') {
         const kills = Number(entry.kills || 0);
-        const money = Number(entry.money || 0);
+        const perKillReward = Number(tournament.perKillReward || 0);
         if (!Number.isFinite(kills) || kills < 0) return res.status(400).json({ error: 'Kills must be a valid non-negative number' });
-        if (!Number.isFinite(money) || money < 0) return res.status(400).json({ error: 'Money must be a valid non-negative number' });
+        const money = kills * perKillReward;
         normalizedEntries.push({ participantId: entry.participantId, participantName: participantMap.get(String(entry.participantId)).displayName || 'Participant', kills, money });
         continue;
       }

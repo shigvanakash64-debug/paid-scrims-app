@@ -110,12 +110,19 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   };
 
   const updateEntry = (index, field, value) => {
-    setForm((current) => ({
-      ...current,
-      entries: current.entries.map((entry, entryIndex) =>
-        entryIndex === index ? { ...entry, [field]: value } : entry,
-      ),
-    }));
+    setForm((current) => {
+      const nextEntries = current.entries.map((entry, entryIndex) => {
+        if (entryIndex !== index) return entry;
+        const nextEntry = { ...entry, [field]: value };
+        if (isPerKillTournament && field === 'kills') {
+          const kills = Number(value || 0);
+          const reward = Number(tournament?.perKillReward || 0);
+          nextEntry.money = String(kills * reward);
+        }
+        return nextEntry;
+      });
+      return { ...current, entries: nextEntries };
+    });
   };
 
   const addEntry = () => {
@@ -305,7 +312,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                       type="number"
                       min="0"
                       value={entry.money ?? ''}
-                      onChange={(event) => updateEntry(index, 'money', event.target.value)}
+                      readOnly
                       placeholder="Money"
                     />
                   </> : <input
