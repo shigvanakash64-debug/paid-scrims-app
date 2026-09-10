@@ -33,7 +33,7 @@ const buildStages = (format, customStages = []) => {
 
 export const createTournament = async (req, res) => {
   try {
-    const { name, game = 'Free Fire', format, entryFee, maxTeams, successfulEntries = 0, customStages = [] } = req.body;
+    const { name, game = 'Free Fire', format, entryFee, maxTeams, successfulEntries = 0, customStages = [], perKillReward = 0 } = req.body;
     if (!name || !format || entryFee === undefined || maxTeams === undefined) {
       return res.status(400).json({ error: 'Tournament name, format, entry fee and maximum teams are required' });
     }
@@ -47,12 +47,16 @@ export const createTournament = async (req, res) => {
     const numericEntryFee = Number(entryFee);
     const numericMaxTeams = Number(maxTeams);
     const numericSuccessfulEntries = format === 'single-match' ? 0 : Number(successfulEntries);
+    const numericPerKillReward = Number(perKillReward);
     if (!Number.isFinite(numericEntryFee) || numericEntryFee < 0 || !Number.isInteger(numericMaxTeams) || numericMaxTeams < 1 || !Number.isInteger(numericSuccessfulEntries) || numericSuccessfulEntries < 0 || numericSuccessfulEntries > numericMaxTeams) {
       return res.status(400).json({ error: 'Invalid entry fee or maximum teams' });
     }
+    if (format === 'single-match' && (!Number.isFinite(numericPerKillReward) || numericPerKillReward < 0)) {
+      return res.status(400).json({ error: 'Per kill reward is required for single match tournaments' });
+    }
 
     const financials = format === 'single-match'
-      ? { totalCollection: numericEntryFee * numericMaxTeams, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
+      ? { totalCollection: numericEntryFee * numericSuccessfulEntries, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
       : calculateFinancials(numericEntryFee, numericSuccessfulEntries);
 
     const tournament = await Tournament.create({
@@ -62,6 +66,7 @@ export const createTournament = async (req, res) => {
       entryFee: numericEntryFee,
       maxTeams: numericMaxTeams,
       successfulEntries: numericSuccessfulEntries,
+      perKillReward: format === 'single-match' ? numericPerKillReward : 0,
       ...financials,
       stages: buildStages(format, customStages),
       createdBy: req.userId,

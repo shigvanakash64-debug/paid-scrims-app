@@ -25,6 +25,7 @@ const tournamentSchema = new mongoose.Schema({
   entryFee: { type: Number, required: true, min: 0 },
   maxTeams: { type: Number, required: true, min: 1 },
   successfulEntries: { type: Number, default: 0, min: 0 },
+  perKillReward: { type: Number, default: 0, min: 0 },
   prizePool: { type: Number, required: true, min: 0 },
   totalCollection: { type: Number, default: 0, min: 0 },
   retainedAmount: { type: Number, default: 0, min: 0 },

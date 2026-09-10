@@ -20,7 +20,7 @@ const generatedStages = [
 export const HostTournamentPanel = ({ onBack }) => {
   const [step, setStep] = useState('format');
   const [format, setFormat] = useState('');
-  const [form, setForm] = useState({ name: '', game: 'Free Fire', entryFee: '', maxTeams: '' });
+  const [form, setForm] = useState({ name: '', game: 'Free Fire', entryFee: '', maxTeams: '', perKillReward: '' });
   const [customStages, setCustomStages] = useState([{ name: '', matches: 1 }]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
