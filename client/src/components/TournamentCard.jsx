@@ -48,7 +48,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         </div>
         <div className="br-match-middle">
           <div className="br-match-stat"><span className="label">Paid Entries</span><span className="value">{tournament.successfulEntries}/{tournament.maxTeams}</span></div>
-          {tournament.format !== 'single-match' && <div className="br-match-stat"><span className="label">Prize Pool</span><span className="value">₹{Number(tournament.prizePool || 0).toLocaleString()}</span></div>}
+          {tournament.format === 'single-match' ? <div className="br-match-stat"><span className="label">Per Kill</span><span className="value">₹{Number(tournament.perKillReward || 0).toLocaleString()}</span></div> : <div className="br-match-stat"><span className="label">Prize Pool</span><span className="value">₹{Number(tournament.prizePool || 0).toLocaleString()}</span></div>}
         </div>
         <div className="br-match-right">
           <div className="br-match-stat"><span className="label">Stages</span><span className="value timer">{stageCount}</span></div>
