@@ -52,8 +52,13 @@ export const createTournament = async (req, res) => {
     if (!Number.isFinite(numericEntryFee) || numericEntryFee < 0 || !Number.isInteger(numericMaxTeams) || numericMaxTeams < 1 || !Number.isInteger(numericSuccessfulEntries) || numericSuccessfulEntries < 0 || numericSuccessfulEntries > numericMaxTeams) {
       return res.status(400).json({ error: 'Invalid entry fee or maximum teams' });
     }
-    if (format === 'single-match' && (!Number.isFinite(numericPerKillReward) || numericPerKillReward < 0)) {
-      return res.status(400).json({ error: 'Per kill reward is required for single match tournaments' });
+    if (format === 'single-match') {
+      if (!Number.isFinite(numericPerKillReward) || numericPerKillReward < 0) {
+        return res.status(400).json({ error: 'Per kill reward is required for single match tournaments' });
+      }
+      if (numericEntryFee <= numericPerKillReward) {
+        return res.status(400).json({ error: 'For per-kill tournaments, entry fee must be greater than the per-kill reward. Example: entry fee 5 and per kill 3 is valid.' });
+      }
     }
 
     const financials = format === 'single-match'

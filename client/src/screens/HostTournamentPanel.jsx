@@ -34,6 +34,16 @@ export const HostTournamentPanel = ({ onBack }) => {
   const submit = async (event) => {
     event.preventDefault();
     setError('');
+
+    if (format === 'single-match') {
+      const entryFee = Number(form.entryFee);
+      const perKillReward = Number(form.perKillReward);
+      if (!Number.isFinite(entryFee) || !Number.isFinite(perKillReward) || entryFee <= perKillReward) {
+        setError('For per-kill tournaments, entry fee must be greater than the per-kill reward. Example: entry fee 5 and per kill 3 is valid.');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/tournaments`, {
