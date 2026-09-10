@@ -2,6 +2,7 @@ import Tournament from '../models/Tournament.js';
 import TournamentParticipant from '../models/TournamentParticipant.js';
 import User from '../models/User.js';
 import TournamentMatchResult from '../models/TournamentMatchResult.js';
+import { verifyToken } from '../utils/authUtils.js';
 
 const calculateFinancials = (entryFee, successfulEntries) => {
   const totalCollection = entryFee * successfulEntries;
@@ -126,11 +127,31 @@ export const deleteTournament = async (req, res) => {
 
 export const listPublicTournaments = async (req, res) => {
   try {
+    let currentUserId = null;
+    const authHeader = req.headers.authorization || '';
+    if (authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const payload = verifyToken(token);
+        currentUserId = payload.userId || payload.sub || payload.id || null;
+      } catch (error) {
+        currentUserId = null;
+      }
+    }
+
     const tournaments = await Tournament.find({ status: { $in: ['open', 'upcoming', 'active'] } })
       .select('name game format entryFee maxTeams successfulEntries prizePool perKillReward stages status createdBy createdAt')
       .populate('createdBy', 'username')
       .sort({ createdAt: -1 })
       .lean();
+
+    const registrationIds = currentUserId
+      ? await TournamentParticipant.find({ userId: currentUserId, status: 'registered' })
+          .select('tournamentId')
+          .lean()
+      : [];
+
+    const registeredTournamentIds = new Set(registrationIds.map((item) => String(item.tournamentId)));
 
     return res.json({
       success: true,
@@ -143,6 +164,7 @@ export const listPublicTournaments = async (req, res) => {
           ...tournament,
           ...financials,
           successfulEntries: tournament.successfulEntries || 0,
+          isRegistered: currentUserId ? registeredTournamentIds.has(String(tournament._id)) : false,
         };
       }),
     });

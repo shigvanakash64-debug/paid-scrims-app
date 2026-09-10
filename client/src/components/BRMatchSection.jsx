@@ -43,7 +43,7 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
       const headers = { 'Authorization': `Bearer ${localStorage.getItem('clutchzone_token')}` };
       const [response, tournamentResponse] = await Promise.all([
         fetch(`${API_BASE}/br-match/list${query}`, { headers }),
-        fetch(`${API_BASE}/tournaments/public`),
+        fetch(`${API_BASE}/tournaments/public`, { headers: user ? { Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` } : {} }),
       ]);
 
       if (!response.ok) {
