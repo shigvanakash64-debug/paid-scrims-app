@@ -51,7 +51,9 @@ export const createTournament = async (req, res) => {
       return res.status(400).json({ error: 'Invalid entry fee or maximum teams' });
     }
 
-    const financials = format === 'single-match' ? { totalCollection: 0, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 } : calculateFinancials(numericEntryFee, numericSuccessfulEntries);
+    const financials = format === 'single-match'
+      ? { totalCollection: numericEntryFee * numericMaxTeams, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
+      : calculateFinancials(numericEntryFee, numericSuccessfulEntries);
 
     const tournament = await Tournament.create({
       name: name.trim(),
@@ -77,7 +79,7 @@ export const listMyTournaments = async (req, res) => {
     const tournaments = await Tournament.find({ createdBy: req.userId }).sort({ createdAt: -1 }).lean();
     const normalizedTournaments = tournaments.map((tournament) => {
       const financials = tournament.format === 'single-match'
-        ? { totalCollection: 0, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
+        ? { totalCollection: (tournament.entryFee || 0) * (tournament.successfulEntries || 0), prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
         : calculateFinancials(tournament.entryFee, tournament.successfulEntries || 0);
 
       return {
@@ -129,7 +131,7 @@ export const listPublicTournaments = async (req, res) => {
       success: true,
       tournaments: tournaments.map((tournament) => {
         const financials = tournament.format === 'single-match'
-          ? { totalCollection: 0, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
+          ? { totalCollection: (tournament.entryFee || 0) * (tournament.successfulEntries || 0), prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
           : calculateFinancials(tournament.entryFee, tournament.successfulEntries || 0);
 
         return {
@@ -190,11 +192,14 @@ export const joinTournament = async (req, res) => {
         entryFee: tournament.entryFee,
         displayName: req.user?.username || 'Participant',
       });
+      const financials = tournament.format === 'single-match'
+        ? { totalCollection: tournament.entryFee * tournament.successfulEntries, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
+        : calculateFinancials(tournament.entryFee, tournament.successfulEntries);
       await Tournament.updateOne(
         { _id: tournament._id },
         {
           $addToSet: { 'stages.$[].matches.$[].participants': participant._id },
-          $set: calculateFinancials(tournament.entryFee, tournament.successfulEntries),
+          $set: financials,
         },
       );
     } catch (error) {
