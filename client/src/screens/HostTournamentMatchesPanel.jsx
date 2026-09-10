@@ -11,6 +11,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   const [selectedStageKey, setSelectedStageKey] = useState('');
   const [activeResult, setActiveResult] = useState(null);
   const [form, setForm] = useState({ matchTitle: '', resultType: 'normal', entries: [] });
+  const isPerKillTournament = tournament?.format === 'single-match';
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -54,6 +55,10 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
 
   const openCreateResult = async (stage) => {
     try {
+      if (tournament?.format === 'single-match' && results.length > 0) {
+        setError('This per-kill tournament already has one published result.');
+        return;
+      }
       setError('');
       setNotice('');
       const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/results`, {
@@ -65,7 +70,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
         body: JSON.stringify({
           stageKey: stage.key,
           matchTitle: buildDefaultMatchTitle(stage),
-          resultType: stage.key === 'grand-final' ? 'grand-finale' : 'normal',
+          resultType: tournament?.format === 'single-match' ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal'),
         }),
       });
 
@@ -76,7 +81,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       setActiveResult(data.result);
       setForm({
         matchTitle: data.result?.matchTitle || buildDefaultMatchTitle(stage),
-        resultType: data.result?.resultType || (stage.key === 'grand-final' ? 'grand-finale' : 'normal'),
+        resultType: data.result?.resultType || (tournament?.format === 'single-match' ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal')),
         entries: [],
       });
       setNotice('Result created. Add the participant scores and publish it.');
@@ -91,10 +96,12 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
     setActiveResult(result);
     setForm({
       matchTitle: result.matchTitle || buildDefaultMatchTitle(stage),
-      resultType: result.resultType || (stage.key === 'grand-final' ? 'grand-finale' : 'normal'),
+      resultType: result.resultType || (tournament?.format === 'single-match' ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal')),
       entries: (result.entries || []).map((entry) => ({
         participantId: entry.participantId,
         participantName: entry.participantName,
+        kills: String(entry.kills ?? ''),
+        money: String(entry.money ?? ''),
         points: String(entry.points ?? ''),
       })),
     });
@@ -114,7 +121,13 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   const addEntry = () => {
     setForm((current) => ({
       ...current,
-      entries: [...current.entries, { participantId: '', participantName: '', points: '' }],
+      entries: [...current.entries, {
+        participantId: '',
+        participantName: '',
+        kills: isPerKillTournament ? '' : '',
+        money: isPerKillTournament ? '' : '',
+        points: isPerKillTournament ? '' : '',
+      }],
     }));
   };
 
@@ -141,6 +154,8 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
           entries: form.entries.map((entry) => ({
             participantId: entry.participantId,
             points: Number(entry.points || 0),
+            kills: Number(entry.kills || 0),
+            money: Number(entry.money || 0),
           })),
         }),
       });
@@ -205,7 +220,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                     {stageResult.length} results created · {stage.matchCount} planned
                   </p>
                 </div>
-                <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)}>
+                <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)} disabled={tournament?.format === 'single-match' && results.length > 0}>
                   <Plus size={16} /> Create Result
                 </Button>
               </div>
@@ -240,7 +255,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
               />
             </label>
 
-            <label className="block text-sm text-[#A1A1A1]">
+            {!isPerKillTournament && <label className="block text-sm text-[#A1A1A1]">
               Result Type
               <select
                 className="auth-input mt-2 w-full"
@@ -250,7 +265,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                 <option value="normal">Normal Stage Result</option>
                 <option value="grand-finale">Grand Finale Result</option>
               </select>
-            </label>
+            </label>}
 
             <div className="space-y-3">
               {form.entries.length === 0 && (
@@ -276,14 +291,31 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                     ))}
                   </select>
 
-                  <input
+                  {isPerKillTournament ? <>
+                    <input
+                      className="auth-input w-24"
+                      type="number"
+                      min="0"
+                      value={entry.kills ?? ''}
+                      onChange={(event) => updateEntry(index, 'kills', event.target.value)}
+                      placeholder="Kills"
+                    />
+                    <input
+                      className="auth-input w-28"
+                      type="number"
+                      min="0"
+                      value={entry.money ?? ''}
+                      onChange={(event) => updateEntry(index, 'money', event.target.value)}
+                      placeholder="Money"
+                    />
+                  </> : <input
                     className="auth-input w-24"
                     type="number"
                     min="0"
                     value={entry.points}
                     onChange={(event) => updateEntry(index, 'points', event.target.value)}
                     placeholder="Points"
-                  />
+                  />}
 
                   <button type="button" onClick={() => removeEntry(index)} className="text-sm text-[#FCA5A5]">
                     Remove

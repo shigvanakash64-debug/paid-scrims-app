@@ -18,7 +18,7 @@ const calculateFinancials = (entryFee, successfulEntries) => {
 
 const buildStages = (format, customStages = []) => {
   if (format === 'single-match') {
-    return [{ name: 'Single Match', key: 'single-match', order: 1, matchCount: 1 }];
+    return [{ name: 'Per Kill', key: 'single-match', order: 1, matchCount: 1 }];
   }
 
   return customStages
@@ -228,12 +228,15 @@ export const createTournamentMatchResult = async (req, res) => {
   try {
     const tournament = await Tournament.findOne({ _id: req.params.tournamentId, createdBy: req.userId });
     if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+    if (tournament.format === 'single-match' && await TournamentMatchResult.exists({ tournamentId: tournament._id })) {
+      return res.status(409).json({ error: 'Per-kill tournaments allow only one result.' });
+    }
     const stage = tournament.stages.find((item) => item.key === req.body.stageKey);
     const matchTitle = String(req.body.matchTitle || '').trim();
-    const resultType = req.body.resultType === 'grand-finale' ? 'grand-finale' : 'normal';
+    const resultType = tournament.format === 'single-match' ? 'grand-finale' : (req.body.resultType === 'grand-finale' ? 'grand-finale' : 'normal');
     if (!stage) return res.status(400).json({ error: 'Stage not found' });
     if (!matchTitle) return res.status(400).json({ error: 'Match title is required' });
-    if (resultType === 'grand-finale' && stage.key !== 'grand-final') return res.status(400).json({ error: 'Grand Finale result belongs only to the Grand Final stage' });
+    if (resultType === 'grand-finale' && stage.key !== 'grand-final' && tournament.format !== 'single-match') return res.status(400).json({ error: 'Grand Finale result belongs only to the Grand Final stage' });
 
     const participants = await TournamentParticipant.find({ tournamentId: tournament._id, status: 'registered' }).select('_id');
     const match = stage.matches.create({ name: matchTitle, order: stage.matches.length + 1, participants: participants.map((participant) => participant._id) });
@@ -282,17 +285,27 @@ export const saveTournamentMatchDraft = async (req, res) => {
     const { tournament, stage, match } = found;
     const entries = Array.isArray(req.body.entries) ? req.body.entries : [];
     const matchTitle = String(req.body.matchTitle || '').trim();
-    const resultType = req.body.resultType === 'grand-finale' ? 'grand-finale' : 'normal';
-    if (matchTitle && resultType === 'grand-finale' && stage.key !== 'grand-final') return res.status(400).json({ error: 'Grand Finale result belongs only to the Grand Final stage' });
+    const resultType = tournament.format === 'single-match' ? 'grand-finale' : (req.body.resultType === 'grand-finale' ? 'grand-finale' : 'normal');
+    if (matchTitle && resultType === 'grand-finale' && stage.key !== 'grand-final' && tournament.format !== 'single-match') return res.status(400).json({ error: 'Grand Finale result belongs only to the Grand Final stage' });
     const participantMap = new Map(match.participants.map((participant) => [participant._id.toString(), participant]));
     const seen = new Set();
     const normalizedEntries = [];
     for (const entry of entries) {
       if (!participantMap.has(String(entry.participantId))) return res.status(400).json({ error: 'Participant is not assigned to this match' });
       if (seen.has(String(entry.participantId))) return res.status(400).json({ error: 'Duplicate participant in result' });
-      const points = Number(entry.points);
-      if (!Number.isFinite(points) || points < 0) return res.status(400).json({ error: 'Points must be a valid non-negative number' });
       seen.add(String(entry.participantId));
+
+      if (tournament.format === 'single-match') {
+        const kills = Number(entry.kills || 0);
+        const money = Number(entry.money || 0);
+        if (!Number.isFinite(kills) || kills < 0) return res.status(400).json({ error: 'Kills must be a valid non-negative number' });
+        if (!Number.isFinite(money) || money < 0) return res.status(400).json({ error: 'Money must be a valid non-negative number' });
+        normalizedEntries.push({ participantId: entry.participantId, participantName: participantMap.get(String(entry.participantId)).displayName || 'Participant', kills, money });
+        continue;
+      }
+
+      const points = Number(entry.points || 0);
+      if (!Number.isFinite(points) || points < 0) return res.status(400).json({ error: 'Points must be a valid non-negative number' });
       normalizedEntries.push({ participantId: entry.participantId, participantName: participantMap.get(String(entry.participantId)).displayName || 'Participant', points });
     }
     let result = await TournamentMatchResult.findOne({ tournamentId: tournament._id, matchId: match._id });
@@ -355,6 +368,26 @@ const distributeGrandFinalePayout = async (tournament, result) => {
   }
 };
 
+const distributePerKillPayout = async (tournament, result) => {
+  const claimed = await Tournament.findOneAndUpdate(
+    { _id: tournament._id, payoutsDistributed: { $ne: true } },
+    { $set: { payoutsDistributed: true, payoutsDistributedAt: new Date(), status: 'completed' } },
+    { new: true },
+  );
+  if (!claimed) return;
+
+  for (const entry of result.entries || []) {
+    const money = Number(entry.money || 0);
+    if (!money) continue;
+    const participant = await TournamentParticipant.findById(entry.participantId);
+    if (!participant) continue;
+    await User.findByIdAndUpdate(participant.userId, {
+      $inc: { 'wallet.balance': money },
+      $push: { 'wallet.transactions': { type: 'match_win', amount: money, description: `Per-kill payout: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
+    });
+  }
+};
+
 export const publishTournamentMatchResult = async (req, res) => {
   try {
     const found = await findOwnedMatch(req.params.tournamentId, req.params.matchId, req.user);
@@ -363,12 +396,16 @@ export const publishTournamentMatchResult = async (req, res) => {
     if (!result) return res.status(400).json({ error: 'Save a draft before publishing' });
     if (result.status === 'published') return res.status(409).json({ error: 'Published results are locked' });
     if (!result.entries.length) return res.status(400).json({ error: 'Add at least one result before publishing' });
-    if (result.resultType === 'grand-finale' && found.stage.key !== 'grand-final') return res.status(400).json({ error: 'Grand Finale result belongs only to the Grand Final stage' });
+    if (found.tournament.format !== 'single-match' && result.resultType === 'grand-finale' && found.stage.key !== 'grand-final') return res.status(400).json({ error: 'Grand Finale result belongs only to the Grand Final stage' });
     result.status = 'published';
     result.publishedBy = req.userId;
     result.publishedAt = new Date();
     await result.save();
-    if (result.resultType === 'grand-finale') await distributeGrandFinalePayout(found.tournament, result);
+    if (found.tournament.format === 'single-match') {
+      await distributePerKillPayout(found.tournament, result);
+    } else if (result.resultType === 'grand-finale') {
+      await distributeGrandFinalePayout(found.tournament, result);
+    }
     return res.json({ success: true, result });
   } catch (error) {
     console.error('publishTournamentMatchResult error:', error);

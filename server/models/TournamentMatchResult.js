@@ -3,7 +3,9 @@ import mongoose from 'mongoose';
 const resultEntrySchema = new mongoose.Schema({
   participantId: { type: mongoose.Schema.Types.ObjectId, ref: 'TournamentParticipant', required: true },
   participantName: { type: String, required: true, trim: true },
-  points: { type: Number, required: true, min: 0 },
+  points: { type: Number, default: 0, min: 0 },
+  kills: { type: Number, default: 0, min: 0 },
+  money: { type: Number, default: 0, min: 0 },
 }, { _id: false });
 
 const tournamentMatchResultSchema = new mongoose.Schema({

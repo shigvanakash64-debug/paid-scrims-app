@@ -55,7 +55,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         </div>
       </div>
       <div className="br-match-actions">
-        <span className="registered-badge">{tournament.format} · OPEN</span>
+        <span className="registered-badge">{tournament.format === 'single-match' ? 'Per Kill Tournament' : tournament.format} · OPEN</span>
         <button type="button" className="btn btn-sm btn-primary" onClick={handleJoin} disabled={tournament.successfulEntries >= tournament.maxTeams}>
           {tournament.successfulEntries >= tournament.maxTeams ? 'Full' : 'Join'}
         </button>
