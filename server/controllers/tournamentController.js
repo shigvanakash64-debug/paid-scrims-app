@@ -127,7 +127,7 @@ export const deleteTournament = async (req, res) => {
 export const listPublicTournaments = async (req, res) => {
   try {
     const tournaments = await Tournament.find({ status: { $in: ['open', 'upcoming', 'active'] } })
-      .select('name game format entryFee maxTeams successfulEntries prizePool stages status createdBy createdAt')
+      .select('name game format entryFee maxTeams successfulEntries prizePool perKillReward stages status createdBy createdAt')
       .populate('createdBy', 'username')
       .sort({ createdAt: -1 })
       .lean();
