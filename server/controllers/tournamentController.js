@@ -96,6 +96,30 @@ export const listMyTournaments = async (req, res) => {
   }
 };
 
+export const deleteTournament = async (req, res) => {
+  try {
+    const tournament = await Tournament.findOne({
+      _id: req.params.tournamentId,
+      createdBy: req.userId,
+    });
+
+    if (!tournament) {
+      return res.status(404).json({ error: 'Tournament not found' });
+    }
+
+    await Promise.all([
+      Tournament.deleteOne({ _id: tournament._id }),
+      TournamentParticipant.deleteMany({ tournamentId: tournament._id }),
+      TournamentMatchResult.deleteMany({ tournamentId: tournament._id }),
+    ]);
+
+    return res.json({ success: true, message: 'Tournament deleted successfully' });
+  } catch (error) {
+    console.error('deleteTournament error:', error);
+    return res.status(500).json({ error: 'Failed to delete tournament' });
+  }
+};
+
 export const listPublicTournaments = async (req, res) => {
   try {
     const tournaments = await Tournament.find({ status: { $in: ['open', 'upcoming', 'active'] } })

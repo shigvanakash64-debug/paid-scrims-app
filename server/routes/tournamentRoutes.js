@@ -3,6 +3,7 @@ import { authMiddleware, hostMiddleware, hostOnlyMiddleware } from '../middlewar
 import {
 	createTournament,
 	createTournamentMatchResult,
+	deleteTournament,
 	getPublicTournamentMatches,
 	getTournamentManageView,
 	joinTournament,
@@ -19,6 +20,7 @@ router.post('/:tournamentId/join', authMiddleware, joinTournament);
 router.get('/:tournamentId/public-matches', getPublicTournamentMatches);
 router.get('/', authMiddleware, hostOnlyMiddleware, listMyTournaments);
 router.post('/', authMiddleware, hostOnlyMiddleware, createTournament);
+router.delete('/:tournamentId', authMiddleware, hostOnlyMiddleware, deleteTournament);
 router.post('/:tournamentId/results', authMiddleware, hostOnlyMiddleware, createTournamentMatchResult);
 router.get('/:tournamentId/manage', authMiddleware, hostMiddleware, getTournamentManageView);
 router.put('/:tournamentId/matches/:matchId/result', authMiddleware, hostMiddleware, saveTournamentMatchDraft);
