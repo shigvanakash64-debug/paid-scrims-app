@@ -17,15 +17,6 @@ const calculateFinancials = (entryFee, successfulEntries) => {
 };
 
 const buildStages = (format, customStages = []) => {
-  if (format === 'multi-stage') {
-    return [
-      { name: 'Group Stage', key: 'groups', order: 1, groups: 5, matchesPerGroup: 3, matchCount: 15 },
-      { name: 'Quarter Final', key: 'quarter-final', order: 2, matchCount: 3 },
-      { name: 'Semi Final', key: 'semi-final', order: 3, matchCount: 3 },
-      { name: 'Grand Final', key: 'grand-final', order: 4, matchCount: 1 },
-    ];
-  }
-
   if (format === 'single-match') {
     return [{ name: 'Single Match', key: 'single-match', order: 1, matchCount: 1 }];
   }
@@ -46,7 +37,7 @@ export const createTournament = async (req, res) => {
     if (!name || !format || entryFee === undefined || maxTeams === undefined) {
       return res.status(400).json({ error: 'Tournament name, format, entry fee and maximum teams are required' });
     }
-    if (!['multi-stage', 'single-match', 'custom'].includes(format)) {
+    if (!['single-match', 'custom'].includes(format)) {
       return res.status(400).json({ error: 'Invalid tournament format' });
     }
     if (!['Free Fire', 'BGMI'].includes(game)) {

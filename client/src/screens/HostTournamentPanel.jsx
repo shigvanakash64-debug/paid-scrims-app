@@ -6,7 +6,6 @@ import { Button } from '../components/Button';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const FORMAT_OPTIONS = [
-  { value: 'multi-stage', title: 'Multi-Stage Tournament', description: 'Groups → Quarter Final → Semi Final → Final', detail: '3 matches per stage' },
   { value: 'single-match', title: 'Single Match Tournament', description: 'One match', detail: 'Per-kill reward' },
   { value: 'custom', title: 'Custom Tournament', description: 'Host manually creates the stages', detail: 'Flexible stage structure' },
 ];
@@ -53,7 +52,7 @@ export const HostTournamentPanel = ({ onBack }) => {
   };
 
   if (step === 'format') {
-    return <div className="space-y-6"><button type="button" onClick={onBack} className="flex items-center gap-2 text-sm text-[#A1A1A1] hover:text-white"><ArrowLeft size={16} /> Host Dashboard</button><div><h1 className="text-3xl font-bold text-white">Select Tournament Format</h1><p className="mt-2 text-sm text-[#A1A1A1]">Choose how the parent tournament will organize its stages.</p></div><div className="grid gap-4 lg:grid-cols-3">{FORMAT_OPTIONS.map((option) => <button key={option.value} type="button" onClick={() => { setFormat(option.value); setStep('form'); }} className="text-left"><Card className="h-full transition hover:border-[#FF6A00]"><div className="flex items-start justify-between gap-3"><span className="text-2xl">{option.value === 'multi-stage' ? '1️⃣' : option.value === 'single-match' ? '2️⃣' : '3️⃣'}</span><Plus size={18} className="text-[#FF6A00]" /></div><h2 className="mt-5 text-lg font-semibold text-white">{option.title}</h2><p className="mt-2 text-sm text-[#A1A1A1]">{option.description}</p><p className="mt-3 text-sm text-[#FFB066]">{option.detail}</p></Card></button>)}</div></div>;
+    return <div className="space-y-6"><button type="button" onClick={onBack} className="flex items-center gap-2 text-sm text-[#A1A1A1] hover:text-white"><ArrowLeft size={16} /> Host Dashboard</button><div><h1 className="text-3xl font-bold text-white">Select Tournament Format</h1><p className="mt-2 text-sm text-[#A1A1A1]">Choose how the parent tournament will organize its stages.</p></div><div className="grid gap-4 lg:grid-cols-2">{FORMAT_OPTIONS.map((option, index) => <button key={option.value} type="button" onClick={() => { setFormat(option.value); setStep('form'); }} className="text-left"><Card className="h-full transition hover:border-[#FF6A00]"><div className="flex items-start justify-between gap-3"><span className="text-2xl">{index + 1}️⃣</span><Plus size={18} className="text-[#FF6A00]" /></div><h2 className="mt-5 text-lg font-semibold text-white">{option.title}</h2><p className="mt-2 text-sm text-[#A1A1A1]">{option.description}</p><p className="mt-3 text-sm text-[#FFB066]">{option.detail}</p></Card></button>)}</div></div>;
   }
 
   if (step === 'created') {

@@ -121,6 +121,15 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .sel-btn{background:var(--card);padding:16px 12px;text-align:center;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;color:#F4F2EA;letter-spacing:.5px;transition:border-color .12s,color .12s,background .12s,transform .12s;user-select:none;min-height:50px;display:flex;align-items:center;justify-content:center;flex-direction:column}
 .sel-btn::before, .fee-btn::before, .btn-primary::before, .btn-outline::before, .nav-tab::before{content:'';position:absolute;inset:0;clip-path:polygon(12% 0,88% 0,100% 12%,100% 88%,88% 100%,12% 100%,0 88%,0 12%);border:1px solid var(--border);pointer-events:none;transition:border-color .12s,opacity .12s}
 .sel-btn:active, .fee-btn:active, .btn-primary:active, .btn-outline:active, .nav-tab:active{transform:scale(.99)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:10px;padding:10px 16px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .12s ease;white-space:nowrap}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:8px 12px;font-size:12px;letter-spacing:1.2px}
+.btn-primary{background:var(--orange);color:#111;border:1px solid rgba(255,106,0,.8);box-shadow:0 8px 18px rgba(255,106,0,.18)}
+.btn-primary:hover:not(:disabled){background:#ff7a18;color:#111}
+.btn-secondary{background:rgba(255,255,255,.02);color:#fff;border:1px solid var(--border)}
+.btn-secondary:hover:not(:disabled){border-color:var(--orange);color:var(--orange);background:rgba(255,106,0,.08)}
+.btn-danger{background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.5)}
+.btn-danger:hover:not(:disabled){background:rgba(239,68,68,.2);border-color:#ef4444}
 .sel-btn.active{background:#1a0c00;color:var(--orange)}
 .sel-btn.active::before{border-color:var(--orange)}
 .sel-btn .sub{font-family:'Barlow',sans-serif;font-weight:400;font-size:10px;letter-spacing:1px;color:var(--dim);display:block;margin-top:2px}

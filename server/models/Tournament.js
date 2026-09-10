@@ -21,7 +21,7 @@ const tournamentStageSchema = new mongoose.Schema({
 const tournamentSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, maxlength: 120 },
   game: { type: String, enum: ['Free Fire', 'BGMI'], default: 'Free Fire' },
-  format: { type: String, enum: ['multi-stage', 'single-match', 'custom'], required: true },
+  format: { type: String, enum: ['single-match', 'custom'], required: true },
   entryFee: { type: Number, required: true, min: 0 },
   maxTeams: { type: Number, required: true, min: 1 },
   successfulEntries: { type: Number, default: 0, min: 0 },
