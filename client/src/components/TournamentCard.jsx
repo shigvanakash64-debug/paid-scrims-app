@@ -5,6 +5,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const TournamentCard = ({ tournament, user, onJoined }) => {
   const [showResults, setShowResults] = useState(false);
+  const [showStructure, setShowStructure] = useState(false);
   const [results, setResults] = useState([]);
   const handleJoin = async () => {
     if (!user) {
@@ -34,6 +35,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
   const hostUsername = tournament?.createdBy?.username || tournament?.hostUsername || 'Host';
   const isPerKillTournament = tournament?.format === 'single-match';
   const isJoined = Boolean(tournament?.isRegistered || tournament?.registered || tournament?.joined);
+  const stages = Array.isArray(tournament?.stages) ? [...tournament.stages].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
 
   return (
     <Card className="br-match-card">
@@ -59,8 +61,32 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         <button type="button" className="btn btn-sm btn-primary" onClick={handleJoin} disabled={isJoined || tournament.successfulEntries >= tournament.maxTeams}>
           {isJoined ? 'Joined' : tournament.successfulEntries >= tournament.maxTeams ? 'Full' : 'Join'}
         </button>
+        {!isPerKillTournament && (
+          <button type="button" className="btn btn-sm btn-secondary" onClick={() => setShowStructure((current) => !current)}>
+            Match Structure
+          </button>
+        )}
         {isJoined && <button type="button" className="btn btn-sm btn-secondary" onClick={handleViewResults}>View Results</button>}
       </div>
+
+      {!isPerKillTournament && showStructure && (
+        <div className="mt-4 border-t border-[#1F1F1F] pt-3">
+          <div className="mb-2 text-xs uppercase tracking-wide text-[#A1A1A1]">Match Structure</div>
+          <div className="space-y-2">
+            {stages.length === 0 ? (
+              <p className="text-sm text-[#A1A1A1]">No stage structure configured yet.</p>
+            ) : (
+              stages.map((stage) => (
+                <div key={stage.key || stage.name} className="flex items-center justify-between gap-3 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] px-3 py-2">
+                  <span className="text-sm font-medium text-white">{stage.name}</span>
+                  <span className="text-xs text-[#A1A1A1]">{Number(stage.matchCount || stage.matches?.length || 0)} match{Number(stage.matchCount || stage.matches?.length || 0) === 1 ? '' : 'es'}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       {showResults && <div className="mt-4 border-t border-[#1F1F1F] pt-3"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-white">Published Results</span><button type="button" className="text-sm text-[#A1A1A1]" onClick={() => setShowResults(false)}>Close</button></div>{results.length === 0 ? <p className="mt-3 text-sm text-[#A1A1A1]">Result not published yet.</p> : <div className="mt-3 space-y-2">{results.map((result) => <div key={`${result.matchId}-${result._id}`} className="border-t border-[#1F1F1F] pt-2"><p className="text-xs text-[#FFB066]">{result.stageKey} · Match</p><div className="mt-2 grid grid-cols-4 text-xs uppercase tracking-wide text-[#A1A1A1]"><span>Top</span><span>Name</span><span>{isPerKillTournament ? 'Kill' : 'Score'}</span><span>{isPerKillTournament ? 'Money' : 'Points'}</span></div>{[...result.entries].sort((a, b) => Number(b.kills ?? b.points ?? 0) - Number(a.kills ?? a.points ?? 0) || Number(b.money ?? 0) - Number(a.money ?? 0)).map((entry, index) => <div key={entry.participantId} className="mt-2 grid grid-cols-4 text-sm text-white"><span>{index + 1}</span><span>{entry.participantName}</span><span>{isPerKillTournament ? Number(entry.kills ?? 0) : Number(entry.points ?? 0)}</span><span>{isPerKillTournament ? `₹${Number(entry.money ?? 0)}` : Number(entry.points ?? 0)}</span></div>)}</div>)}</div>}</div>}
     </Card>
   );

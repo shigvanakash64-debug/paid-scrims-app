@@ -10,6 +10,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   const [results, setResults] = useState([]);
   const [selectedStageKey, setSelectedStageKey] = useState('');
   const [activeResult, setActiveResult] = useState(null);
+  const [draftStageKey, setDraftStageKey] = useState(null);
   const [form, setForm] = useState({ matchTitle: '', resultType: 'normal', entries: [] });
   const isPerKillTournament = tournament?.format === 'single-match';
   const [error, setError] = useState('');
@@ -55,37 +56,42 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
 
   const openCreateResult = async (stage) => {
     try {
-      if (tournament?.format === 'single-match' && results.length > 0) {
+      const publishedStageResult = results.filter((result) => result.stageKey === stage.key && result.status === 'published');
+      if (publishedStageResult.length > 0) {
+        openExistingResult(stage, publishedStageResult[0]);
+        return;
+      }
+
+      const draftStageResult = results.filter((result) => result.stageKey === stage.key && result.status === 'draft');
+      if (draftStageResult.length > 0) {
+        openExistingResult(stage, draftStageResult[0]);
+        return;
+      }
+
+      if (draftStageKey === stage.key) {
+        return;
+      }
+      if (tournament?.format === 'single-match' && results.some((result) => result.status === 'published')) {
         setError('This per-kill tournament already has one published result.');
         return;
       }
       setError('');
       setNotice('');
-      const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/results`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}`,
-        },
-        body: JSON.stringify({
-          stageKey: stage.key,
-          matchTitle: buildDefaultMatchTitle(stage),
-          resultType: tournament?.format === 'single-match' ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal'),
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to create result');
-
       setSelectedStageKey(stage.key);
-      setActiveResult(data.result);
+      setDraftStageKey(stage.key);
+      setActiveResult({
+        stageKey: stage.key,
+        matchId: null,
+        status: 'draft',
+        matchTitle: stage.name || buildDefaultMatchTitle(stage),
+        resultType: tournament?.format === 'single-match' ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal'),
+      });
       setForm({
-        matchTitle: data.result?.matchTitle || buildDefaultMatchTitle(stage),
-        resultType: data.result?.resultType || (tournament?.format === 'single-match' ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal')),
+        matchTitle: stage.name || buildDefaultMatchTitle(stage),
+        resultType: tournament?.format === 'single-match' ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal'),
         entries: [],
       });
-      setNotice('Result created. Add the participant scores and publish it.');
-      await loadTournament();
+      setNotice('Result ready. Add the participant scores and publish it.');
     } catch (createError) {
       setError(createError.message);
     }
@@ -95,7 +101,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
     setSelectedStageKey(stage.key);
     setActiveResult(result);
     setForm({
-      matchTitle: result.matchTitle || buildDefaultMatchTitle(stage),
+      matchTitle: stage.name || result.matchTitle || buildDefaultMatchTitle(stage),
       resultType: result.resultType || (tournament?.format === 'single-match' ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal')),
       entries: (result.entries || []).map((entry) => ({
         participantId: entry.participantId,
@@ -199,7 +205,27 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
         })),
       };
 
-      const saveResponse = await fetch(`${API_BASE}/tournaments/${tournamentId}/matches/${activeResult.matchId}/result`, {
+      let publishMatchId = activeResult?.matchId;
+      if (!publishMatchId) {
+        const createResponse = await fetch(`${API_BASE}/tournaments/${tournamentId}/results`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}`,
+          },
+          body: JSON.stringify({
+            stageKey: selectedStageKey,
+            matchTitle: form.matchTitle,
+            resultType: form.resultType,
+          }),
+        });
+        const createData = await createResponse.json().catch(() => ({}));
+        if (!createResponse.ok) throw new Error(createData.error || 'Failed to create result');
+        publishMatchId = createData.result?.matchId || createData.match?._id;
+        setActiveResult(createData.result);
+      }
+
+      const saveResponse = await fetch(`${API_BASE}/tournaments/${tournamentId}/matches/${publishMatchId}/result`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -211,7 +237,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       const saveData = await saveResponse.json().catch(() => ({}));
       if (!saveResponse.ok) throw new Error(saveData.error || 'Failed to save result');
 
-      const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/matches/${activeResult.matchId}/result/publish`, {
+      const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/matches/${publishMatchId}/result/publish`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -223,6 +249,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to publish result');
       setActiveResult(data.result);
+      setDraftStageKey(null);
       setNotice('Result published successfully.');
       setError('');
       await loadTournament();
@@ -251,7 +278,8 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
 
       <div className="space-y-3">
         {tournament.stages.map((stage) => {
-          const stageResult = results.filter((result) => result.stageKey === stage.key);
+          const publishedStageResults = results.filter((result) => result.stageKey === stage.key && result.status === 'published');
+          const hasPublishedResult = publishedStageResults.length > 0;
 
           return (
             <Card key={stage.key}>
@@ -259,10 +287,10 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                 <div>
                   <h2 className="font-semibold text-white">{stage.name}</h2>
                   <p className="text-sm text-[#A1A1A1]">
-                    {stageResult.length} results created · {stage.matchCount} planned
+                    {publishedStageResults.length} published result{publishedStageResults.length === 1 ? '' : 's'} · {stage.matchCount} planned
                   </p>
                 </div>
-                <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)} disabled={tournament?.format === 'single-match' && results.length > 0}>
+                <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)} disabled={hasPublishedResult || (draftStageKey === stage.key) || (tournament?.format === 'single-match' && results.some((result) => result.status === 'published'))}>
                   <Plus size={16} /> Create Result
                 </Button>
               </div>
@@ -274,18 +302,13 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       {activeResult && selectedStage && (
         <Card>
           {!isPerKillTournament && (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-semibold text-white">{activeResult.status === 'published' ? 'Published Result' : 'Create Result'}</h2>
-                <p className="text-sm text-[#A1A1A1]">
-                  {activeResult.status === 'published'
-                    ? 'This result is locked.'
-                    : 'Add participant scores and publish the final result.'}
-                </p>
-              </div>
-              <Button variant="secondary" size="sm" onClick={() => setActiveResult(null)}>
-                Close
-              </Button>
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-white">{activeResult.status === 'published' ? 'Published Result' : 'Create Result'}</h2>
+              <p className="text-sm text-[#A1A1A1]">
+                {activeResult.status === 'published'
+                  ? 'This result is locked.'
+                  : 'Add participant scores and publish the final result.'}
+              </p>
             </div>
           )}
           {isPerKillTournament && (
@@ -305,7 +328,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
               <input
                 className="auth-input mt-2 w-full"
                 value={form.matchTitle}
-                onChange={(event) => setForm((current) => ({ ...current, matchTitle: event.target.value }))}
+                readOnly
               />
             </label>
 
