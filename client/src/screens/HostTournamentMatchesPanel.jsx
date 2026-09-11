@@ -179,17 +179,52 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
 
   const publishResult = async () => {
     if (!activeResult) return;
+    if (form.entries.length === 0) {
+      setError('Add at least one result before publishing.');
+      return;
+    }
+
+    const confirmed = window.confirm('Publish this per-kill result? This will lock the result and pay winners.');
+    if (!confirmed) return;
 
     try {
+      const payload = {
+        matchTitle: form.matchTitle,
+        resultType: form.resultType,
+        entries: form.entries.map((entry) => ({
+          participantId: entry.participantId,
+          points: Number(entry.points || 0),
+          kills: Number(entry.kills || 0),
+          money: Number(entry.money || 0),
+        })),
+      };
+
+      const saveResponse = await fetch(`${API_BASE}/tournaments/${tournamentId}/matches/${activeResult.matchId}/result`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const saveData = await saveResponse.json().catch(() => ({}));
+      if (!saveResponse.ok) throw new Error(saveData.error || 'Failed to save result');
+
       const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/matches/${activeResult.matchId}/result/publish`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}`,
+        },
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to publish result');
       setActiveResult(data.result);
       setNotice('Result published successfully.');
+      setError('');
       await loadTournament();
     } catch (publishError) {
       setError(publishError.message);
@@ -238,19 +273,31 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
 
       {activeResult && selectedStage && (
         <Card>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+          {!isPerKillTournament && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold text-white">{activeResult.status === 'published' ? 'Published Result' : 'Create Result'}</h2>
+                <p className="text-sm text-[#A1A1A1]">
+                  {activeResult.status === 'published'
+                    ? 'This result is locked.'
+                    : 'Add participant scores and publish the final result.'}
+                </p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => setActiveResult(null)}>
+                Close
+              </Button>
+            </div>
+          )}
+          {isPerKillTournament && (
+            <div className="mb-4">
               <h2 className="text-xl font-semibold text-white">{activeResult.status === 'published' ? 'Published Result' : 'Create Result'}</h2>
               <p className="text-sm text-[#A1A1A1]">
                 {activeResult.status === 'published'
                   ? 'This result is locked.'
-                  : 'Add participant scores and publish the final result.'}
+                  : 'Add participant kills and publish the final result.'}
               </p>
             </div>
-            <Button variant="secondary" size="sm" onClick={() => setActiveResult(null)}>
-              Close
-            </Button>
-          </div>
+          )}
 
           <div className="mt-4 space-y-4">
             <label className="block text-sm text-[#A1A1A1]">
@@ -335,9 +382,11 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
               <Button variant="secondary" size="sm" onClick={addEntry}>
                 <Plus size={16} /> Add Entry
               </Button>
-              <Button variant="secondary" size="sm" onClick={saveDraft}>
-                <Save size={16} /> Save Draft
-              </Button>
+              {!isPerKillTournament && (
+                <Button variant="secondary" size="sm" onClick={saveDraft}>
+                  <Save size={16} /> Save Draft
+                </Button>
+              )}
               <Button variant="primary" size="sm" onClick={publishResult} disabled={activeResult?.status === 'published'}>
                 <Trophy size={16} /> Publish Result
               </Button>

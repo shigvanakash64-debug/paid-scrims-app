@@ -419,15 +419,59 @@ export const publishTournamentMatchResult = async (req, res) => {
   try {
     const found = await findOwnedMatch(req.params.tournamentId, req.params.matchId, req.user);
     if (found.error) return res.status(found.status).json({ error: found.error });
-    const result = await TournamentMatchResult.findOne({ tournamentId: req.params.tournamentId, matchId: req.params.matchId });
-    if (!result) return res.status(400).json({ error: 'Save a draft before publishing' });
+
+    const submittedEntries = Array.isArray(req.body?.entries) ? req.body.entries : [];
+    const matchTitle = String(req.body?.matchTitle || '').trim();
+    const resultType = found.tournament.format === 'single-match' ? 'grand-finale' : (req.body?.resultType === 'grand-finale' ? 'grand-finale' : 'normal');
+
+    let result = await TournamentMatchResult.findOne({ tournamentId: req.params.tournamentId, matchId: req.params.matchId });
+    if (!result) {
+      result = new TournamentMatchResult({ tournamentId: req.params.tournamentId, matchId: req.params.matchId, stageKey: found.stage.key, status: 'draft' });
+    }
+
     if (result.status === 'published') return res.status(409).json({ error: 'Published results are locked' });
-    if (!result.entries.length) return res.status(400).json({ error: 'Add at least one result before publishing' });
-    if (found.tournament.format !== 'single-match' && result.resultType === 'grand-finale' && found.stage.key !== 'grand-final') return res.status(400).json({ error: 'Grand Finale result belongs only to the Grand Final stage' });
+
+    if (found.tournament.format === 'single-match') {
+      const participantMap = new Map(found.match.participants.map((participant) => [participant._id.toString(), participant]));
+      const seen = new Set();
+      const normalizedEntries = []; 
+
+      for (const entry of submittedEntries) {
+        if (!participantMap.has(String(entry.participantId))) return res.status(400).json({ error: 'Participant is not assigned to this match' });
+        if (seen.has(String(entry.participantId))) return res.status(400).json({ error: 'Duplicate participant in result' });
+        seen.add(String(entry.participantId));
+
+        const kills = Number(entry.kills || 0);
+        const perKillReward = Number(found.tournament.perKillReward || 0);
+        if (!Number.isFinite(kills) || kills < 0) return res.status(400).json({ error: 'Kills must be a valid non-negative number' });
+
+        const money = kills * perKillReward;
+        normalizedEntries.push({
+          participantId: entry.participantId,
+          participantName: participantMap.get(String(entry.participantId)).displayName || 'Participant',
+          kills,
+          money,
+        });
+      }
+
+      if (!normalizedEntries.length) return res.status(400).json({ error: 'Add at least one result before publishing' });
+      result.entries = normalizedEntries;
+      result.resultType = resultType;
+      result.stageKey = found.stage.key;
+      if (matchTitle) result.matchTitle = matchTitle;
+      if (matchTitle) found.match.name = matchTitle;
+      await found.tournament.save();
+      await result.save();
+    } else {
+      if (!result.entries.length) return res.status(400).json({ error: 'Add at least one result before publishing' });
+      if (result.resultType === 'grand-finale' && found.stage.key !== 'grand-final') return res.status(400).json({ error: 'Grand Finale result belongs only to the Grand Final stage' });
+    }
+
     result.status = 'published';
     result.publishedBy = req.userId;
     result.publishedAt = new Date();
     await result.save();
+
     if (found.tournament.format === 'single-match') {
       await distributePerKillPayout(found.tournament, result);
     } else if (result.resultType === 'grand-finale') {
