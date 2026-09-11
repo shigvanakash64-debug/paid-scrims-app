@@ -487,6 +487,33 @@ export const serializeMatch = (match) => {
   };
 };
 
+export const buildMyMatchesQuery = (userId) => ({
+  players: userId,
+  status: {
+    $nin: ['completed', 'cancelled', 'disputed'],
+  },
+});
+
+export const getMyMatches = async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const matches = await Match.find(buildMyMatchesQuery(userId))
+      .populate('creator', 'username')
+      .populate('players', 'username')
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .limit(50);
+
+    res.status(200).json({ matches: matches.map(serializeMatch) });
+  } catch (error) {
+    console.error('getMyMatches error:', error);
+    res.status(500).json({ error: `Server error: ${error.message}` });
+  }
+};
+
 export const getMatch = async (req, res) => {
   try {
     const { matchId } = req.params;

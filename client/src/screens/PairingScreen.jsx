@@ -41,6 +41,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const [type, setType] = useState(match?.type || 'All');
   const [entry, setEntry] = useState(match?.entryFee || 0);
   const [matches, setMatches] = useState([]);
+  const [myMatches, setMyMatches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('clutchzone_open_my_matches') === 'true' ? 'my-matches' : 'live-opponents');
@@ -94,6 +95,8 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     }
 
     if (activeTab === 'my-matches') {
+      const visibleMyMatches = myMatches.length ? myMatches : activeMatch ? [activeMatch] : [];
+
       return (
         <div className="section">
           <div className="section-label">Your Active Match</div>
@@ -103,56 +106,49 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
               <div className="match-actions"><button className="btn-outline" type="button" onClick={() => cancelChallenge(challenge._id)}>Cancel Challenge</button></div>
             </div>
           ))}
-          {activeMatch ? (
-            <div className="match-card pinned-match">
-              <div className="match-card-header">
-                <div>
-                  <div className="match-tag">YOUR MATCH</div>
-                  <div className="match-title">
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                    >
-                      {showOpponentJoinedDot && (
-                        <span
-                          style={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: '50%',
-                            background: '#ef4444',
-                            display: 'inline-block',
-                          }}
-                        />
-                      )}
-                      {activeMatch.mode} · {activeMatch.type} · CZ{activeMatch.entryFee}
-                    </span>
+          {visibleMyMatches.length > 0 ? (
+            visibleMyMatches.map((matchItem) => {
+              const matchId = matchItem.id || matchItem._id;
+              const isCurrent = activeMatch && matchId === (activeMatch.id || activeMatch._id);
+              const matchCreatorId = matchItem.creator?.id || matchItem.creator?._id || matchItem.creator;
+              const isCreator = currentUser && matchCreatorId && (currentUser.id === matchCreatorId || currentUser._id === matchCreatorId);
+
+              return (
+                <div key={matchId} className={`match-card ${isCurrent ? 'pinned-match' : ''}`}>
+                  <div className="match-card-header">
+                    <div>
+                      <div className="match-tag">{isCreator ? 'YOUR MATCH' : 'JOINED MATCH'}</div>
+                      <div className="match-title">{matchItem.mode} · {matchItem.type} · CZ{matchItem.entryFee || matchItem.entry || 0}</div>
+                    </div>
+                    <div className={`trust-pill ${getTrustClass(currentUser?.trustScore || 0)}`}>
+                      TG{currentUser?.trustScore ?? 0}
+                    </div>
+                  </div>
+                  {matchItem.skillSetting && (
+                    <div className="match-meta-row" style={{ marginTop: 8 }}>
+                      <span>Skill: {matchItem.skillSetting}</span>
+                    </div>
+                  )}
+                  <div className="match-meta-row">
+                    <span>{matchItem.status}</span>
+                    <span>Prize Pool CZ{matchItem.prizePool || 0}</span>
+                  </div>
+                  <div className="match-actions">
+                    <button className="btn-outline" type="button" onClick={() => {
+                      onMatchSelect?.(matchItem);
+                      onScreenChange('match');
+                    }}>
+                      View Match
+                    </button>
+                    {isCreator && (
+                      <button className="btn-outline" type="button" onClick={handleCancelMatch} disabled={!canCancelMatch}>
+                        {canCancelMatch ? 'Cancel Match' : 'Cancel Locked'}
+                      </button>
+                    )}
                   </div>
                 </div>
-                <div className={`trust-pill ${getTrustClass(currentUser?.trustScore || 0)}`}>
-                  TG{currentUser?.trustScore ?? 0}
-                </div>
-              </div>
-              {activeMatch.skillSetting && (
-                <div className="match-meta-row" style={{ marginTop: 8 }}>
-                  <span>Skill: {activeMatch.skillSetting}</span>
-                </div>
-              )}
-              <div className="match-meta-row">
-                <span>{activeMatch.status}</span>
-                <span>Prize Pool CZ{activeMatch.prizePool}</span>
-              </div>
-              <div className="match-actions">
-                <button className="btn-outline" type="button" onClick={() => onScreenChange('match')}>
-                  View Match
-                </button>
-                <button className="btn-outline" type="button" onClick={handleCancelMatch} disabled={!canCancelMatch}>
-                  {canCancelMatch ? 'Cancel Match' : 'Cancel Locked'}
-                </button>
-              </div>
-            </div>
+              );
+            })
           ) : (
             <div className="empty-state">
               <div className="empty-title">No active match yet</div>
@@ -229,6 +225,27 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
 
     fetchMatches();
   }, [game, mode, type, entry]);
+
+  useEffect(() => {
+    const fetchMyMatches = async () => {
+      if (!currentUser) {
+        setMyMatches([]);
+        return;
+      }
+
+      try {
+        const response = await axios.get(`${API_BASE}/match/my-matches`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+        });
+        setMyMatches(response.data.matches || []);
+      } catch (err) {
+        console.error('Failed to load user matches:', err);
+        setMyMatches([]);
+      }
+    };
+
+    fetchMyMatches();
+  }, [currentUser?.id, currentUser?._id]);
 
   const handleCancelMatch = async () => {
     if (!activeMatch?.id) return;

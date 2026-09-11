@@ -12,6 +12,7 @@ import {
   canJoinMatch,
   createMatch,
   acceptMatch,
+  getMyMatches,
   payMatchWithWallet,
   uploadPaymentProof,
   verifyPlayer,
@@ -98,6 +99,12 @@ router.post(
 
 router.post("/approve-result", authMiddleware, adminMiddleware, approveResult);
 router.post("/reject-result", authMiddleware, adminMiddleware, rejectResult);
+
+/**
+ * GET /api/match/my-matches
+ * List the authenticated user's active matches
+ */
+router.get("/my-matches", authMiddleware, getMyMatches);
 
 /**
  * GET /api/match/list
