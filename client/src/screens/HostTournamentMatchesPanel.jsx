@@ -7,6 +7,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   const [tournament, setTournament] = useState(null);
+  const [participants, setParticipants] = useState([]);
   const [results, setResults] = useState([]);
   const [selectedStageKey, setSelectedStageKey] = useState('');
   const [activeResult, setActiveResult] = useState(null);
@@ -24,6 +25,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to load tournament');
       setTournament(data.tournament);
+      setParticipants(data.participants || []);
       setResults(data.results || []);
     } catch (loadError) {
       setError(loadError.message);
@@ -42,15 +44,30 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   );
 
   const stageParticipants = useMemo(() => {
-    if (!selectedStage) return [];
-    const allParticipants = (selectedStage.matches || []).flatMap((match) => match.participants || []);
-    const deduped = new Map();
-    allParticipants.forEach((participant) => {
-      if (!participant?._id) return;
-      deduped.set(String(participant._id), participant);
-    });
-    return [...deduped.values()];
-  }, [selectedStage]);
+    const optionMap = new Map();
+
+    if (participants.length) {
+      participants.forEach((participant) => {
+        if (!participant?._id) return;
+        optionMap.set(String(participant._id), {
+          _id: participant._id,
+          displayName: participant.displayName || participant.userName || participant.username || 'Participant',
+        });
+      });
+    }
+
+    if (selectedStage) {
+      const stageMatchesParticipants = (selectedStage.matches || []).flatMap((match) => match.participants || []);
+      stageMatchesParticipants.forEach((participant) => {
+        if (!participant?._id) return;
+        if (!optionMap.has(String(participant._id))) {
+          optionMap.set(String(participant._id), participant);
+        }
+      });
+    }
+
+    return [...optionMap.values()];
+  }, [participants, selectedStage]);
 
   const buildDefaultMatchTitle = (stage) => `${stage.name} - Match ${Math.max(1, (stage.matches?.length || 0) + 1)}`;
 
@@ -350,53 +367,63 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
               )}
 
               {form.entries.map((entry, index) => (
-                <div key={`${entry.participantId || 'new'}-${index}`} className="flex flex-wrap items-center gap-2 rounded-lg border border-[#2B2B2B] p-3">
-                  <select
-                    className="auth-input min-w-[220px] flex-1"
-                    value={entry.participantId}
-                    onChange={(event) => {
-                      const participant = stageParticipants.find((item) => String(item._id) === String(event.target.value));
-                      updateEntry(index, 'participantId', event.target.value);
-                      updateEntry(index, 'participantName', participant?.displayName || 'Participant');
-                    }}
-                  >
-                    <option value="">Select participant</option>
-                    {stageParticipants.map((participant) => (
-                      <option key={participant._id} value={participant._id}>
-                        {participant.displayName || participant.userId || 'Participant'}
-                      </option>
-                    ))}
-                  </select>
+                <div key={`${entry.participantId || 'new'}-${index}`} className="rounded-lg border border-[#2B2B2B] p-3">
+                  <div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[#A1A1A1]">
+                    <span className="w-10">Top</span>
+                    <span className="flex-1">Participant</span>
+                    <span className="w-24 text-right">{isPerKillTournament ? 'Kill' : 'Points'}</span>
+                    {isPerKillTournament && <span className="w-28 text-right">Money</span>}
+                  </div>
 
-                  {isPerKillTournament ? <>
-                    <input
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="flex w-10 items-center justify-center text-sm font-semibold text-[#FFB066]">#{index + 1}</span>
+                    <select
+                      className="auth-input min-w-[220px] flex-1"
+                      value={entry.participantId}
+                      onChange={(event) => {
+                        const participant = stageParticipants.find((item) => String(item._id) === String(event.target.value));
+                        updateEntry(index, 'participantId', event.target.value);
+                        updateEntry(index, 'participantName', participant?.displayName || 'Participant');
+                      }}
+                    >
+                      <option value="">Select participant</option>
+                      {stageParticipants.map((participant) => (
+                        <option key={participant._id} value={participant._id}>
+                          {participant.displayName || participant.userId || 'Participant'}
+                        </option>
+                      ))}
+                    </select>
+
+                    {isPerKillTournament ? <>
+                      <input
+                        className="auth-input w-24"
+                        type="number"
+                        min="0"
+                        value={entry.kills ?? ''}
+                        onChange={(event) => updateEntry(index, 'kills', event.target.value)}
+                        placeholder="Kill"
+                      />
+                      <input
+                        className="auth-input w-28"
+                        type="number"
+                        min="0"
+                        value={entry.money ?? ''}
+                        readOnly
+                        placeholder="Money"
+                      />
+                    </> : <input
                       className="auth-input w-24"
                       type="number"
                       min="0"
-                      value={entry.kills ?? ''}
-                      onChange={(event) => updateEntry(index, 'kills', event.target.value)}
-                      placeholder="Kills"
-                    />
-                    <input
-                      className="auth-input w-28"
-                      type="number"
-                      min="0"
-                      value={entry.money ?? ''}
-                      readOnly
-                      placeholder="Money"
-                    />
-                  </> : <input
-                    className="auth-input w-24"
-                    type="number"
-                    min="0"
-                    value={entry.points}
-                    onChange={(event) => updateEntry(index, 'points', event.target.value)}
-                    placeholder="Points"
-                  />}
+                      value={entry.points}
+                      onChange={(event) => updateEntry(index, 'points', event.target.value)}
+                      placeholder="Points"
+                    />}
 
-                  <button type="button" onClick={() => removeEntry(index)} className="text-sm text-[#FCA5A5]">
-                    Remove
-                  </button>
+                    <button type="button" onClick={() => removeEntry(index)} className="text-sm text-[#FCA5A5]">
+                      Remove
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

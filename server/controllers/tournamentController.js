@@ -297,8 +297,13 @@ export const getTournamentManageView = async (req, res) => {
       : { _id: req.params.tournamentId, createdBy: req.userId };
     const tournament = await Tournament.findOne(query).populate('stages.matches.participants');
     if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+
+    const participants = await TournamentParticipant.find({ tournamentId: tournament._id, status: 'registered' })
+      .sort({ registeredAt: 1 })
+      .lean();
+
     const results = await TournamentMatchResult.find({ tournamentId: tournament._id }).lean();
-    return res.json({ success: true, tournament, results });
+    return res.json({ success: true, tournament, participants, results });
   } catch (error) {
     console.error('getTournamentManageView error:', error);
     return res.status(500).json({ error: 'Failed to load tournament matches' });
