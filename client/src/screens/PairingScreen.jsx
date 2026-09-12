@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import BRMatchSection from '../components/BRMatchSection';
+import TournamentCard from '../components/TournamentCard';
 import { useMatch } from '../contexts/MatchContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useUser } from '../contexts/UserContext';
@@ -42,6 +43,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const [entry, setEntry] = useState(match?.entryFee || 0);
   const [matches, setMatches] = useState([]);
   const [myMatches, setMyMatches] = useState([]);
+  const [registeredTournaments, setRegisteredTournaments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('clutchzone_open_my_matches') === 'true' ? 'my-matches' : 'live-opponents');
@@ -95,7 +97,10 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     }
 
     if (activeTab === 'my-matches') {
-      const visibleMyMatches = myMatches.length ? myMatches : activeMatch ? [activeMatch] : [];
+      const visibleMyMatches = [
+        ...registeredTournaments.map((tournament) => ({ _listType: 'tournament', tournament })),
+        ...myMatches.map((matchItem) => ({ _listType: 'match', matchItem })),
+      ];
 
       return (
         <div className="section">
@@ -107,7 +112,29 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
             </div>
           ))}
           {visibleMyMatches.length > 0 ? (
-            visibleMyMatches.map((matchItem) => {
+            visibleMyMatches.map((item) => {
+              if (item._listType === 'tournament') {
+                return (
+                  <TournamentCard
+                    key={`my-tournament-${item.tournament._id}`}
+                    tournament={item.tournament}
+                    user={user}
+                    onJoined={async () => {
+                      try {
+                        const response = await axios.get(`${API_BASE}/tournaments/public`, {
+                          headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+                        });
+                        const tournaments = (response.data.tournaments || []).filter((tournament) => tournament.isRegistered);
+                        setRegisteredTournaments(tournaments);
+                      } catch (error) {
+                        console.error('Failed to refresh registered tournaments:', error);
+                      }
+                    }}
+                  />
+                );
+              }
+
+              const matchItem = item.matchItem;
               const matchId = matchItem.id || matchItem._id;
               const isCurrent = activeMatch && matchId === (activeMatch.id || activeMatch._id);
               const matchCreatorId = matchItem.creator?.id || matchItem.creator?._id || matchItem.creator;
@@ -230,17 +257,27 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     const fetchMyMatches = async () => {
       if (!currentUser) {
         setMyMatches([]);
+        setRegisteredTournaments([]);
         return;
       }
 
       try {
-        const response = await axios.get(`${API_BASE}/match/my-matches`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
-        });
-        setMyMatches(response.data.matches || []);
+        const [matchResponse, tournamentResponse] = await Promise.all([
+          axios.get(`${API_BASE}/match/my-matches`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+          }),
+          axios.get(`${API_BASE}/tournaments/public`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+          }),
+        ]);
+
+        setMyMatches(matchResponse.data.matches || []);
+        const tournaments = (tournamentResponse.data.tournaments || []).filter((tournament) => tournament.isRegistered);
+        setRegisteredTournaments(tournaments);
       } catch (err) {
         console.error('Failed to load user matches:', err);
         setMyMatches([]);
+        setRegisteredTournaments([]);
       }
     };
 
