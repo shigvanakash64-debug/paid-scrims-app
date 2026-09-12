@@ -385,7 +385,8 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                           <div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[#A1A1A1]">
                             <span className="w-10">Top</span>
                             <span className="flex-1">Participant</span>
-                            <span className="w-24 text-right">{isPerKillTournament ? 'Kill' : 'Points'}</span>
+                            {!isPerKillTournament && <span className="w-20 text-right">Kill</span>}
+                            <span className="w-20 text-right">{isPerKillTournament ? 'Kill' : 'Points'}</span>
                             {isPerKillTournament && <span className="w-28 text-right">Money</span>}
                           </div>
 
@@ -410,7 +411,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
 
                             {isPerKillTournament ? <>
                               <input
-                                className="auth-input w-24"
+                                className="auth-input w-20"
                                 type="number"
                                 min="0"
                                 value={entry.kills ?? ''}
@@ -425,14 +426,24 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                                 readOnly
                                 placeholder="Money"
                               />
-                            </> : <input
-                              className="auth-input w-24"
-                              type="number"
-                              min="0"
-                              value={entry.points}
-                              onChange={(event) => updateEntry(index, 'points', event.target.value)}
-                              placeholder="Points"
-                            />}
+                            </> : <>
+                              <input
+                                className="auth-input w-20"
+                                type="number"
+                                min="0"
+                                value={entry.kills ?? ''}
+                                onChange={(event) => updateEntry(index, 'kills', event.target.value)}
+                                placeholder="Kill"
+                              />
+                              <input
+                                className="auth-input w-20"
+                                type="number"
+                                min="0"
+                                value={entry.points ?? ''}
+                                onChange={(event) => updateEntry(index, 'points', event.target.value)}
+                                placeholder="Points"
+                              />
+                            </>}
 
                             <button type="button" onClick={() => removeEntry(index)} className="text-sm text-[#FCA5A5]">
                               Remove

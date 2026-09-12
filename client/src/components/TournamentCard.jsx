@@ -136,17 +136,17 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
                     {stageHasResult && isSelected && selectedStageResult && (
                       <div className="mt-3 border-t border-[#1F1F1F] pt-3">
                         <p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[#FFB066]">{stage.name} result</p>
-                        <div className="grid grid-cols-4 text-[10px] uppercase tracking-wide text-[#A1A1A1]">
+                        <div className="grid grid-cols-4 gap-x-2 text-[10px] uppercase tracking-wide text-[#A1A1A1]">
                           <span>Top</span>
                           <span>Name</span>
-                          <span>Score</span>
+                          <span>Kill</span>
                           <span>Points</span>
                         </div>
-                        {[...(selectedStageResult.entries || [])].sort((a, b) => Number(b.points ?? 0) - Number(a.points ?? 0)).map((entry, index) => (
-                          <div key={`${selectedStageResult.matchId}-${entry.participantId || index}`} className="mt-2 grid grid-cols-4 text-sm text-white">
+                        {[...(selectedStageResult.entries || [])].sort((a, b) => Number(b.kills ?? 0) - Number(a.kills ?? 0) || Number(b.points ?? 0) - Number(a.points ?? 0)).map((entry, index) => (
+                          <div key={`${selectedStageResult.matchId}-${entry.participantId || index}`} className="mt-2 grid grid-cols-4 gap-x-2 text-sm text-white">
                             <span>{index + 1}</span>
-                            <span>{entry.participantName}</span>
-                            <span>{Number(entry.points ?? 0)}</span>
+                            <span className="break-words leading-tight">{entry.participantName}</span>
+                            <span>{Number(entry.kills ?? 0)}</span>
                             <span>{Number(entry.points ?? 0)}</span>
                           </div>
                         ))}
