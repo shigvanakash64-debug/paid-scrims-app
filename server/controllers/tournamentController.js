@@ -32,47 +32,106 @@ const buildStages = (format, customStages = []) => {
     }));
 };
 
+export const validateTournamentInput = ({
+  name,
+  format,
+  game,
+  entryFee,
+  maxTeams,
+  successfulEntries = 0,
+  perKillReward = 0,
+  estimatedDate,
+  estimatedTime,
+  roomId,
+  roomPassword,
+}) => {
+  if (!name || !format || entryFee === undefined || maxTeams === undefined) {
+    throw new Error('Tournament name, format, entry fee and maximum teams are required');
+  }
+  if (!['single-match', 'custom'].includes(format)) {
+    throw new Error('Invalid tournament format');
+  }
+  if (!['Free Fire', 'BGMI'].includes(game)) {
+    throw new Error('Invalid game');
+  }
+
+  const numericEntryFee = Number(entryFee);
+  const numericMaxTeams = Number(maxTeams);
+  const numericSuccessfulEntries = format === 'single-match' ? 0 : Number(successfulEntries);
+  const numericPerKillReward = Number(perKillReward);
+  if (!Number.isFinite(numericEntryFee) || numericEntryFee < 0 || !Number.isInteger(numericMaxTeams) || numericMaxTeams < 1 || !Number.isInteger(numericSuccessfulEntries) || numericSuccessfulEntries < 0 || numericSuccessfulEntries > numericMaxTeams) {
+    throw new Error('Invalid entry fee or maximum teams');
+  }
+  if (!estimatedDate || !estimatedTime) {
+    throw new Error('Estimated match date/time fields (estimatedDate and estimatedTime) are required');
+  }
+  const parsedDate = new Date(`${estimatedDate}T${estimatedTime}`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw new Error('Estimated match date and time are invalid');
+  }
+  if (!roomId || !String(roomId).trim() || !roomPassword || !String(roomPassword).trim()) {
+    throw new Error('Room ID and password are required');
+  }
+  if (format === 'single-match') {
+    if (!Number.isFinite(numericPerKillReward) || numericPerKillReward < 0) {
+      throw new Error('Per kill reward is required for single match tournaments');
+    }
+    if (numericEntryFee <= numericPerKillReward) {
+      throw new Error('For per-kill tournaments, entry fee must be greater than the per-kill reward. Example: entry fee 5 and per kill 3 is valid.');
+    }
+  }
+
+  return {
+    numericEntryFee,
+    numericMaxTeams,
+    numericSuccessfulEntries,
+    numericPerKillReward,
+    estimatedDate: parsedDate,
+    roomId: String(roomId).trim(),
+    roomPassword: String(roomPassword).trim(),
+    estimatedTime: String(estimatedTime).trim(),
+  };
+};
+
 export const createTournament = async (req, res) => {
   try {
-    const { name, game = 'Free Fire', format, entryFee, maxTeams, successfulEntries = 0, customStages = [], perKillReward = 0 } = req.body;
-    if (!name || !format || entryFee === undefined || maxTeams === undefined) {
-      return res.status(400).json({ error: 'Tournament name, format, entry fee and maximum teams are required' });
-    }
-    if (!['single-match', 'custom'].includes(format)) {
-      return res.status(400).json({ error: 'Invalid tournament format' });
-    }
-    if (!['Free Fire', 'BGMI'].includes(game)) {
-      return res.status(400).json({ error: 'Invalid game' });
-    }
+    const { name, game = 'Free Fire', format, entryFee, maxTeams, successfulEntries = 0, customStages = [], perKillReward = 0, estimatedDate, estimatedTime, roomId, roomPassword } = req.body;
 
-    const numericEntryFee = Number(entryFee);
-    const numericMaxTeams = Number(maxTeams);
-    const numericSuccessfulEntries = format === 'single-match' ? 0 : Number(successfulEntries);
-    const numericPerKillReward = Number(perKillReward);
-    if (!Number.isFinite(numericEntryFee) || numericEntryFee < 0 || !Number.isInteger(numericMaxTeams) || numericMaxTeams < 1 || !Number.isInteger(numericSuccessfulEntries) || numericSuccessfulEntries < 0 || numericSuccessfulEntries > numericMaxTeams) {
-      return res.status(400).json({ error: 'Invalid entry fee or maximum teams' });
-    }
-    if (format === 'single-match') {
-      if (!Number.isFinite(numericPerKillReward) || numericPerKillReward < 0) {
-        return res.status(400).json({ error: 'Per kill reward is required for single match tournaments' });
-      }
-      if (numericEntryFee <= numericPerKillReward) {
-        return res.status(400).json({ error: 'For per-kill tournaments, entry fee must be greater than the per-kill reward. Example: entry fee 5 and per kill 3 is valid.' });
-      }
+    let normalizedValues;
+    try {
+      normalizedValues = validateTournamentInput({
+        name,
+        game,
+        format,
+        entryFee,
+        maxTeams,
+        successfulEntries,
+        perKillReward,
+        estimatedDate,
+        estimatedTime,
+        roomId,
+        roomPassword,
+      });
+    } catch (validationError) {
+      return res.status(400).json({ error: validationError.message });
     }
 
     const financials = format === 'single-match'
-      ? { totalCollection: numericEntryFee * numericSuccessfulEntries, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
-      : calculateFinancials(numericEntryFee, numericSuccessfulEntries);
+      ? { totalCollection: normalizedValues.numericEntryFee * normalizedValues.numericSuccessfulEntries, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
+      : calculateFinancials(normalizedValues.numericEntryFee, normalizedValues.numericSuccessfulEntries);
 
     const tournament = await Tournament.create({
       name: name.trim(),
       game,
       format,
-      entryFee: numericEntryFee,
-      maxTeams: numericMaxTeams,
-      successfulEntries: numericSuccessfulEntries,
-      perKillReward: format === 'single-match' ? numericPerKillReward : 0,
+      entryFee: normalizedValues.numericEntryFee,
+      maxTeams: normalizedValues.numericMaxTeams,
+      successfulEntries: normalizedValues.numericSuccessfulEntries,
+      perKillReward: format === 'single-match' ? normalizedValues.numericPerKillReward : 0,
+      estimatedDate: normalizedValues.estimatedDate,
+      estimatedTime: normalizedValues.estimatedTime,
+      roomId: normalizedValues.roomId,
+      roomPassword: normalizedValues.roomPassword,
       ...financials,
       stages: buildStages(format, customStages),
       createdBy: req.userId,
@@ -145,7 +204,7 @@ export const listPublicTournaments = async (req, res) => {
     }
 
     const tournaments = await Tournament.find({ status: { $in: ['open', 'upcoming', 'active'] } })
-      .select('name game format entryFee maxTeams successfulEntries prizePool perKillReward stages status createdBy createdAt')
+      .select('name game format entryFee maxTeams successfulEntries prizePool perKillReward stages status createdBy createdAt estimatedDate estimatedTime roomId roomPassword')
       .populate('createdBy', 'username')
       .sort({ createdAt: -1 })
       .lean();

@@ -13,7 +13,17 @@ const FORMAT_OPTIONS = [
 export const HostTournamentPanel = ({ onBack }) => {
   const [step, setStep] = useState('format');
   const [format, setFormat] = useState('');
-  const [form, setForm] = useState({ name: '', game: 'Free Fire', entryFee: '', maxTeams: '', perKillReward: '' });
+  const [form, setForm] = useState({
+    name: '',
+    game: 'Free Fire',
+    entryFee: '',
+    maxTeams: '',
+    perKillReward: '',
+    estimatedDate: '',
+    estimatedTime: '',
+    roomId: '',
+    roomPassword: '',
+  });
   const [customStages, setCustomStages] = useState([{ name: '' }]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -27,6 +37,16 @@ export const HostTournamentPanel = ({ onBack }) => {
   const submit = async (event) => {
     event.preventDefault();
     setError('');
+
+    if (!form.estimatedDate || !form.estimatedTime) {
+      setError('Please add the estimated match date and time before creating the tournament.');
+      return;
+    }
+
+    if (!form.roomId?.trim() || !form.roomPassword?.trim()) {
+      setError('Room ID and room password are required for the tournament match details.');
+      return;
+    }
 
     if (format === 'single-match') {
       const entryFee = Number(form.entryFee);
@@ -131,6 +151,16 @@ export const HostTournamentPanel = ({ onBack }) => {
               <p className="font-semibold text-white">{created?.stages?.length || 0}</p>
             </div>
           </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <span className="text-xs text-[#A1A1A1]">Estimated Time</span>
+              <p className="font-semibold text-white">{created?.estimatedDate ? new Date(created.estimatedDate).toLocaleString() : 'Not scheduled'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-[#A1A1A1]">Room Details</span>
+              <p className="font-semibold text-white">{created?.roomId || 'No room set'} / {created?.roomPassword || 'No password set'}</p>
+            </div>
+          </div>
         </Card>
 
         <Button variant="secondary" onClick={onBack}>Back to Dashboard</Button>
@@ -189,6 +219,26 @@ export const HostTournamentPanel = ({ onBack }) => {
                 </div>
               </div>
             )}
+
+            <label className="space-y-2 text-sm text-[#A1A1A1]">
+              Estimated Match Date
+              <input className="auth-input" type="date" name="estimatedDate" value={form.estimatedDate} onChange={updateForm} required />
+            </label>
+
+            <label className="space-y-2 text-sm text-[#A1A1A1]">
+              Estimated Match Time
+              <input className="auth-input" type="time" name="estimatedTime" value={form.estimatedTime} onChange={updateForm} required />
+            </label>
+
+            <label className="space-y-2 text-sm text-[#A1A1A1]">
+              Room ID
+              <input className="auth-input" name="roomId" value={form.roomId} onChange={updateForm} required placeholder="Enter room ID" />
+            </label>
+
+            <label className="space-y-2 text-sm text-[#A1A1A1]">
+              Room Password
+              <input className="auth-input" name="roomPassword" value={form.roomPassword} onChange={updateForm} required placeholder="Enter room password" />
+            </label>
           </div>
         </Card>
 

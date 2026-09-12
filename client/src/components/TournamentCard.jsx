@@ -70,6 +70,12 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
           {tournament.format === 'single-match' ? <div className="br-match-stat"><span className="label">Per Kill</span><span className="value">₹{Number(tournament.perKillReward || 0).toLocaleString()}</span></div> : <div className="br-match-stat"><span className="label">Prize Pool</span><span className="value">₹{Number(tournament.prizePool || 0).toLocaleString()}</span></div>}
         </div>
       </div>
+      {(tournament.estimatedDate || tournament.roomId || tournament.roomPassword) && (
+        <div className="mt-4 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] p-3 text-xs text-[#A1A1A1]">
+          {tournament.estimatedDate && <div className="mb-2"><span className="text-[#A1A1A1]">Estimated Match:</span> <b className="text-white">{new Date(tournament.estimatedDate).toLocaleString()}</b></div>}
+          {(tournament.roomId || tournament.roomPassword) && <div><span className="text-[#A1A1A1]">Room Details:</span> <b className="text-white">{tournament.roomId || 'No room ID'} / {tournament.roomPassword || 'No password'}</b></div>}
+        </div>
+      )}
       <div className="br-match-actions">
         <span className="registered-badge">{tournament.format === 'single-match' ? 'Per Kill Tournament' : tournament.format} · OPEN</span>
         <button type="button" className="btn btn-sm btn-primary" onClick={handleJoin} disabled={isJoined || tournament.successfulEntries >= tournament.maxTeams}>
