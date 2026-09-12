@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from './Card';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
