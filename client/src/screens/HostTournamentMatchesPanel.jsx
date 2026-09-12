@@ -132,6 +132,14 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
     setNotice('');
   };
 
+  const closeResultEditor = () => {
+    setSelectedStageKey('');
+    setActiveResult(null);
+    setDraftStageKey(null);
+    setError('');
+    setNotice('');
+  };
+
   const updateEntry = (index, field, value) => {
     setForm((current) => {
       const nextEntries = current.entries.map((entry, entryIndex) => {
@@ -297,153 +305,163 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
         {tournament.stages.map((stage) => {
           const publishedStageResults = results.filter((result) => result.stageKey === stage.key && result.status === 'published');
           const hasPublishedResult = publishedStageResults.length > 0;
+          const isStageOpen = selectedStageKey === stage.key && activeResult;
 
           return (
-            <Card key={stage.key}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="font-semibold text-white">{stage.name}</h2>
-                  <p className="text-sm text-[#A1A1A1]">
-                    {publishedStageResults.length} published result{publishedStageResults.length === 1 ? '' : 's'} · {stage.matchCount} planned
-                  </p>
+            <div key={stage.key} className="space-y-3">
+              <Card>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="font-semibold text-white">{stage.name}</h2>
+                    <p className="text-sm text-[#A1A1A1]">
+                      {publishedStageResults.length} published result{publishedStageResults.length === 1 ? '' : 's'} · {stage.matchCount} planned
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isStageOpen && (
+                      <Button variant="secondary" size="sm" onClick={closeResultEditor}>
+                        Close
+                      </Button>
+                    )}
+                    <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)} disabled={hasPublishedResult || (draftStageKey === stage.key) || (tournament?.format === 'single-match' && results.some((result) => result.status === 'published'))}>
+                      <Plus size={16} /> {isStageOpen ? 'Reopen Result' : 'Create Result'}
+                    </Button>
+                  </div>
                 </div>
-                <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)} disabled={hasPublishedResult || (draftStageKey === stage.key) || (tournament?.format === 'single-match' && results.some((result) => result.status === 'published'))}>
-                  <Plus size={16} /> Create Result
-                </Button>
-              </div>
-            </Card>
+              </Card>
+
+              {isStageOpen && activeResult && selectedStage && (
+                <Card>
+                  {!isPerKillTournament && (
+                    <div className="mb-4">
+                      <h2 className="text-xl font-semibold text-white">{activeResult.status === 'published' ? 'Published Result' : 'Create Result'}</h2>
+                      <p className="text-sm text-[#A1A1A1]">
+                        {activeResult.status === 'published'
+                          ? 'This result is locked.'
+                          : 'Add participant scores and publish the final result.'}
+                      </p>
+                    </div>
+                  )}
+                  {isPerKillTournament && (
+                    <div className="mb-4">
+                      <h2 className="text-xl font-semibold text-white">{activeResult.status === 'published' ? 'Published Result' : 'Create Result'}</h2>
+                      <p className="text-sm text-[#A1A1A1]">
+                        {activeResult.status === 'published'
+                          ? 'This result is locked.'
+                          : 'Add participant kills and publish the final result.'}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="mt-4 space-y-4">
+                    <label className="block text-sm text-[#A1A1A1]">
+                      Match Title
+                      <input
+                        className="auth-input mt-2 w-full"
+                        value={form.matchTitle}
+                        readOnly
+                      />
+                    </label>
+
+                    {!isPerKillTournament && <label className="block text-sm text-[#A1A1A1]">
+                      Result Type
+                      <select
+                        className="auth-input mt-2 w-full"
+                        value={form.resultType}
+                        onChange={(event) => setForm((current) => ({ ...current, resultType: event.target.value }))}
+                      >
+                        <option value="normal">Normal Stage Result</option>
+                        <option value="grand-finale">Grand Finale Result</option>
+                      </select>
+                    </label>}
+
+                    <div className="space-y-3">
+                      {form.entries.length === 0 && (
+                        <p className="text-sm text-[#A1A1A1]">No entries added yet.</p>
+                      )}
+
+                      {form.entries.map((entry, index) => (
+                        <div key={`${entry.participantId || 'new'}-${index}`} className="rounded-lg border border-[#2B2B2B] p-3">
+                          <div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[#A1A1A1]">
+                            <span className="w-10">Top</span>
+                            <span className="flex-1">Participant</span>
+                            <span className="w-24 text-right">{isPerKillTournament ? 'Kill' : 'Points'}</span>
+                            {isPerKillTournament && <span className="w-28 text-right">Money</span>}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="flex w-10 items-center justify-center text-sm font-semibold text-[#FFB066]">#{index + 1}</span>
+                            <select
+                              className="auth-input min-w-[220px] flex-1"
+                              value={entry.participantId}
+                              onChange={(event) => {
+                                const participant = stageParticipants.find((item) => String(item._id) === String(event.target.value));
+                                updateEntry(index, 'participantId', event.target.value);
+                                updateEntry(index, 'participantName', participant?.displayName || 'Participant');
+                              }}
+                            >
+                              <option value="">Select participant</option>
+                              {stageParticipants.map((participant) => (
+                                <option key={participant._id} value={participant._id}>
+                                  {participant.displayName || participant.userId || 'Participant'}
+                                </option>
+                              ))}
+                            </select>
+
+                            {isPerKillTournament ? <>
+                              <input
+                                className="auth-input w-24"
+                                type="number"
+                                min="0"
+                                value={entry.kills ?? ''}
+                                onChange={(event) => updateEntry(index, 'kills', event.target.value)}
+                                placeholder="Kill"
+                              />
+                              <input
+                                className="auth-input w-28"
+                                type="number"
+                                min="0"
+                                value={entry.money ?? ''}
+                                readOnly
+                                placeholder="Money"
+                              />
+                            </> : <input
+                              className="auth-input w-24"
+                              type="number"
+                              min="0"
+                              value={entry.points}
+                              onChange={(event) => updateEntry(index, 'points', event.target.value)}
+                              placeholder="Points"
+                            />}
+
+                            <button type="button" onClick={() => removeEntry(index)} className="text-sm text-[#FCA5A5]">
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <Button variant="secondary" size="sm" onClick={addEntry}>
+                        <Plus size={16} /> Add Entry
+                      </Button>
+                      {!isPerKillTournament && (
+                        <Button variant="secondary" size="sm" onClick={saveDraft}>
+                          <Save size={16} /> Save Draft
+                        </Button>
+                      )}
+                      <Button variant="primary" size="sm" onClick={publishResult} disabled={activeResult?.status === 'published'}>
+                        <Trophy size={16} /> Publish Result
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </div>
           );
         })}
       </div>
-
-      {activeResult && selectedStage && (
-        <Card>
-          {!isPerKillTournament && (
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold text-white">{activeResult.status === 'published' ? 'Published Result' : 'Create Result'}</h2>
-              <p className="text-sm text-[#A1A1A1]">
-                {activeResult.status === 'published'
-                  ? 'This result is locked.'
-                  : 'Add participant scores and publish the final result.'}
-              </p>
-            </div>
-          )}
-          {isPerKillTournament && (
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold text-white">{activeResult.status === 'published' ? 'Published Result' : 'Create Result'}</h2>
-              <p className="text-sm text-[#A1A1A1]">
-                {activeResult.status === 'published'
-                  ? 'This result is locked.'
-                  : 'Add participant kills and publish the final result.'}
-              </p>
-            </div>
-          )}
-
-          <div className="mt-4 space-y-4">
-            <label className="block text-sm text-[#A1A1A1]">
-              Match Title
-              <input
-                className="auth-input mt-2 w-full"
-                value={form.matchTitle}
-                readOnly
-              />
-            </label>
-
-            {!isPerKillTournament && <label className="block text-sm text-[#A1A1A1]">
-              Result Type
-              <select
-                className="auth-input mt-2 w-full"
-                value={form.resultType}
-                onChange={(event) => setForm((current) => ({ ...current, resultType: event.target.value }))}
-              >
-                <option value="normal">Normal Stage Result</option>
-                <option value="grand-finale">Grand Finale Result</option>
-              </select>
-            </label>}
-
-            <div className="space-y-3">
-              {form.entries.length === 0 && (
-                <p className="text-sm text-[#A1A1A1]">No entries added yet.</p>
-              )}
-
-              {form.entries.map((entry, index) => (
-                <div key={`${entry.participantId || 'new'}-${index}`} className="rounded-lg border border-[#2B2B2B] p-3">
-                  <div className="mb-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[#A1A1A1]">
-                    <span className="w-10">Top</span>
-                    <span className="flex-1">Participant</span>
-                    <span className="w-24 text-right">{isPerKillTournament ? 'Kill' : 'Points'}</span>
-                    {isPerKillTournament && <span className="w-28 text-right">Money</span>}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="flex w-10 items-center justify-center text-sm font-semibold text-[#FFB066]">#{index + 1}</span>
-                    <select
-                      className="auth-input min-w-[220px] flex-1"
-                      value={entry.participantId}
-                      onChange={(event) => {
-                        const participant = stageParticipants.find((item) => String(item._id) === String(event.target.value));
-                        updateEntry(index, 'participantId', event.target.value);
-                        updateEntry(index, 'participantName', participant?.displayName || 'Participant');
-                      }}
-                    >
-                      <option value="">Select participant</option>
-                      {stageParticipants.map((participant) => (
-                        <option key={participant._id} value={participant._id}>
-                          {participant.displayName || participant.userId || 'Participant'}
-                        </option>
-                      ))}
-                    </select>
-
-                    {isPerKillTournament ? <>
-                      <input
-                        className="auth-input w-24"
-                        type="number"
-                        min="0"
-                        value={entry.kills ?? ''}
-                        onChange={(event) => updateEntry(index, 'kills', event.target.value)}
-                        placeholder="Kill"
-                      />
-                      <input
-                        className="auth-input w-28"
-                        type="number"
-                        min="0"
-                        value={entry.money ?? ''}
-                        readOnly
-                        placeholder="Money"
-                      />
-                    </> : <input
-                      className="auth-input w-24"
-                      type="number"
-                      min="0"
-                      value={entry.points}
-                      onChange={(event) => updateEntry(index, 'points', event.target.value)}
-                      placeholder="Points"
-                    />}
-
-                    <button type="button" onClick={() => removeEntry(index)} className="text-sm text-[#FCA5A5]">
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Button variant="secondary" size="sm" onClick={addEntry}>
-                <Plus size={16} /> Add Entry
-              </Button>
-              {!isPerKillTournament && (
-                <Button variant="secondary" size="sm" onClick={saveDraft}>
-                  <Save size={16} /> Save Draft
-                </Button>
-              )}
-              <Button variant="primary" size="sm" onClick={publishResult} disabled={activeResult?.status === 'published'}>
-                <Trophy size={16} /> Publish Result
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
     </div>
   );
 };
