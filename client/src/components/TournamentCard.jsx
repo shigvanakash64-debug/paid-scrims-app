@@ -99,7 +99,6 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
               stages.map((stage) => (
                 <div key={stage.key || stage.name} className="flex items-center justify-between gap-3 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] px-3 py-2">
                   <span className="text-sm font-medium text-white">{stage.name}</span>
-                  <span className="text-xs text-[#A1A1A1]">{Number(stage.matchCount || stage.matches?.length || 0)} match{Number(stage.matchCount || stage.matches?.length || 0) === 1 ? '' : 'es'}</span>
                 </div>
               ))
             )}
@@ -107,13 +106,13 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         </div>
       )}
 
-      {showResults && <div className="mt-4 border-t border-[#1F1F1F] pt-3"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-white">Published Results</span><button type="button" className="text-sm text-[#A1A1A1]" onClick={() => { setShowResults(false); setSelectedStageKey(null); }}>Close</button></div>
+      {showResults && <div className="mt-3 border-t border-[#1F1F1F] pt-2"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-white">Published Results</span><button type="button" className="text-sm text-[#A1A1A1]" onClick={() => { setShowResults(false); setSelectedStageKey(null); }}>Close</button></div>
         {isPerKillTournament ? (
-          results.length === 0 ? <p className="mt-3 text-sm text-[#A1A1A1]">Result not published yet.</p> : <div className="mt-3 space-y-2">{results.map((result) => <div key={`${result.matchId}-${result._id}`} className="border-t border-[#1F1F1F] pt-2"><p className="text-xs text-[#FFB066]">{result.stageKey} · Match</p><div className="mt-2 grid grid-cols-4 text-xs uppercase tracking-wide text-[#A1A1A1]"><span>Top</span><span>Name</span><span>Kill</span><span>Money</span></div>{[...result.entries].sort((a, b) => Number(b.kills ?? 0) - Number(a.kills ?? 0) || Number(b.money ?? 0) - Number(a.money ?? 0)).map((entry, index) => <div key={entry.participantId} className="mt-2 grid grid-cols-4 text-sm text-white"><span>{index + 1}</span><span>{entry.participantName}</span><span>{Number(entry.kills ?? 0)}</span><span>₹{Number(entry.money ?? 0)}</span></div>)}</div>)}</div>
+          results.length === 0 ? <p className="mt-2 text-sm text-[#A1A1A1]">Result not published yet.</p> : <div className="mt-2 space-y-2">{results.map((result) => <div key={`${result.matchId}-${result._id}`} className="border-t border-[#1F1F1F] pt-2"><p className="text-xs text-[#FFB066]">{result.stageKey} · Match</p><div className="mt-1 grid grid-cols-4 text-xs uppercase tracking-wide text-[#A1A1A1]"><span>Top</span><span>Name</span><span>Kill</span><span>Money</span></div>{[...result.entries].sort((a, b) => Number(b.kills ?? 0) - Number(a.kills ?? 0) || Number(b.money ?? 0) - Number(a.money ?? 0)).map((entry, index) => <div key={entry.participantId} className="mt-1 grid grid-cols-4 text-sm text-white"><span>{index + 1}</span><span>{entry.participantName}</span><span>{Number(entry.kills ?? 0)}</span><span>₹{Number(entry.money ?? 0)}</span></div>)}</div>)}</div>
         ) : (
-          <div className="mt-3 space-y-3">
+          <div className="mt-2 space-y-2">
             {customStageResults.length === 0 ? (
-              <p className="mt-3 text-sm text-[#A1A1A1]">No stages available yet.</p>
+              <p className="mt-2 text-sm text-[#A1A1A1]">No stages available yet.</p>
             ) : (
               customStageResults.map(({ stage, result }) => {
                 const stageHasResult = Boolean(result);
@@ -134,8 +133,8 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
                     </div>
 
                     {stageHasResult && isSelected && selectedStageResult && (
-                      <div className="mt-3 border-t border-[#1F1F1F] pt-3">
-                        <p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[#FFB066]">{stage.name} result</p>
+                      <div className="mt-2 border-t border-[#1F1F1F] pt-2">
+                        <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#FFB066]">{stage.name} result</p>
                         <div className="grid grid-cols-4 gap-x-2 text-[10px] uppercase tracking-wide text-[#A1A1A1]">
                           <span>Top</span>
                           <span>Name</span>
@@ -143,7 +142,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
                           <span>Points</span>
                         </div>
                         {[...(selectedStageResult.entries || [])].sort((a, b) => Number(b.kills ?? 0) - Number(a.kills ?? 0) || Number(b.points ?? 0) - Number(a.points ?? 0)).map((entry, index) => (
-                          <div key={`${selectedStageResult.matchId}-${entry.participantId || index}`} className="mt-2 grid grid-cols-4 gap-x-2 text-sm text-white">
+                          <div key={`${selectedStageResult.matchId}-${entry.participantId || index}`} className="mt-1 grid grid-cols-4 gap-x-2 text-sm text-white">
                             <span>{index + 1}</span>
                             <span className="break-words leading-tight">{entry.participantName}</span>
                             <span>{Number(entry.kills ?? 0)}</span>
