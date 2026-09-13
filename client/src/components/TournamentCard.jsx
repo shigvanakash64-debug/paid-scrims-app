@@ -70,10 +70,10 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
           {tournament.format === 'single-match' ? <div className="br-match-stat"><span className="label">Per Kill</span><span className="value">₹{Number(tournament.perKillReward || 0).toLocaleString()}</span></div> : <div className="br-match-stat"><span className="label">Prize Pool</span><span className="value">₹{Number(tournament.prizePool || 0).toLocaleString()}</span></div>}
         </div>
       </div>
-      {(tournament.estimatedDate || tournament.roomId || tournament.roomPassword) && (
+      {(tournament.estimatedDate || tournament.hostMessage) && (
         <div className="mt-4 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] p-3 text-xs text-[#A1A1A1]">
           {tournament.estimatedDate && <div className="mb-2"><span className="text-[#A1A1A1]">Estimated Match:</span> <b className="text-white">{new Date(tournament.estimatedDate).toLocaleString()}</b></div>}
-          {(tournament.roomId || tournament.roomPassword) && <div><span className="text-[#A1A1A1]">Room Details:</span> <b className="text-white">{tournament.roomId || 'No room ID'} / {tournament.roomPassword || 'No password'}</b></div>}
+          {tournament.hostMessage && <div><span className="text-[#A1A1A1]">Host Message:</span> <b className="text-white">{tournament.hostMessage}</b></div>}
         </div>
       )}
       <div className="br-match-actions">
@@ -99,6 +99,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
               stages.map((stage) => (
                 <div key={stage.key || stage.name} className="flex items-center justify-between gap-3 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] px-3 py-2">
                   <span className="text-sm font-medium text-white">{stage.name}</span>
+                  {stage.time && <span className="text-xs text-[#FFB066]">{stage.time}</span>}
                 </div>
               ))
             )}

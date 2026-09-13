@@ -21,6 +21,7 @@ export const HostTournamentPanel = ({ onBack }) => {
     perKillReward: '',
     estimatedDate: '',
     estimatedTime: '',
+    hostMessage: '',
     roomId: '',
     roomPassword: '',
   });
@@ -43,8 +44,8 @@ export const HostTournamentPanel = ({ onBack }) => {
       return;
     }
 
-    if (!form.roomId?.trim() || !form.roomPassword?.trim()) {
-      setError('Room ID and room password are required for the tournament match details.');
+    if (!form.hostMessage?.trim()) {
+      setError('Please add a short message for players before creating the tournament.');
       return;
     }
 
@@ -230,14 +231,9 @@ export const HostTournamentPanel = ({ onBack }) => {
               <input className="auth-input" type="time" name="estimatedTime" value={form.estimatedTime} onChange={updateForm} required />
             </label>
 
-            <label className="space-y-2 text-sm text-[#A1A1A1]">
-              Room ID
-              <input className="auth-input" name="roomId" value={form.roomId} onChange={updateForm} required placeholder="Enter room ID" />
-            </label>
-
-            <label className="space-y-2 text-sm text-[#A1A1A1]">
-              Room Password
-              <input className="auth-input" name="roomPassword" value={form.roomPassword} onChange={updateForm} required placeholder="Enter room password" />
+            <label className="space-y-2 text-sm text-[#A1A1A1] md:col-span-2">
+              Host Message for Players
+              <textarea className="auth-input min-h-[100px] w-full" name="hostMessage" value={form.hostMessage} onChange={updateForm} required placeholder="Add any notes for players joining this tournament" />
             </label>
           </div>
         </Card>
@@ -276,7 +272,7 @@ export const HostTournamentPanel = ({ onBack }) => {
 
               <div className="space-y-3">
                 {customStages.map((stage, index) => (
-                  <div key={index} className="flex gap-3">
+                  <div key={index} className="flex flex-col gap-3 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] p-3 md:flex-row">
                     <input
                       className="auth-input flex-1"
                       value={stage.name}
@@ -286,6 +282,16 @@ export const HostTournamentPanel = ({ onBack }) => {
                         setCustomStages(next);
                       }}
                       placeholder="Stage name"
+                    />
+                    <input
+                      type="time"
+                      className="auth-input w-full md:w-36"
+                      value={stage.time || ''}
+                      onChange={(event) => {
+                        const next = [...customStages];
+                        next[index] = { ...next[index], time: event.target.value };
+                        setCustomStages(next);
+                      }}
                     />
                     <button
                       type="button"

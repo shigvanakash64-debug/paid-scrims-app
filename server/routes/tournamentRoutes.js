@@ -11,6 +11,7 @@ import {
 	listPublicTournaments,
 	publishTournamentMatchResult,
 	saveTournamentMatchDraft,
+	updateTournamentMessage,
 } from '../controllers/tournamentController.js';
 
 const router = express.Router();
@@ -20,6 +21,7 @@ router.post('/:tournamentId/join', authMiddleware, joinTournament);
 router.get('/:tournamentId/public-matches', getPublicTournamentMatches);
 router.get('/', authMiddleware, hostOnlyMiddleware, listMyTournaments);
 router.post('/', authMiddleware, hostOnlyMiddleware, createTournament);
+router.put('/:tournamentId/message', authMiddleware, hostOnlyMiddleware, updateTournamentMessage);
 router.delete('/:tournamentId', authMiddleware, hostOnlyMiddleware, deleteTournament);
 router.post('/:tournamentId/results', authMiddleware, hostOnlyMiddleware, createTournamentMatchResult);
 router.get('/:tournamentId/manage', authMiddleware, hostMiddleware, getTournamentManageView);
