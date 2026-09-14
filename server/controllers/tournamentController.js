@@ -4,6 +4,36 @@ import User from '../models/User.js';
 import TournamentMatchResult from '../models/TournamentMatchResult.js';
 import { verifyToken } from '../utils/authUtils.js';
 
+export const COMPLETED_TOURNAMENT_EXPIRY_MS = 2 * 24 * 60 * 60 * 1000;
+
+export const isCompletedTournamentExpired = (tournament) => {
+  if (!tournament || tournament.status !== 'completed') return false;
+  const lastUpdated = tournament.updatedAt || tournament.payoutsDistributedAt || tournament.createdAt;
+  if (!lastUpdated) return false;
+  return Date.now() - new Date(lastUpdated).getTime() > COMPLETED_TOURNAMENT_EXPIRY_MS;
+};
+
+export const cleanupExpiredCompletedTournaments = async () => {
+  const cutoff = new Date(Date.now() - COMPLETED_TOURNAMENT_EXPIRY_MS);
+  const expiredTournaments = await Tournament.find({
+    status: 'completed',
+    updatedAt: { $lt: cutoff },
+  }).select('_id').lean();
+
+  if (!expiredTournaments.length) {
+    return { deletedCount: 0 };
+  }
+
+  const tournamentIds = expiredTournaments.map((tournament) => tournament._id);
+  await Promise.all([
+    Tournament.deleteMany({ _id: { $in: tournamentIds } }),
+    TournamentParticipant.deleteMany({ tournamentId: { $in: tournamentIds } }),
+    TournamentMatchResult.deleteMany({ tournamentId: { $in: tournamentIds } }),
+  ]);
+
+  return { deletedCount: tournamentIds.length };
+};
+
 export const calculateFinancials = (entryFee, successfulEntries) => {
   const totalCollection = entryFee * successfulEntries;
   const prizePool = totalCollection * 0.7;
@@ -198,6 +228,7 @@ export const createTournament = async (req, res) => {
 
 export const listMyTournaments = async (req, res) => {
   try {
+    await cleanupExpiredCompletedTournaments();
     const tournaments = await Tournament.find({ createdBy: req.userId }).sort({ createdAt: -1 }).lean();
     const normalizedTournaments = tournaments.map((tournament) => {
       const financials = tournament.format === 'single-match'
@@ -288,6 +319,7 @@ export const deleteTournament = async (req, res) => {
 
 export const listPublicTournaments = async (req, res) => {
   try {
+    await cleanupExpiredCompletedTournaments();
     let currentUserId = null;
     const authHeader = req.headers.authorization || '';
     if (authHeader.startsWith('Bearer ')) {

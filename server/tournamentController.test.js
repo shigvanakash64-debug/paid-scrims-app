@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { assignTournamentGroups, calculateFinancials, normalizeResultEntry, validateTournamentInput } from './controllers/tournamentController.js';
+import { assignTournamentGroups, calculateFinancials, isCompletedTournamentExpired, normalizeResultEntry, validateTournamentInput } from './controllers/tournamentController.js';
 
 test('validateTournamentInput requires match schedule and room details', () => {
   assert.throws(() => validateTournamentInput({
@@ -67,6 +67,23 @@ test('calculateFinancials keeps 70% prize pool and splits the 30% profit as 20% 
   assert.equal(result.retainedAmount, 300);
   assert.equal(result.hostShare, 60);
   assert.equal(result.clutchZoneFee, 30);
+});
+
+test('completed tournaments expire after 2 days', () => {
+  const now = Date.now();
+  const oldTournament = {
+    status: 'completed',
+    updatedAt: new Date(now - (2 * 24 * 60 * 60 * 1000) - 1000),
+  };
+
+  const freshTournament = {
+    status: 'completed',
+    updatedAt: new Date(now - (24 * 60 * 60 * 1000)),
+  };
+
+  assert.equal(isCompletedTournamentExpired(oldTournament), true);
+  assert.equal(isCompletedTournamentExpired(freshTournament), false);
+  assert.equal(isCompletedTournamentExpired({ status: 'open', updatedAt: new Date(now - 1000000) }), false);
 });
 
 test('assignTournamentGroups split entrants into max-12 groups with final remainder bucket', () => {
