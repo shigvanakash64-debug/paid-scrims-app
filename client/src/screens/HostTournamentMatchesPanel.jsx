@@ -179,6 +179,34 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
     }));
   };
 
+  const handleParticipantSelect = (index, participantId) => {
+    const selectedIds = new Set(
+      form.entries
+        .filter((_, entryIndex) => entryIndex !== index && entryIndex !== undefined && entryIndex !== null)
+        .map((entry) => String(entry.participantId || ''))
+        .filter(Boolean),
+    );
+
+    if (participantId && selectedIds.has(String(participantId))) {
+      setError('This participant is already selected in this result. Pick a different participant.');
+      return;
+    }
+
+    setError('');
+    const participant = stageParticipants.find((item) => String(item._id) === String(participantId));
+    setForm((current) => ({
+      ...current,
+      entries: current.entries.map((entry, entryIndex) => {
+        if (entryIndex !== index) return entry;
+        return {
+          ...entry,
+          participantId: participantId || '',
+          participantName: participant?.displayName || participant?.userId || participant?.username || 'Participant',
+        };
+      }),
+    }));
+  };
+
   const removeEntry = (index) => {
     setForm((current) => ({
       ...current,
@@ -436,18 +464,21 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                             <select
                               className="auth-input min-w-[220px] flex-1"
                               value={entry.participantId}
-                              onChange={(event) => {
-                                const participant = stageParticipants.find((item) => String(item._id) === String(event.target.value));
-                                updateEntry(index, 'participantId', event.target.value);
-                                updateEntry(index, 'participantName', participant?.displayName || 'Participant');
-                              }}
+                              onChange={(event) => handleParticipantSelect(index, event.target.value)}
                             >
                               <option value="">Select participant</option>
-                              {stageParticipants.map((participant) => (
-                                <option key={participant._id} value={participant._id}>
-                                  {participant.displayName || participant.userId || 'Participant'}
-                                </option>
-                              ))}
+                              {stageParticipants
+                                .filter((participant) => {
+                                  const participantId = String(participant._id);
+                                  const isCurrentSelection = String(entry.participantId || '') === participantId;
+                                  const takenByAnotherEntry = form.entries.some((entryItem, entryIndex) => entryIndex !== index && String(entryItem.participantId || '') === participantId);
+                                  return isCurrentSelection || !takenByAnotherEntry;
+                                })
+                                .map((participant) => (
+                                  <option key={participant._id} value={participant._id}>
+                                    {participant.displayName || participant.userId || 'Participant'}
+                                  </option>
+                                ))}
                             </select>
 
                             {isPerKillTournament ? <>
