@@ -36,7 +36,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
     maxTeams: 10,
     perKillReward: 5,
     estimatedDate: '2026-09-15',
-    estimatedTime: '19:30',
+    estimatedTime: '',
     roomId: 'ABCD12',
     roomPassword: '123456',
   }));
