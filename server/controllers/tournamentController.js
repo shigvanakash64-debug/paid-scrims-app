@@ -4,7 +4,7 @@ import User from '../models/User.js';
 import TournamentMatchResult from '../models/TournamentMatchResult.js';
 import { verifyToken } from '../utils/authUtils.js';
 
-const calculateFinancials = (entryFee, successfulEntries) => {
+export const calculateFinancials = (entryFee, successfulEntries) => {
   const totalCollection = entryFee * successfulEntries;
   const prizePool = totalCollection * 0.7;
   const retainedAmount = totalCollection * 0.3;
@@ -12,8 +12,8 @@ const calculateFinancials = (entryFee, successfulEntries) => {
     totalCollection,
     prizePool,
     retainedAmount,
-    clutchZoneFee: retainedAmount * 0.2,
-    hostShare: retainedAmount * 0.8,
+    clutchZoneFee: retainedAmount * 0.1,
+    hostShare: retainedAmount * 0.2,
   };
 };
 

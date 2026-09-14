@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { assignTournamentGroups, normalizeResultEntry, validateTournamentInput } from './controllers/tournamentController.js';
+import { assignTournamentGroups, calculateFinancials, normalizeResultEntry, validateTournamentInput } from './controllers/tournamentController.js';
 
 test('validateTournamentInput requires match schedule and room details', () => {
   assert.throws(() => validateTournamentInput({
@@ -57,6 +57,16 @@ test('normalizeResultEntry keeps both kills and points for custom tournament res
     points: 180,
     money: 0,
   });
+});
+
+test('calculateFinancials keeps 70% prize pool and splits the 30% profit as 20% host and 10% platform', () => {
+  const result = calculateFinancials(100, 10);
+
+  assert.equal(result.totalCollection, 1000);
+  assert.equal(result.prizePool, 700);
+  assert.equal(result.retainedAmount, 300);
+  assert.equal(result.hostShare, 60);
+  assert.equal(result.clutchZoneFee, 30);
 });
 
 test('assignTournamentGroups split entrants into max-12 groups with final remainder bucket', () => {
