@@ -61,6 +61,21 @@ export const normalizeResultEntry = ({ entry, participantMap, isPerKill, perKill
   };
 };
 
+export const assignTournamentGroups = (participants = [], rng = Math.random) => {
+  const groupedParticipants = [...participants].sort(() => {
+    const value = typeof rng === 'function' ? rng() : 0.5;
+    return value - 0.5;
+  });
+
+  const assignments = new Map();
+  groupedParticipants.forEach((participant, index) => {
+    const participantKey = String(participant?._id || participant?.participantId || participant?.userId || participant?.id || index);
+    assignments.set(participantKey, Math.floor(index / 12) + 1);
+  });
+
+  return assignments;
+};
+
 export const validateTournamentInput = ({
   name,
   format,
@@ -258,13 +273,14 @@ export const listPublicTournaments = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    const registrationIds = currentUserId
+    const registrations = currentUserId
       ? await TournamentParticipant.find({ userId: currentUserId, status: 'registered' })
-          .select('tournamentId')
+          .select('tournamentId groupNumber')
           .lean()
       : [];
 
-    const registeredTournamentIds = new Set(registrationIds.map((item) => String(item.tournamentId)));
+    const registeredTournamentIds = new Set(registrations.map((item) => String(item.tournamentId)));
+    const userGroupMap = new Map(registrations.filter((item) => Number(item.groupNumber) > 0).map((item) => [String(item.tournamentId), Number(item.groupNumber)]));
 
     return res.json({
       success: true,
@@ -278,6 +294,7 @@ export const listPublicTournaments = async (req, res) => {
           ...financials,
           successfulEntries: tournament.successfulEntries || 0,
           isRegistered: currentUserId ? registeredTournamentIds.has(String(tournament._id)) : false,
+          userGroup: currentUserId ? userGroupMap.get(String(tournament._id)) || null : null,
         };
       }),
     });
@@ -332,6 +349,17 @@ export const joinTournament = async (req, res) => {
         entryFee: tournament.entryFee,
         displayName: req.user?.username || 'Participant',
       });
+      const allParticipants = await TournamentParticipant.find({ tournamentId: tournament._id, status: 'registered' }).sort({ registeredAt: 1 }).lean();
+      const assignments = assignTournamentGroups(allParticipants, Math.random);
+      const updates = allParticipants.map((entry) => ({
+        updateOne: {
+          filter: { _id: entry._id },
+          update: { $set: { groupNumber: Number(assignments.get(String(entry._id)) || 1) } },
+        },
+      }));
+      if (updates.length) {
+        await TournamentParticipant.bulkWrite(updates);
+      }
       const financials = tournament.format === 'single-match'
         ? { totalCollection: tournament.entryFee * tournament.successfulEntries, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
         : calculateFinancials(tournament.entryFee, tournament.successfulEntries);
@@ -342,6 +370,7 @@ export const joinTournament = async (req, res) => {
           $set: financials,
         },
       );
+      return res.json({ success: true, message: 'Tournament registration successful', walletBalance: user.wallet.balance, userGroup: Number(assignments.get(String(participant._id)) || 1) });
     } catch (error) {
       await Tournament.findByIdAndUpdate(tournament._id, { $inc: { successfulEntries: -1 } });
       await User.findByIdAndUpdate(req.userId, {
@@ -352,10 +381,51 @@ export const joinTournament = async (req, res) => {
       throw error;
     }
 
-    return res.json({ success: true, message: 'Tournament registration successful', walletBalance: user.wallet.balance });
   } catch (error) {
     console.error('joinTournament error:', error);
     return res.status(500).json({ error: 'Failed to join tournament' });
+  }
+};
+
+export const getTournamentGroups = async (req, res) => {
+  try {
+    const tournamentId = req.params.tournamentId;
+    const tournament = await Tournament.findById(tournamentId).lean();
+    if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+
+    const participants = await TournamentParticipant.find({ tournamentId: tournament._id, status: 'registered' })
+      .populate('userId', 'username')
+      .sort({ registeredAt: 1 })
+      .lean();
+
+    if (!participants.length) {
+      return res.json({ success: true, groups: [], userGroup: null });
+    }
+
+    const assignments = assignTournamentGroups(participants, Math.random);
+    const groupMap = new Map();
+    participants.forEach((participant) => {
+      const groupNumber = Number(assignments.get(String(participant._id)) || 1);
+      const memberName = participant.displayName || participant.userId?.username || 'Participant';
+      const bucket = groupMap.get(groupNumber) || [];
+      bucket.push({ _id: participant._id, participantId: participant._id, userId: participant.userId?._id || participant.userId, displayName: memberName, username: participant.userId?.username || memberName });
+      groupMap.set(groupNumber, bucket);
+    });
+
+    const groups = [...groupMap.entries()].sort(([left], [right]) => left - right).map(([groupNumber, members]) => ({
+      groupNumber,
+      participants: members,
+    }));
+
+    const currentUserId = req.user?._id || req.user?.userId || req.userId || null;
+    const userGroup = currentUserId
+      ? groups.find((group) => group.participants.some((participant) => String(participant.userId) === String(currentUserId)))?.groupNumber ?? null
+      : null;
+
+    return res.json({ success: true, groups, userGroup });
+  } catch (error) {
+    console.error('getTournamentGroups error:', error);
+    return res.status(500).json({ error: 'Failed to load groups' });
   }
 };
 

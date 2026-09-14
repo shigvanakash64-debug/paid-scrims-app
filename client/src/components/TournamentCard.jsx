@@ -6,8 +6,11 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 export const TournamentCard = ({ tournament, user, onJoined }) => {
   const [showResults, setShowResults] = useState(false);
   const [showStructure, setShowStructure] = useState(false);
+  const [showGroups, setShowGroups] = useState(false);
   const [results, setResults] = useState([]);
   const [selectedStageKey, setSelectedStageKey] = useState(null);
+  const [groupData, setGroupData] = useState({ groups: [], userGroup: tournament?.userGroup || null });
+  const [expandedGroup, setExpandedGroup] = useState(null);
   const handleJoin = async () => {
     if (!user) {
       window.alert('Please login to join this tournament');
@@ -32,6 +35,20 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
     const response = await fetch(`${API_BASE}/tournaments/${tournament._id}/public-matches`);
     const data = await response.json();
     if (response.ok) setResults(data.results || []);
+  };
+
+  const handleLoadGroups = async () => {
+    if (!isJoined) return;
+    const response = await fetch(`${API_BASE}/tournaments/${tournament._id}/groups`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      window.alert(data.error || 'Unable to load your group');
+      return;
+    }
+    setGroupData({ groups: data.groups || [], userGroup: data.userGroup ?? tournament?.userGroup ?? null });
+    setShowGroups((current) => !current);
   };
   const hostUsername = tournament?.createdBy?.username || tournament?.hostUsername || 'Host';
   const isPerKillTournament = tournament?.format === 'single-match';
@@ -87,6 +104,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
           </button>
         )}
         {isJoined && <button type="button" className="btn btn-sm btn-secondary" onClick={handleViewResults}>View Results</button>}
+        {isJoined && <button type="button" className="btn btn-sm btn-secondary" onClick={handleLoadGroups}>Your Group</button>}
       </div>
 
       {!isPerKillTournament && showStructure && (
@@ -100,6 +118,39 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
                 <div key={stage.key || stage.name} className="flex items-center justify-between gap-3 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] px-3 py-2">
                   <span className="text-sm font-medium text-white">{stage.name}</span>
                   {stage.time && <span className="text-xs text-[#FFB066]">{stage.time}</span>}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {showGroups && (
+        <div className="mt-3 border-t border-[#1F1F1F] pt-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-semibold text-white">Your Group</span>
+            <span className="text-xs text-[#FFB066]">{groupData.userGroup ? `Group ${groupData.userGroup}` : 'Not assigned'}</span>
+          </div>
+          <div className="space-y-2">
+            {groupData.groups.length === 0 ? (
+              <p className="text-sm text-[#A1A1A1]">No groups are available yet.</p>
+            ) : (
+              groupData.groups.map((group) => (
+                <div key={`group-${group.groupNumber}`} className="rounded-lg border border-[#1F1F1F] bg-[#0D0D0D] p-3">
+                  <button type="button" className="flex w-full items-center justify-between text-left text-sm font-medium text-white" onClick={() => setExpandedGroup((current) => current === group.groupNumber ? null : group.groupNumber)}>
+                    <span>Group {group.groupNumber}</span>
+                    <span className="text-xs text-[#A1A1A1]">{group.participants.length} players</span>
+                  </button>
+                  {expandedGroup === group.groupNumber && (
+                    <div className="mt-2 space-y-1 border-t border-[#1F1F1F] pt-2 text-sm text-[#E5E5E5]">
+                      {group.participants.map((participant) => (
+                        <div key={participant._id || participant.participantId} className="flex items-center justify-between gap-2 rounded-md bg-[#111111] px-2 py-1">
+                          <span>{participant.displayName || participant.username || 'Participant'}</span>
+                          {group.groupNumber === Number(groupData.userGroup) && <span className="text-[10px] uppercase tracking-wide text-[#FFB066]">You</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))
             )}

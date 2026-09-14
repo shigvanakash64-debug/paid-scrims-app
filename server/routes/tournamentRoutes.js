@@ -5,6 +5,7 @@ import {
 	createTournamentMatchResult,
 	deleteTournament,
 	getPublicTournamentMatches,
+	getTournamentGroups,
 	getTournamentManageView,
 	joinTournament,
 	listMyTournaments,
@@ -19,6 +20,7 @@ const router = express.Router();
 router.get('/public', listPublicTournaments);
 router.post('/:tournamentId/join', authMiddleware, joinTournament);
 router.get('/:tournamentId/public-matches', getPublicTournamentMatches);
+router.get('/:tournamentId/groups', authMiddleware, getTournamentGroups);
 router.get('/', authMiddleware, hostOnlyMiddleware, listMyTournaments);
 router.post('/', authMiddleware, hostOnlyMiddleware, createTournament);
 router.put('/:tournamentId/message', authMiddleware, hostOnlyMiddleware, updateTournamentMessage);
