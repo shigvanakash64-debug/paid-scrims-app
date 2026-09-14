@@ -89,7 +89,15 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
       </div>
       {(tournament.estimatedDate || tournament.hostMessage) && (
         <div className="mt-4 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] p-3 text-xs text-[#A1A1A1]">
-          {tournament.estimatedDate && <div className="mb-2"><span className="text-[#A1A1A1]">Estimated Match:</span> <b className="text-white">{new Date(tournament.estimatedDate).toLocaleString()}</b></div>}
+          {tournament.estimatedDate && (
+            <div className="mb-2">
+              <span className="text-[#A1A1A1]">Estimated Match:</span>
+              <b className="text-white"> {new Date(tournament.estimatedDate).toLocaleDateString()}</b>
+              {tournament.estimatedTime && String(tournament.estimatedTime) !== 'undefined' && (
+                <span className="ml-2 text-[#FFB066]">{tournament.estimatedTime}</span>
+              )}
+            </div>
+          )}
           {tournament.hostMessage && <div><span className="text-[#A1A1A1]">Host Message:</span> <b className="text-white">{tournament.hostMessage}</b></div>}
         </div>
       )}

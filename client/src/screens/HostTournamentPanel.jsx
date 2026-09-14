@@ -20,6 +20,7 @@ export const HostTournamentPanel = ({ onBack }) => {
     maxTeams: '',
     perKillReward: '',
     estimatedDate: '',
+    estimatedTime: '',
     hostMessage: '',
     roomId: '',
     roomPassword: '',
@@ -38,8 +39,8 @@ export const HostTournamentPanel = ({ onBack }) => {
     event.preventDefault();
     setError('');
 
-    if (!form.estimatedDate) {
-      setError('Please add the estimated match date before creating the tournament.');
+    if (!form.estimatedDate || (format === 'single-match' && !form.estimatedTime)) {
+      setError(format === 'single-match' ? 'Please add the estimated match date and time before creating the tournament.' : 'Please add the estimated match date before creating the tournament.');
       return;
     }
 
@@ -153,8 +154,11 @@ export const HostTournamentPanel = ({ onBack }) => {
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
-              <span className="text-xs text-[#A1A1A1]">Estimated Time</span>
-              <p className="font-semibold text-white">{created?.estimatedDate ? new Date(created.estimatedDate).toLocaleString() : 'Not scheduled'}</p>
+              <span className="text-xs text-[#A1A1A1]">{created?.format === 'single-match' ? 'Estimated Date & Time' : 'Estimated Date'}</span>
+              <p className="font-semibold text-white">
+                {created?.estimatedDate ? new Date(created.estimatedDate).toLocaleDateString() : 'Not scheduled'}
+                {created?.format === 'single-match' && created?.estimatedTime && String(created.estimatedTime) !== 'undefined' && ` • ${created.estimatedTime}`}
+              </p>
             </div>
             <div>
               <span className="text-xs text-[#A1A1A1]">Room Details</span>
@@ -224,6 +228,13 @@ export const HostTournamentPanel = ({ onBack }) => {
               Estimated Match Date
               <input className="auth-input" type="date" name="estimatedDate" value={form.estimatedDate} onChange={updateForm} required />
             </label>
+
+            {isSingleMatch && (
+              <label className="space-y-2 text-sm text-[#A1A1A1]">
+                Estimated Match Time
+                <input className="auth-input" type="time" name="estimatedTime" value={form.estimatedTime} onChange={updateForm} required />
+              </label>
+            )}
 
             <label className="space-y-2 text-sm text-[#A1A1A1] md:col-span-2">
               Host Message for Players
