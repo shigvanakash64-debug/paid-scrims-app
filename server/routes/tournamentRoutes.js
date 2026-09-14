@@ -1,6 +1,7 @@
 import express from 'express';
 import { authMiddleware, hostMiddleware, hostOnlyMiddleware } from '../middleware/authMiddleware.js';
 import {
+	addTournamentStage,
 	createTournament,
 	createTournamentMatchResult,
 	deleteTournament,
@@ -23,6 +24,7 @@ router.get('/:tournamentId/public-matches', getPublicTournamentMatches);
 router.get('/:tournamentId/groups', authMiddleware, getTournamentGroups);
 router.get('/', authMiddleware, hostOnlyMiddleware, listMyTournaments);
 router.post('/', authMiddleware, hostOnlyMiddleware, createTournament);
+router.post('/:tournamentId/stages', authMiddleware, hostOnlyMiddleware, addTournamentStage);
 router.put('/:tournamentId/message', authMiddleware, hostOnlyMiddleware, updateTournamentMessage);
 router.delete('/:tournamentId', authMiddleware, hostOnlyMiddleware, deleteTournament);
 router.post('/:tournamentId/results', authMiddleware, hostOnlyMiddleware, createTournamentMatchResult);

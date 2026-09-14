@@ -231,6 +231,37 @@ export const updateTournamentMessage = async (req, res) => {
   }
 };
 
+export const addTournamentStage = async (req, res) => {
+  try {
+    const tournament = await Tournament.findOne({ _id: req.params.tournamentId, createdBy: req.userId });
+    if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+    if (tournament.format !== 'custom') return res.status(400).json({ error: 'Stages can only be added to custom tournaments' });
+
+    const stageName = String(req.body?.name || '').trim();
+    if (!stageName) return res.status(400).json({ error: 'Stage name is required' });
+
+    const nextOrder = (tournament.stages?.length || 0) + 1;
+    const stage = {
+      name: stageName,
+      key: `custom-${Date.now()}`,
+      order: nextOrder,
+      time: String(req.body?.time || '').trim(),
+      groups: 0,
+      matchesPerGroup: 0,
+      matchCount: 0,
+      matches: [],
+      status: 'pending',
+    };
+
+    tournament.stages.push(stage);
+    await tournament.save();
+    return res.status(201).json({ success: true, stage, tournament });
+  } catch (error) {
+    console.error('addTournamentStage error:', error);
+    return res.status(500).json({ error: 'Failed to add stage' });
+  }
+};
+
 export const deleteTournament = async (req, res) => {
   try {
     const tournament = await Tournament.findOne({

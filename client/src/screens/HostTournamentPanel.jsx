@@ -5,6 +5,16 @@ import { Button } from '../components/Button';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
+const formatTime12Hour = (value) => {
+  if (!value || value === 'undefined' || value === 'null') return '';
+  const [hours = '0', minutes = '00'] = String(value).split(':');
+  const hour = Number(hours);
+  if (!Number.isFinite(hour)) return '';
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const formattedHour = hour % 12 === 0 ? 12 : hour % 12;
+  return `${formattedHour}:${String(minutes).padStart(2, '0')} ${suffix}`;
+};
+
 const FORMAT_OPTIONS = [
   { value: 'single-match', title: 'Per Kill Tournament', description: 'One match', detail: 'Per-kill reward' },
   { value: 'custom', title: 'Custom Tournament', description: 'Host manually creates the stages', detail: 'Flexible stage structure' },
@@ -157,7 +167,7 @@ export const HostTournamentPanel = ({ onBack }) => {
               <span className="text-xs text-[#A1A1A1]">{created?.format === 'single-match' ? 'Estimated Date & Time' : 'Estimated Date'}</span>
               <p className="font-semibold text-white">
                 {created?.estimatedDate ? new Date(created.estimatedDate).toLocaleDateString() : 'Not scheduled'}
-                {created?.format === 'single-match' && created?.estimatedTime && String(created.estimatedTime) !== 'undefined' && ` • ${created.estimatedTime}`}
+                {created?.format === 'single-match' && created?.estimatedTime && ` • ${formatTime12Hour(created.estimatedTime)}`}
               </p>
             </div>
             <div>

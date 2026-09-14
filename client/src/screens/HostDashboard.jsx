@@ -6,6 +6,16 @@ import { AdminBRMatchResultsView } from '../components/AdminBRMatchResultsView';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
+const formatTime12Hour = (value) => {
+  if (!value || value === 'undefined' || value === 'null') return '';
+  const [hours = '0', minutes = '00'] = String(value).split(':');
+  const hour = Number(hours);
+  if (!Number.isFinite(hour)) return '';
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const formattedHour = hour % 12 === 0 ? 12 : hour % 12;
+  return `${formattedHour}:${String(minutes).padStart(2, '0')} ${suffix}`;
+};
+
 export const HostDashboard = ({ onNavigate }) => {
   const [tournaments, setTournaments] = useState([]);
   const [matches, setMatches] = useState([]);

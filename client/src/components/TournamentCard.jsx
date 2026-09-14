@@ -3,6 +3,16 @@ import { Card } from './Card';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
+const formatTime12Hour = (value) => {
+  if (!value || value === 'undefined' || value === 'null') return '';
+  const [hours = '0', minutes = '00'] = String(value).split(':');
+  const hour = Number(hours);
+  if (!Number.isFinite(hour)) return '';
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const formattedHour = hour % 12 === 0 ? 12 : hour % 12;
+  return `${formattedHour}:${String(minutes).padStart(2, '0')} ${suffix}`;
+};
+
 export const TournamentCard = ({ tournament, user, onJoined }) => {
   const [showResults, setShowResults] = useState(false);
   const [showStructure, setShowStructure] = useState(false);
@@ -93,8 +103,8 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
             <div className="mb-2">
               <span className="text-[#A1A1A1]">Estimated Match:</span>
               <b className="text-white"> {new Date(tournament.estimatedDate).toLocaleDateString()}</b>
-              {tournament.estimatedTime && String(tournament.estimatedTime) !== 'undefined' && (
-                <span className="ml-2 text-[#FFB066]">{tournament.estimatedTime}</span>
+              {tournament.estimatedTime && (
+                <span className="ml-2 text-[#FFB066]">{formatTime12Hour(tournament.estimatedTime)}</span>
               )}
             </div>
           )}
@@ -125,7 +135,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
               stages.map((stage) => (
                 <div key={stage.key || stage.name} className="flex items-center justify-between gap-3 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] px-3 py-2">
                   <span className="text-sm font-medium text-white">{stage.name}</span>
-                  {stage.time && <span className="text-xs text-[#FFB066]">{stage.time}</span>}
+                  {stage.time && <span className="text-xs text-[#FFB066]">{formatTime12Hour(stage.time)}</span>}
                 </div>
               ))
             )}

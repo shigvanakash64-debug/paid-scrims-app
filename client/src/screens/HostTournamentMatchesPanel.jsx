@@ -5,6 +5,16 @@ import { Button } from '../components/Button';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
+const formatTime12Hour = (value) => {
+  if (!value || value === 'undefined' || value === 'null') return '';
+  const [hours = '0', minutes = '00'] = String(value).split(':');
+  const hour = Number(hours);
+  if (!Number.isFinite(hour)) return '';
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const formattedHour = hour % 12 === 0 ? 12 : hour % 12;
+  return `${formattedHour}:${String(minutes).padStart(2, '0')} ${suffix}`;
+};
+
 export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   const [tournament, setTournament] = useState(null);
   const [participants, setParticipants] = useState([]);
@@ -208,6 +218,30 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
     }
   };
 
+  const addStage = async () => {
+    if (tournament?.format !== 'custom') return;
+    const stageName = window.prompt('Enter new stage name');
+    if (!stageName || !stageName.trim()) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/stages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}`,
+        },
+        body: JSON.stringify({ name: stageName.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to add stage');
+      setNotice('Stage added successfully.');
+      setError('');
+      await loadTournament();
+    } catch (addError) {
+      setError(addError.message);
+    }
+  };
+
   const publishResult = async () => {
     if (!activeResult) return;
     if (form.entries.length === 0) {
@@ -215,7 +249,9 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       return;
     }
 
-    const confirmed = window.confirm('Publish this per-kill result? This will lock the result and pay winners.');
+    const confirmed = window.confirm(tournament?.format === 'single-match'
+      ? 'Publish this per-kill result? This will lock the result and pay winners.'
+      : 'Publish this custom tournament result? This will lock the result.');
     if (!confirmed) return;
 
     try {
@@ -318,6 +354,11 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    {tournament?.format === 'custom' && (
+                      <Button variant="secondary" size="sm" onClick={addStage}>
+                        <Plus size={16} /> Add Stage
+                      </Button>
+                    )}
                     {isStageOpen && (
                       <Button variant="secondary" size="sm" onClick={closeResultEditor}>
                         Close
