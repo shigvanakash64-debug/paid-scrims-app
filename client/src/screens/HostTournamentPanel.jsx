@@ -39,8 +39,8 @@ export const HostTournamentPanel = ({ onBack }) => {
     event.preventDefault();
     setError('');
 
-    if (!form.estimatedDate || !form.estimatedTime) {
-      setError('Please add the estimated match date and time before creating the tournament.');
+    if (!form.estimatedDate || (format === 'single-match' && !form.estimatedTime)) {
+      setError(format === 'single-match' ? 'Please add the estimated match date and time before creating the tournament.' : 'Please add the estimated match date before creating the tournament.');
       return;
     }
 
@@ -226,12 +226,14 @@ export const HostTournamentPanel = ({ onBack }) => {
               <input className="auth-input" type="date" name="estimatedDate" value={form.estimatedDate} onChange={updateForm} required />
             </label>
 
-            <label className="space-y-2 text-sm text-[#A1A1A1]">
-              Estimated Match Time
-              <input className="auth-input" type="time" name="estimatedTime" value={form.estimatedTime} onChange={updateForm} required />
-            </label>
+            {isSingleMatch && (
+              <label className="space-y-2 text-sm text-[#A1A1A1]">
+                Estimated Match Time
+                <input className="auth-input" type="time" name="estimatedTime" value={form.estimatedTime} onChange={updateForm} required />
+              </label>
+            )}
 
-            <label className="space-y-2 text-sm text-[#A1A1A1] md:col-span-2">
+            <label className={`space-y-2 text-sm text-[#A1A1A1] ${isSingleMatch ? 'md:col-span-2' : 'md:col-span-2'}`}>
               Host Message for Players
               <textarea className="auth-input min-h-[100px] w-full" name="hostMessage" value={form.hostMessage} onChange={updateForm} required placeholder="Add any notes for players joining this tournament" />
             </label>

@@ -14,7 +14,19 @@ test('validateTournamentInput requires match schedule and room details', () => {
     estimatedTime: '',
     roomId: '',
     roomPassword: '',
-  }), /estimatedDate/i);
+  }), /Estimated match date/i);
+
+  assert.doesNotThrow(() => validateTournamentInput({
+    name: 'Test Cup',
+    format: 'custom',
+    game: 'Free Fire',
+    entryFee: 20,
+    maxTeams: 10,
+    estimatedDate: '2026-09-15',
+    estimatedTime: '',
+    roomId: 'ABCD12',
+    roomPassword: '123456',
+  }));
 
   assert.doesNotThrow(() => validateTournamentInput({
     name: 'Test Cup',

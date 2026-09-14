@@ -107,12 +107,14 @@ export const validateTournamentInput = ({
   if (!Number.isFinite(numericEntryFee) || numericEntryFee < 0 || !Number.isInteger(numericMaxTeams) || numericMaxTeams < 1 || !Number.isInteger(numericSuccessfulEntries) || numericSuccessfulEntries < 0 || numericSuccessfulEntries > numericMaxTeams) {
     throw new Error('Invalid entry fee or maximum teams');
   }
-  if (!estimatedDate || !estimatedTime) {
-    throw new Error('Estimated match date/time fields (estimatedDate and estimatedTime) are required');
+  const requiresTime = format === 'single-match';
+  if (!estimatedDate || (requiresTime && !estimatedTime)) {
+    throw new Error(requiresTime ? 'Estimated match date/time fields (estimatedDate and estimatedTime) are required' : 'Estimated match date is required');
   }
-  const parsedDate = new Date(`${estimatedDate}T${estimatedTime}`);
+
+  const parsedDate = requiresTime ? new Date(`${estimatedDate}T${estimatedTime}`) : new Date(`${estimatedDate}T00:00:00`);
   if (Number.isNaN(parsedDate.getTime())) {
-    throw new Error('Estimated match date and time are invalid');
+    throw new Error(requiresTime ? 'Estimated match date and time are invalid' : 'Estimated match date is invalid');
   }
 
   if (hostMessage !== undefined && typeof hostMessage !== 'string') {
