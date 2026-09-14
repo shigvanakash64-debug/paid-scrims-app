@@ -14,9 +14,7 @@ const formatTime12Hour = (value) => {
 };
 
 export const TournamentCard = ({ tournament, user, onJoined }) => {
-  const [showResults, setShowResults] = useState(false);
-  const [showStructure, setShowStructure] = useState(false);
-  const [showGroups, setShowGroups] = useState(false);
+  const [activePanel, setActivePanel] = useState(null);
   const [results, setResults] = useState([]);
   const [selectedStageKey, setSelectedStageKey] = useState(null);
   const [groupData, setGroupData] = useState({ groups: [], userGroup: tournament?.userGroup || null });
@@ -41,10 +39,10 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
   };
 
   const handleViewResults = async () => {
-    setShowResults(true);
     const response = await fetch(`${API_BASE}/tournaments/${tournament._id}/public-matches`);
     const data = await response.json();
     if (response.ok) setResults(data.results || []);
+    setActivePanel((current) => (current === 'results' ? null : 'results'));
   };
 
   const handleLoadGroups = async () => {
@@ -58,7 +56,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
       return;
     }
     setGroupData({ groups: data.groups || [], userGroup: data.userGroup ?? tournament?.userGroup ?? null });
-    setShowGroups((current) => !current);
+    setActivePanel((current) => (current === 'groups' ? null : 'groups'));
   };
   const hostUsername = tournament?.createdBy?.username || tournament?.hostUsername || 'Host';
   const isPerKillTournament = tournament?.format === 'single-match';
@@ -117,7 +115,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
           {isJoined ? 'Joined' : tournament.successfulEntries >= tournament.maxTeams ? 'Full' : 'Join'}
         </button>
         {!isPerKillTournament && (
-          <button type="button" className="btn btn-sm btn-secondary" onClick={() => setShowStructure((current) => !current)}>
+          <button type="button" className="btn btn-sm btn-secondary" onClick={() => setActivePanel((current) => (current === 'structure' ? null : 'structure'))}>
             Match Structure
           </button>
         )}
@@ -125,7 +123,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         {isJoined && <button type="button" className="btn btn-sm btn-secondary" onClick={handleLoadGroups}>Your Group</button>}
       </div>
 
-      {!isPerKillTournament && showStructure && (
+      {!isPerKillTournament && activePanel === 'structure' && (
         <div className="mt-4 border-t border-[#1F1F1F] pt-3">
           <div className="mb-2 text-xs uppercase tracking-wide text-[#A1A1A1]">Match Structure</div>
           <div className="space-y-2">
@@ -143,7 +141,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         </div>
       )}
 
-      {showGroups && (
+      {activePanel === 'groups' && (
         <div className="mt-3 border-t border-[#1F1F1F] pt-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-semibold text-white">Your Group</span>
@@ -164,7 +162,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
                       {group.participants.map((participant) => (
                         <div key={participant._id || participant.participantId} className="flex items-center justify-between gap-2 rounded-md bg-[#111111] px-2 py-1">
                           <span>{participant.displayName || participant.username || 'Participant'}</span>
-                          {group.groupNumber === Number(groupData.userGroup) && <span className="text-[10px] uppercase tracking-wide text-[#FFB066]">You</span>}
+                          {group.groupNumber === Number(groupData.userGroup) && <span className="text-[10px] uppercase tracking-wide text-[#FFB066]" />}
                         </div>
                       ))}
                     </div>
@@ -176,7 +174,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         </div>
       )}
 
-      {showResults && <div className="mt-3 border-t border-[#1F1F1F] pt-2"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-white">Published Results</span><button type="button" className="text-sm text-[#A1A1A1]" onClick={() => { setShowResults(false); setSelectedStageKey(null); }}>Close</button></div>
+      {activePanel === 'results' && <div className="mt-3 border-t border-[#1F1F1F] pt-2"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-white">Published Results</span><button type="button" className="text-sm text-[#A1A1A1]" onClick={() => { setActivePanel(null); setSelectedStageKey(null); }}>Close</button></div>
         {isPerKillTournament ? (
           results.length === 0 ? <p className="mt-2 text-sm text-[#A1A1A1]">Result not published yet.</p> : <div className="mt-2 space-y-2">{results.map((result) => <div key={`${result.matchId}-${result._id}`} className="border-t border-[#1F1F1F] pt-2"><p className="text-xs text-[#FFB066]">{result.stageKey} · Match</p><div className="mt-1 grid grid-cols-4 text-xs uppercase tracking-wide text-[#A1A1A1]"><span>Top</span><span>Name</span><span>Kill</span><span>Money</span></div>{[...result.entries].sort((a, b) => Number(b.kills ?? 0) - Number(a.kills ?? 0) || Number(b.money ?? 0) - Number(a.money ?? 0)).map((entry, index) => <div key={entry.participantId} className="mt-1 grid grid-cols-4 text-sm text-white"><span>{index + 1}</span><span>{entry.participantName}</span><span>{Number(entry.kills ?? 0)}</span><span>₹{Number(entry.money ?? 0)}</span></div>)}</div>)}</div>
         ) : (

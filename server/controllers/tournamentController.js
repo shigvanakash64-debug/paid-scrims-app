@@ -675,6 +675,7 @@ export const publishTournamentMatchResult = async (req, res) => {
       result.stageKey = found.stage.key;
       if (matchTitle) result.matchTitle = matchTitle;
       if (matchTitle) found.match.name = matchTitle;
+      result.status = 'published';
       result.publishedBy = req.userId;
       result.publishedAt = new Date();
       await found.tournament.save();
@@ -692,6 +693,7 @@ export const publishTournamentMatchResult = async (req, res) => {
     result.stageKey = found.stage.key;
     if (matchTitle) result.matchTitle = matchTitle;
     if (matchTitle) found.match.name = matchTitle;
+    result.status = 'published';
     result.publishedBy = req.userId;
     result.publishedAt = new Date();
     await result.save();
