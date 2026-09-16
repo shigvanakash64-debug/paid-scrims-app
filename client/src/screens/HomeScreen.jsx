@@ -131,11 +131,16 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
   const [selectedFee, setSelectedFee] = useState(50);
   const [isCreatingMatch, setIsCreatingMatch] = useState(false);
 
+  const isHostOrAdmin = user?.role === 'host' || user?.role === 'admin' || currentUser?.role === 'host' || currentUser?.role === 'admin' || currentUser?.isAdmin === true;
   const playersCount = getPlayersCount(selectedMode);
   const platformFee = calculateCommission(selectedFee);
   const prizePool = getPrizePool(selectedFee);
 
   const handleFindMatch = async () => {
+    if (!isHostOrAdmin) {
+      return;
+    }
+
     if (isCreatingMatch) return;
 
     if (currentMatch && !['completed', 'cancelled', 'disputed'].includes(currentMatch.status)) {
@@ -301,11 +306,13 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
         </div>
       </div>
 
-      <div className="btn-cta-wrap">
-        <button className="btn-primary" type="button" onClick={handleFindMatch} disabled={isCreatingMatch}>
-          {isCreatingMatch ? 'CREATING...' : 'CREATE MATCH'}
-        </button>
-      </div>
+      {isHostOrAdmin && (
+        <div className="btn-cta-wrap">
+          <button className="btn-primary" type="button" onClick={handleFindMatch} disabled={isCreatingMatch}>
+            {isCreatingMatch ? 'CREATING...' : 'CREATE MATCH'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
