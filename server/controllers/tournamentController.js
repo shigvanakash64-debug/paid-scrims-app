@@ -103,7 +103,7 @@ export const normalizeResultEntry = ({ entry, participantMap, isPerKill, perKill
   };
 };
 
-export const assignTournamentGroups = (participants = [], rng = Math.random) => {
+export const assignTournamentGroups = (participants = [], rng = Math.random, groupSize = 12) => {
   const groupedParticipants = [...participants].sort(() => {
     const value = typeof rng === 'function' ? rng() : 0.5;
     return value - 0.5;
@@ -112,7 +112,7 @@ export const assignTournamentGroups = (participants = [], rng = Math.random) => 
   const assignments = new Map();
   groupedParticipants.forEach((participant, index) => {
     const participantKey = String(participant?._id || participant?.participantId || participant?.userId || participant?.id || index);
-    assignments.set(participantKey, Math.floor(index / 12) + 1);
+    assignments.set(participantKey, Math.floor(index / Math.max(1, groupSize)) + 1);
   });
 
   return assignments;
@@ -427,7 +427,7 @@ export const joinTournament = async (req, res) => {
         displayName: req.user?.username || 'Participant',
       });
       const allParticipants = await TournamentParticipant.find({ tournamentId: tournament._id, status: 'registered' }).sort({ registeredAt: 1 }).lean();
-      const assignments = assignTournamentGroups(allParticipants, Math.random);
+      const assignments = assignTournamentGroups(allParticipants, Math.random, tournament.format === 'cs-every-win' ? 2 : 12);
       const updates = allParticipants.map((entry) => ({
         updateOne: {
           filter: { _id: entry._id },
@@ -479,7 +479,10 @@ export const getTournamentGroups = async (req, res) => {
       return res.json({ success: true, groups: [], userGroup: null });
     }
 
-    const assignments = assignTournamentGroups(participants, Math.random);
+    const persistedGroups = participants.every((participant) => Number(participant.groupNumber) > 0);
+    const assignments = persistedGroups
+      ? new Map(participants.map((participant) => [String(participant._id), Number(participant.groupNumber)]))
+      : assignTournamentGroups(participants, Math.random, tournament.format === 'cs-every-win' ? 2 : 12);
     const groupMap = new Map();
     participants.forEach((participant) => {
       const groupNumber = Number(assignments.get(String(participant._id)) || 1);
@@ -499,7 +502,7 @@ export const getTournamentGroups = async (req, res) => {
       ? groups.find((group) => group.participants.some((participant) => String(participant.userId) === String(currentUserId)))?.groupNumber ?? null
       : null;
 
-    return res.json({ success: true, groups, userGroup });
+    return res.json({ success: true, groups, userGroup, groupSize: tournament.format === 'cs-every-win' ? 2 : 12 });
   } catch (error) {
     console.error('getTournamentGroups error:', error);
     return res.status(500).json({ error: 'Failed to load groups' });
@@ -522,8 +525,34 @@ export const createTournamentMatchResult = async (req, res) => {
     const isFinalStage = stage.order === finalStageOrder;
     if (resultType === 'grand-finale' && !isFinalStage && !requiresSingleStageSchedule(tournament.format)) return res.status(400).json({ error: 'Grand Finale result belongs only to the final stage' });
 
-    const participants = await TournamentParticipant.find({ tournamentId: tournament._id, status: 'registered' }).select('_id');
-    const match = stage.matches.create({ name: matchTitle, order: stage.matches.length + 1, participants: participants.map((participant) => participant._id) });
+    let participants = await TournamentParticipant.find({ tournamentId: tournament._id, status: 'registered' }).select('_id groupNumber knockoutStatus');
+    let round = 1;
+    if (tournament.format === 'cs-every-win') {
+      const requestedParticipantIds = Array.isArray(req.body.participantIds) ? req.body.participantIds.map(String) : [];
+      const requestedParticipants = participants.filter((participant) => requestedParticipantIds.includes(String(participant._id)) && participant.knockoutStatus === 'active');
+      if (requestedParticipants.length === 2) participants = requestedParticipants;
+    }
+    if (tournament.format === 'cs-every-win' && participants.length !== 2) {
+      const matchHistory = tournament.stages.flatMap((item) => item.matches || []);
+      const publishedResults = await TournamentMatchResult.find({ tournamentId: tournament._id, status: 'published' }).select('matchId').lean();
+      const publishedMatchIds = new Set(publishedResults.map((result) => String(result.matchId)));
+      const scheduledParticipantIds = new Set(matchHistory
+        .filter((matchItem) => !publishedMatchIds.has(String(matchItem._id)))
+        .flatMap((matchItem) => (matchItem.participants || []).map(String)));
+      const activeParticipants = participants.filter((participant) => participant.knockoutStatus === 'active' && !scheduledParticipantIds.has(String(participant._id)));
+      const groupedCandidates = [...new Map(activeParticipants
+        .filter((participant) => Number(participant.groupNumber) > 0)
+        .map((participant) => [participant.groupNumber, participant])).values()];
+      const groupPair = activeParticipants.find((participant) => activeParticipants.some((other) => other.knockoutStatus === 'active' && other.groupNumber === participant.groupNumber && String(other._id) !== String(participant._id)));
+      const pair = groupPair
+        ? [groupPair, activeParticipants.find((participant) => participant.groupNumber === groupPair.groupNumber && String(participant._id) !== String(groupPair._id))]
+        : activeParticipants.slice(0, 2);
+      if (pair.length !== 2 || !pair[0] || !pair[1]) return res.status(400).json({ error: 'A CS knockout round needs two active participants.' });
+      participants = pair;
+      round = Math.max(...matchHistory.map((matchItem) => Number(matchItem.round || 1)), 1);
+      if (!groupPair) round += 1;
+    }
+    const match = stage.matches.create({ name: matchTitle, order: stage.matches.length + 1, round, participants: participants.map((participant) => participant._id) });
     stage.matches.push(match);
     await tournament.save();
     const result = await TournamentMatchResult.create({ tournamentId: tournament._id, stageKey: stage.key, matchId: match._id, matchTitle, resultType });
@@ -726,6 +755,35 @@ export const publishTournamentMatchResult = async (req, res) => {
       await result.save();
       await distributePerKillPayout(found.tournament, result);
       return res.json({ success: true, result });
+    }
+
+    if (found.tournament.format === 'cs-every-win') {
+      if (submittedEntries.length !== 2) return res.status(400).json({ error: 'CS Every Single Win requires exactly two participants.' });
+      const participantIds = submittedEntries.map((entry) => String(entry.participantId));
+      if (new Set(participantIds).size !== 2 || participantIds.some((participantId) => !found.match.participants.some((participant) => String(participant._id) === participantId))) {
+        return res.status(400).json({ error: 'Select the two participants assigned to this CS match.' });
+      }
+
+      const winnerParticipantId = String(req.body?.winnerParticipantId || '');
+      if (!participantIds.includes(winnerParticipantId)) return res.status(400).json({ error: 'Select the winner of this CS match.' });
+      const loserParticipantId = participantIds.find((participantId) => participantId !== winnerParticipantId);
+      const participantMap = new Map(found.match.participants.map((participant) => [participant._id.toString(), participant]));
+      result.entries = submittedEntries.map((entry) => normalizeResultEntry({ entry, participantMap, isPerKill: false, perKillReward: 0 }));
+      result.winnerParticipantId = winnerParticipantId;
+      result.loserParticipantId = loserParticipantId;
+      result.resultType = 'grand-finale';
+      result.stageKey = found.stage.key;
+      if (matchTitle) result.matchTitle = matchTitle;
+      if (matchTitle) found.match.name = matchTitle;
+      result.status = 'published';
+      result.publishedBy = req.userId;
+      result.publishedAt = new Date();
+
+      await TournamentParticipant.updateOne({ _id: winnerParticipantId }, { $set: { knockoutStatus: 'active' } });
+      await TournamentParticipant.updateOne({ _id: loserParticipantId }, { $set: { knockoutStatus: 'eliminated' } });
+      await found.tournament.save();
+      await result.save();
+      return res.json({ success: true, result, winnerParticipantId, loserParticipantId });
     }
 
     if (!result.entries || !result.entries.length) return res.status(400).json({ error: 'Add at least one result before publishing' });

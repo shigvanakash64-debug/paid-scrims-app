@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const tournamentMatchSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   order: { type: Number, required: true },
+  round: { type: Number, default: 1, min: 1 },
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'TournamentParticipant' }],
   status: { type: String, enum: ['pending', 'active', 'completed'], default: 'pending' },
 }, { _id: true });

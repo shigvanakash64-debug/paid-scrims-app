@@ -22,7 +22,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   const [selectedStageKey, setSelectedStageKey] = useState('');
   const [activeResult, setActiveResult] = useState(null);
   const [draftStageKey, setDraftStageKey] = useState(null);
-  const [form, setForm] = useState({ matchTitle: '', resultType: 'normal', entries: [] });
+  const [form, setForm] = useState({ matchTitle: '', resultType: 'normal', winnerParticipantId: '', entries: [] });
   const isPerKillTournament = tournament?.format === 'single-match' || tournament?.format === 'br-per-kill';
   const isEveryWinTournament = tournament?.format === 'cs-every-win';
   const isSingleStageTournament = isPerKillTournament || isEveryWinTournament;
@@ -100,7 +100,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       if (draftStageKey === stage.key) {
         return;
       }
-      if (isSingleStageTournament && results.some((result) => result.status === 'published')) {
+      if (isPerKillTournament && results.some((result) => result.status === 'published')) {
         setError('This per-kill tournament already has one published result.');
         return;
       }
@@ -118,7 +118,8 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       setForm({
         matchTitle: stage.name || buildDefaultMatchTitle(stage),
         resultType: isSingleStageTournament ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal'),
-        entries: [],
+        winnerParticipantId: '',
+        entries: tournament?.format === 'cs-every-win' ? stageParticipants.slice(0, 2).map((participant) => ({ participantId: participant._id, participantName: participant.displayName, kills: '', money: '', points: '' })) : [],
       });
       setNotice('Result ready. Add the participant scores and publish it.');
     } catch (createError) {
@@ -132,6 +133,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
     setForm({
       matchTitle: stage.name || result.matchTitle || buildDefaultMatchTitle(stage),
       resultType: result.resultType || (isSingleStageTournament ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal')),
+      winnerParticipantId: result.winnerParticipantId || '',
       entries: (result.entries || []).map((entry) => ({
         participantId: entry.participantId,
         participantName: entry.participantName,
@@ -169,6 +171,10 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   };
 
   const addEntry = () => {
+    if (isEveryWinTournament && form.entries.length >= 2) {
+      setError('CS Every Single Win matches can contain only two participants.');
+      return;
+    }
     setForm((current) => ({
       ...current,
       entries: [...current.entries, {
@@ -290,6 +296,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       const payload = {
         matchTitle: form.matchTitle,
         resultType: form.resultType,
+        winnerParticipantId: form.winnerParticipantId,
         entries: form.entries.map((entry) => ({
           participantId: entry.participantId,
           points: Number(entry.points || 0),
@@ -310,6 +317,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
             stageKey: selectedStageKey,
             matchTitle: form.matchTitle,
             resultType: form.resultType,
+            participantIds: form.entries.map((entry) => entry.participantId).filter(Boolean),
           }),
         });
         const createData = await createResponse.json().catch(() => ({}));
@@ -396,7 +404,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                         Close
                       </Button>
                     )}
-                    <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)} disabled={hasPublishedResult || (draftStageKey === stage.key) || (isSingleStageTournament && results.some((result) => result.status === 'published'))}>
+                    <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)} disabled={hasPublishedResult || (draftStageKey === stage.key) || (isPerKillTournament && results.some((result) => result.status === 'published'))}>
                       <Plus size={16} /> {isStageOpen ? 'Reopen Result' : 'Create Result'}
                     </Button>
                   </div>
@@ -435,6 +443,22 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                         readOnly
                       />
                     </label>
+
+                    {isEveryWinTournament && (
+                      <label className="block text-sm text-[#A1A1A1]">
+                        Match Winner
+                        <select
+                          className="auth-input mt-2 w-full"
+                          value={form.winnerParticipantId}
+                          onChange={(event) => setForm((current) => ({ ...current, winnerParticipantId: event.target.value }))}
+                        >
+                          <option value="">Select winner</option>
+                          {form.entries.filter((entry) => entry.participantId).map((entry) => (
+                            <option key={entry.participantId} value={entry.participantId}>{entry.participantName}</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
 
                     {!isPerKillTournament && <label className="block text-sm text-[#A1A1A1]">
                       Result Type
