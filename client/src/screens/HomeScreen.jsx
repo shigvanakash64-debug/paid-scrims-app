@@ -306,13 +306,11 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
         </div>
       </div>
 
-      {isHostOrAdmin && (
-        <div className="btn-cta-wrap">
-          <button className="btn-primary" type="button" onClick={handleFindMatch} disabled={isCreatingMatch}>
-            {isCreatingMatch ? 'CREATING...' : 'CREATE MATCH'}
-          </button>
-        </div>
-      )}
+      <div className="btn-cta-wrap">
+        <button className="btn-primary" type="button" onClick={handleFindMatch} disabled={isCreatingMatch}>
+          {isCreatingMatch ? 'SENDING...' : isHostOrAdmin ? 'CREATE MATCH' : 'SEND'}
+        </button>
+      </div>
     </div>
   );
 };
