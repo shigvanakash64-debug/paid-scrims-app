@@ -23,7 +23,9 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   const [activeResult, setActiveResult] = useState(null);
   const [draftStageKey, setDraftStageKey] = useState(null);
   const [form, setForm] = useState({ matchTitle: '', resultType: 'normal', entries: [] });
-  const isPerKillTournament = tournament?.format === 'single-match';
+  const isPerKillTournament = tournament?.format === 'single-match' || tournament?.format === 'br-per-kill';
+  const isEveryWinTournament = tournament?.format === 'cs-every-win';
+  const isSingleStageTournament = isPerKillTournament || isEveryWinTournament;
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -98,7 +100,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       if (draftStageKey === stage.key) {
         return;
       }
-      if (tournament?.format === 'single-match' && results.some((result) => result.status === 'published')) {
+      if (isSingleStageTournament && results.some((result) => result.status === 'published')) {
         setError('This per-kill tournament already has one published result.');
         return;
       }
@@ -111,11 +113,11 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
         matchId: null,
         status: 'draft',
         matchTitle: stage.name || buildDefaultMatchTitle(stage),
-        resultType: tournament?.format === 'single-match' ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal'),
+        resultType: isSingleStageTournament ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal'),
       });
       setForm({
         matchTitle: stage.name || buildDefaultMatchTitle(stage),
-        resultType: tournament?.format === 'single-match' ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal'),
+        resultType: isSingleStageTournament ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal'),
         entries: [],
       });
       setNotice('Result ready. Add the participant scores and publish it.');
@@ -129,7 +131,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
     setActiveResult(result);
     setForm({
       matchTitle: stage.name || result.matchTitle || buildDefaultMatchTitle(stage),
-      resultType: result.resultType || (tournament?.format === 'single-match' ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal')),
+      resultType: result.resultType || (isSingleStageTournament ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal')),
       entries: (result.entries || []).map((entry) => ({
         participantId: entry.participantId,
         participantName: entry.participantName,
@@ -247,7 +249,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   };
 
   const addStage = async () => {
-    if (tournament?.format !== 'custom') return;
+    if (!['custom', 'br-custom', 'cs-custom'].includes(tournament?.format)) return;
     const stageName = window.prompt('Enter new stage name');
     if (!stageName || !stageName.trim()) return;
 
@@ -277,8 +279,10 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       return;
     }
 
-    const confirmed = window.confirm(tournament?.format === 'single-match'
+    const confirmed = window.confirm(isPerKillTournament
       ? 'Publish this per-kill result? This will lock the result and pay winners.'
+      : isEveryWinTournament
+        ? 'Publish this CS every-win result? This will lock the result.'
       : 'Publish this custom tournament result? This will lock the result.');
     if (!confirmed) return;
 
@@ -382,7 +386,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {tournament?.format === 'custom' && (
+                    {['custom', 'br-custom', 'cs-custom'].includes(tournament?.format) && (
                       <Button variant="secondary" size="sm" onClick={addStage}>
                         <Plus size={16} /> Add Stage
                       </Button>
@@ -392,7 +396,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                         Close
                       </Button>
                     )}
-                    <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)} disabled={hasPublishedResult || (draftStageKey === stage.key) || (tournament?.format === 'single-match' && results.some((result) => result.status === 'published'))}>
+                    <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)} disabled={hasPublishedResult || (draftStageKey === stage.key) || (isSingleStageTournament && results.some((result) => result.status === 'published'))}>
                       <Plus size={16} /> {isStageOpen ? 'Reopen Result' : 'Create Result'}
                     </Button>
                   </div>

@@ -24,7 +24,7 @@ export const HostDashboard = ({ onNavigate }) => {
   const [messageDrafts, setMessageDrafts] = useState({});
   const [error, setError] = useState('');
 
-  const showPrizePool = (format) => format !== 'single-match';
+  const showPrizePool = (format) => format !== 'single-match' && format !== 'br-per-kill';
   const getCollectedAmount = (tournament) => Number(tournament.totalCollection || (tournament.entryFee || 0) * (tournament.successfulEntries || 0) || 0);
   const activeTournaments = tournaments.filter((tournament) => !['completed', 'cancelled'].includes(tournament.status));
   const completedTournaments = tournaments.filter((tournament) => tournament.status === 'completed');

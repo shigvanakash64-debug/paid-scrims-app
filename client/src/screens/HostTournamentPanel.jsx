@@ -16,9 +16,16 @@ const formatTime12Hour = (value) => {
 };
 
 const FORMAT_OPTIONS = [
-  { value: 'single-match', title: 'Per Kill Tournament', description: 'One match', detail: 'Per-kill reward' },
-  { value: 'custom', title: 'Custom Tournament', description: 'Host manually creates the stages', detail: 'Flexible stage structure' },
+  { value: 'br-per-kill', title: 'BR Per Kill Tournament', description: 'Battle Royale single match', detail: 'Per-kill reward' },
+  { value: 'br-custom', title: 'BR Custom Tournament', description: 'Battle Royale stages', detail: 'Host manually creates the stages' },
+  { value: 'cs-every-win', title: 'CS Every Single Win', description: 'Clash Squad single match', detail: 'Score each win' },
+  { value: 'cs-custom', title: 'CS Custom Tournament', description: 'Clash Squad stages', detail: 'Host manually creates the stages' },
 ];
+
+const isPerKillFormat = (value) => value === 'single-match' || value === 'br-per-kill';
+const isSingleStageFormat = (value) => isPerKillFormat(value) || value === 'cs-every-win';
+const isCustomFormat = (value) => value === 'custom' || value === 'br-custom' || value === 'cs-custom';
+const getFormatTitle = (value) => FORMAT_OPTIONS.find((option) => option.value === value)?.title || (value === 'single-match' ? 'BR Per Kill Tournament' : value === 'custom' ? 'BR Custom Tournament' : value);
 
 export const HostTournamentPanel = ({ onBack }) => {
   const [step, setStep] = useState('format');
@@ -41,16 +48,18 @@ export const HostTournamentPanel = ({ onBack }) => {
   const [created, setCreated] = useState(null);
 
   const updateForm = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
-  const isSingleMatch = format === 'single-match';
+  const isPerKill = isPerKillFormat(format);
+  const isSingleStage = isSingleStageFormat(format);
+  const isCustom = isCustomFormat(format);
   const successfulEntries = 0;
-  const prizePool = isSingleMatch ? 0 : (Number(form.entryFee) || 0) * successfulEntries * 0.7;
+  const prizePool = isPerKill ? 0 : (Number(form.entryFee) || 0) * successfulEntries * 0.7;
 
   const submit = async (event) => {
     event.preventDefault();
     setError('');
 
-    if (!form.estimatedDate || (format === 'single-match' && !form.estimatedTime)) {
-      setError(format === 'single-match' ? 'Please add the estimated match date and time before creating the tournament.' : 'Please add the estimated match date before creating the tournament.');
+    if (!form.estimatedDate || (isSingleStage && !form.estimatedTime)) {
+      setError(isSingleStage ? 'Please add the estimated match date and time before creating the tournament.' : 'Please add the estimated match date before creating the tournament.');
       return;
     }
 
@@ -59,7 +68,7 @@ export const HostTournamentPanel = ({ onBack }) => {
       return;
     }
 
-    if (format === 'single-match') {
+    if (isPerKill) {
       const entryFee = Number(form.entryFee);
       const perKillReward = Number(form.perKillReward);
       if (!Number.isFinite(entryFee) || !Number.isFinite(perKillReward) || entryFee <= perKillReward) {
@@ -68,7 +77,7 @@ export const HostTournamentPanel = ({ onBack }) => {
       }
     }
 
-    if (format === 'custom') {
+    if (isCustom) {
       const validStages = customStages.filter((stage) => stage?.name?.trim());
       if (validStages.length === 0) {
         setError('Add at least one stage name before creating the custom tournament.');
@@ -81,7 +90,7 @@ export const HostTournamentPanel = ({ onBack }) => {
       const response = await fetch(`${API_BASE}/tournaments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
-        body: JSON.stringify({ ...form, format, customStages: format === 'custom' ? customStages : [] }),
+        body: JSON.stringify({ ...form, format, customStages: isCustom ? customStages : [] }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to create tournament');
@@ -144,9 +153,9 @@ export const HostTournamentPanel = ({ onBack }) => {
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <span className="text-xs text-[#A1A1A1]">Format</span>
-              <p className="font-semibold text-white">{created?.format === 'single-match' ? 'Per Kill Tournament' : created?.format}</p>
+              <p className="font-semibold text-white">{getFormatTitle(created?.format)}</p>
             </div>
-            {created?.format === 'single-match' ? (
+            {isPerKillFormat(created?.format) ? (
               <div>
                 <span className="text-xs text-[#A1A1A1]">Per Kill</span>
                 <p className="font-semibold text-white">₹{created?.perKillReward || 0}</p>
@@ -164,10 +173,10 @@ export const HostTournamentPanel = ({ onBack }) => {
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
-              <span className="text-xs text-[#A1A1A1]">{created?.format === 'single-match' ? 'Estimated Date & Time' : 'Estimated Date'}</span>
+              <span className="text-xs text-[#A1A1A1]">{isSingleStageFormat(created?.format) ? 'Estimated Date & Time' : 'Estimated Date'}</span>
               <p className="font-semibold text-white">
                 {created?.estimatedDate ? new Date(created.estimatedDate).toLocaleDateString() : 'Not scheduled'}
-                {created?.format === 'single-match' && created?.estimatedTime && ` • ${formatTime12Hour(created.estimatedTime)}`}
+                {isSingleStageFormat(created?.format) && created?.estimatedTime && ` • ${formatTime12Hour(created.estimatedTime)}`}
               </p>
             </div>
             <div>
@@ -220,7 +229,7 @@ export const HostTournamentPanel = ({ onBack }) => {
               <input className="auth-input" type="number" name="maxTeams" value={form.maxTeams} onChange={updateForm} min="1" required placeholder="Enter maximum teams" />
             </label>
 
-            {isSingleMatch ? (
+            {isPerKill ? (
               <label className="space-y-2 text-sm text-[#A1A1A1]">
                 Per Kill Reward
                 <input className="auth-input" type="number" name="perKillReward" value={form.perKillReward} onChange={updateForm} min="0" required placeholder="₹ per kill" />
@@ -239,7 +248,7 @@ export const HostTournamentPanel = ({ onBack }) => {
               <input className="auth-input" type="date" name="estimatedDate" value={form.estimatedDate} onChange={updateForm} required />
             </label>
 
-            {isSingleMatch && (
+            {isSingleStage && (
               <label className="space-y-2 text-sm text-[#A1A1A1]">
                 Estimated Match Time
                 <input className="auth-input" type="time" name="estimatedTime" value={form.estimatedTime} onChange={updateForm} required />
@@ -272,7 +281,7 @@ export const HostTournamentPanel = ({ onBack }) => {
             ))}
           </div>
 
-          {format === 'custom' && (
+          {isCustom && (
             <div className="mt-5">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h3 className="text-base font-semibold text-white">Stage Names</h3>

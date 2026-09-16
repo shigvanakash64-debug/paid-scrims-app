@@ -59,7 +59,14 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
     setActivePanel((current) => (current === 'groups' ? null : 'groups'));
   };
   const hostUsername = tournament?.createdBy?.username || tournament?.hostUsername || 'Host';
-  const isPerKillTournament = tournament?.format === 'single-match';
+  const isPerKillTournament = tournament?.format === 'single-match' || tournament?.format === 'br-per-kill';
+  const formatTitle = tournament?.format === 'single-match' || tournament?.format === 'br-per-kill'
+    ? 'BR Per Kill Tournament'
+    : tournament?.format === 'custom' || tournament?.format === 'br-custom'
+      ? 'BR Custom Tournament'
+      : tournament?.format === 'cs-every-win'
+        ? 'CS Every Single Win'
+        : tournament?.format === 'cs-custom' ? 'CS Custom Tournament' : tournament?.format;
   const isJoined = Boolean(tournament?.isRegistered || tournament?.registered || tournament?.joined);
   const stages = Array.isArray(tournament?.stages) ? [...tournament.stages].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
 
@@ -110,7 +117,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         </div>
       )}
       <div className="br-match-actions">
-        <span className="registered-badge">{tournament.format === 'single-match' ? 'Per Kill Tournament' : tournament.format} · OPEN</span>
+        <span className="registered-badge">{formatTitle} · OPEN</span>
         <button type="button" className="btn btn-sm btn-primary" onClick={handleJoin} disabled={isJoined || tournament.successfulEntries >= tournament.maxTeams}>
           {isJoined ? 'Joined' : tournament.successfulEntries >= tournament.maxTeams ? 'Full' : 'Join'}
         </button>

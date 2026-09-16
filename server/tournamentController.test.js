@@ -40,6 +40,36 @@ test('validateTournamentInput requires match schedule and room details', () => {
     roomId: 'ABCD12',
     roomPassword: '123456',
   }));
+
+  assert.doesNotThrow(() => validateTournamentInput({
+    name: 'BR Per Kill Cup',
+    format: 'br-per-kill',
+    game: 'Free Fire',
+    entryFee: 20,
+    maxTeams: 10,
+    perKillReward: 5,
+    estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
+  }));
+
+  assert.doesNotThrow(() => validateTournamentInput({
+    name: 'CS Every Win Cup',
+    format: 'cs-every-win',
+    game: 'Free Fire',
+    entryFee: 20,
+    maxTeams: 10,
+    estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
+  }));
+
+  assert.doesNotThrow(() => validateTournamentInput({
+    name: 'CS Custom Cup',
+    format: 'cs-custom',
+    game: 'Free Fire',
+    entryFee: 20,
+    maxTeams: 10,
+    estimatedDate: '2026-09-15',
+  }));
 });
 
 test('normalizeResultEntry keeps both kills and points for custom tournament results', () => {
