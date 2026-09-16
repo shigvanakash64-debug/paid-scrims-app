@@ -503,10 +503,26 @@ export const getTournamentGroups = async (req, res) => {
       return res.json({ success: true, groups: [], userGroup: null });
     }
 
-    const persistedGroups = participants.every((participant) => Number(participant.groupNumber) > 0);
+    const hasInvalidCsGroups = tournament.format === 'cs-every-win'
+      && [...new Set(participants.map((participant) => Number(participant.groupNumber) || 0))].some((groupNumber) => (
+        groupNumber > 0 && participants.filter((participant) => Number(participant.groupNumber) === groupNumber).length > 2
+      ));
+    const persistedGroups = participants.every((participant) => Number(participant.groupNumber) > 0) && !hasInvalidCsGroups;
     const assignments = persistedGroups
       ? new Map(participants.map((participant) => [String(participant._id), Number(participant.groupNumber)]))
-      : assignTournamentGroups(participants, Math.random, tournament.format === 'cs-every-win' ? 2 : 12);
+      : tournament.format === 'cs-every-win'
+        ? assignPersistentGroups(participants.map((participant) => ({ ...participant, groupNumber: hasInvalidCsGroups ? 0 : participant.groupNumber })), 2)
+        : assignTournamentGroups(participants, Math.random, 12);
+
+    if (!persistedGroups) {
+      const updates = participants.map((participant) => ({
+        updateOne: {
+          filter: { _id: participant._id },
+          update: { $set: { groupNumber: Number(assignments.get(String(participant._id)) || 1) } },
+        },
+      }));
+      if (updates.length) await TournamentParticipant.bulkWrite(updates);
+    }
     const groupMap = new Map();
     participants.forEach((participant) => {
       const groupNumber = Number(assignments.get(String(participant._id)) || 1);
