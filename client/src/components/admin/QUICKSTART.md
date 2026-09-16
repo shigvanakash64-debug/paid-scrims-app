@@ -16,7 +16,6 @@ function App() {
     <Routes>
       {/* Existing routes */}
       <Route path="/home" element={<HomeScreen />} />
-      <Route path="/match/:id" element={<MatchScreen />} />
       
       {/* NEW: Admin dashboard route */}
       {user?.role === 'admin' && (

@@ -114,7 +114,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                   <div className="match-actions">
                     <button className="btn-outline" type="button" onClick={() => {
                       onMatchSelect?.(matchItem);
-                      onScreenChange('match');
+                      onScreenChange('pairing');
                     }}>
                       View Match
                     </button>
@@ -273,7 +273,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         duration: 5000,
       });
       onMatchSelect?.(response.data.match);
-      onScreenChange('match');
+      onScreenChange('pairing');
     } catch (error) {
       alert(error.response?.data?.error || 'Could not accept match');
     }

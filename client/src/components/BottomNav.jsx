@@ -1,7 +1,6 @@
 export const BottomNav = ({ currentScreen, onScreenChange, isVisible = true }) => {
   const navItems = [
     { id: 'home', label: 'Home', icon: '⌂' },
-    { id: 'match', label: 'Match', icon: '⚔' },
     { id: 'pairing', label: 'Pairing', icon: '🔗' },
     { id: 'wallet', label: 'Wallet', icon: '💰' },
     { id: 'leaderboard', label: 'Ranks', icon: '🏆' },
