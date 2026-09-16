@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState, lazy, Suspense, useRef } from 'react'
 import axios from 'axios';
 import { HomeScreen } from './screens/HomeScreen';
 import { MatchScreen } from './screens/MatchScreen';
-import { ResultScreen } from './screens/ResultScreen';
 import { PairingScreen } from './screens/PairingScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -37,7 +36,7 @@ const HostLayout = lazy(() => import('./components/admin/AdminLayout').then(m =>
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 const ENTRY_CHOICE_KEY = 'clutchzone_entry_choice';
-const VALID_SCREENS = ['entry', 'home', 'match', 'result', 'pairing', 'profile', 'wallet', 'leaderboard', 'settings', 'admin', 'host', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
+const VALID_SCREENS = ['entry', 'home', 'match', 'pairing', 'profile', 'wallet', 'leaderboard', 'settings', 'admin', 'host', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
 
 const getStoredEntryChoice = () => {
   if (typeof window === 'undefined') return null;
@@ -789,8 +788,6 @@ function App() {
         return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} currentMatch={currentMatch} />;
       case 'match':
         return <MatchScreen match={currentMatch} user={user} onScreenChange={handleScreenChange} />;
-      case 'result':
-        return <ResultScreen match={currentMatch} user={user} onScreenChange={handleScreenChange} onUserUpdate={handleUserUpdate} />;
       case 'pairing':
         return (
           <PairingScreen
