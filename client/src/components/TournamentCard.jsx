@@ -139,7 +139,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
             ) : (
               stages.map((stage) => (
                 <div key={stage.key || stage.name} className="flex items-center justify-between gap-3 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] px-3 py-2">
-                  <span className="text-sm font-medium text-white">{stage.name}</span>
+                  <span className="text-sm font-medium text-white">{tournament.format === 'cs-every-win' && stage.key === 'cs-every-win' ? 'Round 1' : stage.name}</span>
                   {stage.time && <span className="text-xs text-[#FFB066]">{formatTime12Hour(stage.time)}</span>}
                 </div>
               ))
@@ -195,7 +195,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
                 return (
                   <div key={stage.key || stage.name} className="rounded-lg border border-[#1F1F1F] bg-[#0D0D0D] p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-white">{stage.name}</span>
+                      <span className="text-sm font-medium text-white">{tournament.format === 'cs-every-win' && stage.key === 'cs-every-win' ? 'Round 1' : stage.name}</span>
                       <button
                         type="button"
                         disabled={!stageHasResult}

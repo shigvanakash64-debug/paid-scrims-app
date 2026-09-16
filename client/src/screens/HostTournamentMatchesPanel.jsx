@@ -86,7 +86,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   const openCreateResult = async (stage) => {
     try {
       const publishedStageResult = results.filter((result) => result.stageKey === stage.key && result.status === 'published');
-      if (publishedStageResult.length > 0) {
+      if (publishedStageResult.length > 0 && !isEveryWinTournament) {
         openExistingResult(stage, publishedStageResult[0]);
         return;
       }
@@ -98,6 +98,40 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       }
 
       if (draftStageKey === stage.key) {
+        return;
+      }
+      if (isEveryWinTournament) {
+        const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/results`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}`,
+          },
+          body: JSON.stringify({
+            stageKey: stage.key,
+            matchTitle: buildDefaultMatchTitle(stage),
+            resultType: 'grand-finale',
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to create CS knockout match');
+        const participantMap = new Map(stageParticipants.map((participant) => [String(participant._id), participant]));
+        const matchParticipants = (data.match?.participants || []).map((participantId) => {
+          const participant = participantMap.get(String(participantId));
+          return {
+            participantId,
+            participantName: participant?.displayName || participant?.username || 'Participant',
+            kills: '',
+            money: '',
+            points: '',
+          };
+        });
+        setError('');
+        setNotice('CS knockout match ready. Select the winner after the match.');
+        setSelectedStageKey(stage.key);
+        setDraftStageKey(stage.key);
+        setActiveResult(data.result);
+        setForm({ matchTitle: data.result.matchTitle, resultType: 'grand-finale', winnerParticipantId: '', entries: matchParticipants });
         return;
       }
       if (isPerKillTournament && results.some((result) => result.status === 'published')) {
@@ -324,6 +358,24 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
         if (!createResponse.ok) throw new Error(createData.error || 'Failed to create result');
         publishMatchId = createData.result?.matchId || createData.match?._id;
         setActiveResult(createData.result);
+        if (isEveryWinTournament) {
+          const createdParticipants = createData.match?.participants || [];
+          const participantMap = new Map(stageParticipants.map((participant) => [String(participant._id), participant]));
+          setForm((current) => ({
+            ...current,
+            winnerParticipantId: '',
+            entries: createdParticipants.map((participant) => {
+              const details = participantMap.get(String(participant._id || participant));
+              return {
+                participantId: participant._id || participant,
+                participantName: details?.displayName || details?.username || 'Participant',
+                kills: '',
+                money: '',
+                points: '',
+              };
+            }),
+          }));
+        }
       }
 
       const saveResponse = await fetch(`${API_BASE}/tournaments/${tournamentId}/matches/${publishMatchId}/result`, {
@@ -404,7 +456,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                         Close
                       </Button>
                     )}
-                    <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)} disabled={hasPublishedResult || (draftStageKey === stage.key) || (isPerKillTournament && results.some((result) => result.status === 'published'))}>
+                    <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)} disabled={(!isEveryWinTournament && hasPublishedResult) || (draftStageKey === stage.key) || (isPerKillTournament && results.some((result) => result.status === 'published'))}>
                       <Plus size={16} /> {isStageOpen ? 'Reopen Result' : 'Create Result'}
                     </Button>
                   </div>

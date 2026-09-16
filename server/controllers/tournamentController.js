@@ -61,7 +61,7 @@ const buildStages = (format, customStages = []) => {
   }
 
   if (format === 'cs-every-win') {
-    return [{ name: 'Every Win', key: format, order: 1, time: '', matchCount: 1 }];
+    return [{ name: 'Round 1', key: format, order: 1, time: '', matchCount: 0 }];
   }
 
   return customStages
@@ -113,6 +113,30 @@ export const assignTournamentGroups = (participants = [], rng = Math.random, gro
   groupedParticipants.forEach((participant, index) => {
     const participantKey = String(participant?._id || participant?.participantId || participant?.userId || participant?.id || index);
     assignments.set(participantKey, Math.floor(index / Math.max(1, groupSize)) + 1);
+  });
+
+  return assignments;
+};
+
+const assignPersistentGroups = (participants = [], groupSize = 12) => {
+  const assignments = new Map();
+  const groupCounts = new Map();
+
+  participants.forEach((participant) => {
+    const existingGroup = Number(participant.groupNumber || 0);
+    if (existingGroup > 0 && (groupCounts.get(existingGroup) || 0) < groupSize) {
+      assignments.set(String(participant._id), existingGroup);
+      groupCounts.set(existingGroup, (groupCounts.get(existingGroup) || 0) + 1);
+    }
+  });
+
+  participants.forEach((participant) => {
+    const participantId = String(participant._id);
+    if (assignments.has(participantId)) return;
+    let groupNumber = 1;
+    while ((groupCounts.get(groupNumber) || 0) >= groupSize) groupNumber += 1;
+    assignments.set(participantId, groupNumber);
+    groupCounts.set(groupNumber, (groupCounts.get(groupNumber) || 0) + 1);
   });
 
   return assignments;
@@ -427,7 +451,9 @@ export const joinTournament = async (req, res) => {
         displayName: req.user?.username || 'Participant',
       });
       const allParticipants = await TournamentParticipant.find({ tournamentId: tournament._id, status: 'registered' }).sort({ registeredAt: 1 }).lean();
-      const assignments = assignTournamentGroups(allParticipants, Math.random, tournament.format === 'cs-every-win' ? 2 : 12);
+      const assignments = tournament.format === 'cs-every-win'
+        ? assignPersistentGroups(allParticipants, 2)
+        : assignTournamentGroups(allParticipants, Math.random, 12);
       const updates = allParticipants.map((entry) => ({
         updateOne: {
           filter: { _id: entry._id },
@@ -440,13 +466,11 @@ export const joinTournament = async (req, res) => {
       const financials = isPerKillFormat(tournament.format)
         ? { totalCollection: tournament.entryFee * tournament.successfulEntries, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
         : calculateFinancials(tournament.entryFee, tournament.successfulEntries);
-      await Tournament.updateOne(
-        { _id: tournament._id },
-        {
-          $addToSet: { 'stages.$[].matches.$[].participants': participant._id },
-          $set: financials,
-        },
-      );
+      const tournamentUpdate = { $set: financials };
+      if (tournament.format !== 'cs-every-win') {
+        tournamentUpdate.$addToSet = { 'stages.$[].matches.$[].participants': participant._id };
+      }
+      await Tournament.updateOne({ _id: tournament._id }, tournamentUpdate);
       return res.json({ success: true, message: 'Tournament registration successful', walletBalance: user.wallet.balance, userGroup: Number(assignments.get(String(participant._id)) || 1) });
     } catch (error) {
       await Tournament.findByIdAndUpdate(tournament._id, { $inc: { successfulEntries: -1 } });
