@@ -11,27 +11,19 @@ const authConfig = () => ({ headers: { Authorization: `Bearer ${localStorage.get
 
 export const LeaderboardScreen = ({ user, onScreenChange, onMatchSelect }) => {
   const [players, setPlayers] = useState([]);
-  const [challenges, setChallenges] = useState([]);
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [form, setForm] = useState({ mode: '1v1', type: 'Normal Headshot', entry: 20 });
-  const [panelOpen, setPanelOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
   const loadData = async () => {
-    const [leaderboardResult, challengesResult] = await Promise.allSettled([
-      axios.get(`${API_BASE}/leaderboard`, authConfig()),
-      axios.get(`${API_BASE}/challenges`, authConfig()),
-    ]);
-    if (leaderboardResult.status === 'fulfilled') {
-      setPlayers(leaderboardResult.value.data.players || []);
-    } else {
-      setMessage(leaderboardResult.reason.response?.data?.error || 'Unable to load leaderboard');
+    try {
+      const leaderboardResult = await axios.get(`${API_BASE}/leaderboard`, authConfig());
+      setPlayers(leaderboardResult.data.players || []);
+      setMessage('');
+    } catch (error) {
+      setMessage(error.response?.data?.error || 'Unable to load leaderboard');
+    } finally {
+      setLoading(false);
     }
-    if (challengesResult.status === 'fulfilled') {
-      setChallenges(challengesResult.value.data.challenges || []);
-    }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -39,38 +31,6 @@ export const LeaderboardScreen = ({ user, onScreenChange, onMatchSelect }) => {
     const timer = setInterval(loadData, 30000);
     return () => clearInterval(timer);
   }, []);
-
-  const pendingChallenges = challenges.filter((challenge) => challenge.status === 'pending' && String(challenge.challengedPlayer?._id || challenge.challengedPlayer) === String(user?.id || user?._id));
-
-  const sendChallenge = async () => {
-    try {
-      await axios.post(`${API_BASE}/challenges`, {
-        targetUserId: selectedPlayer._id || selectedPlayer.id,
-        ...form,
-      }, authConfig());
-      setMessage(`Challenge sent to ${selectedPlayer.username}`);
-      setSelectedPlayer(null);
-      await loadData();
-      sessionStorage.setItem('clutchzone_open_my_matches', 'true');
-      onScreenChange('pairing');
-    } catch (error) {
-      setMessage(error.response?.data?.error || 'Unable to send challenge');
-    }
-  };
-
-  const handleChallengeAction = async (challengeId, action) => {
-    try {
-      const response = await axios.post(`${API_BASE}/challenges/${challengeId}/${action}`, {}, authConfig());
-      setMessage(action === 'accept' ? 'Challenge accepted. Match is ready for payment.' : 'Challenge declined');
-      setChallenges((current) => current.map((challenge) => challenge._id === challengeId ? { ...challenge, status: action === 'accept' ? 'accepted' : 'declined' } : challenge));
-      if (action === 'accept' && response.data.match) {
-        onMatchSelect(response.data.match);
-        onScreenChange('match');
-      }
-    } catch (error) {
-      setMessage(error.response?.data?.error || `Unable to ${action} challenge`);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] px-4 pb-24 pt-6 text-white sm:px-6 lg:px-8">
@@ -81,42 +41,24 @@ export const LeaderboardScreen = ({ user, onScreenChange, onMatchSelect }) => {
             <h1 className="mt-2 text-3xl font-bold">LEADERBOARD</h1>
             <p className="mt-2 text-sm text-[#A1A1A1]">Top 100 players by total winnings.</p>
           </div>
-          <button type="button" onClick={() => setPanelOpen((open) => !open)} className="relative rounded-2xl border border-[#2A2A2A] bg-[#111111] px-4 py-3 text-xl" aria-label="Open challenges">
-            🔔
-            {pendingChallenges.length > 0 && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-[#EF4444]" />}
-          </button>
         </div>
 
         {message && <div className="rounded-2xl border border-[#FF6A00] bg-[#1a0c00] px-4 py-3 text-sm text-[#FFD2B5]">{message}</div>}
 
-        {panelOpen && (
-          <section className="rounded-3xl border border-[#2A2A2A] bg-[#111111] p-5">
-            <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-semibold">CHALLENGES</h2><button type="button" onClick={() => setPanelOpen(false)} className="text-sm text-[#A1A1A1]">Close</button></div>
-            <div className="mt-4 space-y-3">
-              {pendingChallenges.length === 0 ? <p className="text-sm text-[#A1A1A1]">No pending challenges.</p> : pendingChallenges.map((challenge) => (
-                <div key={challenge._id} className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] p-4">
-                  <p className="font-semibold">{challenge.challenger?.username || 'Player'} challenged you</p>
-                  <p className="mt-2 text-sm text-[#A1A1A1]">{challenge.mode} • {challenge.type} • CZ{challenge.entry}</p>
-                  <div className="mt-4 flex gap-2"><button type="button" onClick={() => handleChallengeAction(challenge._id, 'accept')} className="rounded-xl bg-[#FF6A00] px-4 py-2 text-sm font-semibold text-black">ACCEPT</button><button type="button" onClick={() => handleChallengeAction(challenge._id, 'decline')} className="rounded-xl border border-[#EF4444] px-4 py-2 text-sm font-semibold text-[#EF4444]">DECLINE</button></div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
         <div className="overflow-hidden rounded-3xl border border-[#1F1F1F] bg-[#111111]">
-          <div className="grid grid-cols-[minmax(0,42px)_minmax(0,1fr)_minmax(0,52px)_minmax(0,104px)] gap-2 border-b border-[#1F1F1F] px-4 py-3 text-xs uppercase tracking-[0.16em] text-[#737373] sm:grid-cols-[minmax(0,60px)_minmax(0,1fr)_minmax(0,140px)_minmax(0,140px)] sm:gap-3 sm:px-5"><span className="min-w-0 break-all">Rank</span><span className="min-w-0 break-all">Player</span><span className="min-w-0 break-all">Won</span><span /></div>
+          <div className="grid grid-cols-[minmax(0,42px)_minmax(0,1fr)_minmax(0,52px)] gap-2 border-b border-[#1F1F1F] px-4 py-3 text-xs uppercase tracking-[0.16em] text-[#737373] sm:grid-cols-[minmax(0,60px)_minmax(0,1fr)_minmax(0,140px)] sm:gap-3 sm:px-5">
+            <span className="min-w-0 break-all">Rank</span>
+            <span className="min-w-0 break-all">Player</span>
+            <span className="min-w-0 break-all">Won</span>
+          </div>
           {loading ? <p className="p-8 text-center text-sm text-[#A1A1A1]">Loading rankings...</p> : players.map((player) => (
-            <div key={player._id || player.id} className="grid grid-cols-[minmax(0,42px)_minmax(0,1fr)_minmax(0,52px)_minmax(0,104px)] items-center gap-2 border-b border-[#1F1F1F] px-4 py-4 last:border-0 sm:grid-cols-[minmax(0,60px)_minmax(0,1fr)_minmax(0,140px)_minmax(0,140px)] sm:gap-3 sm:px-5">
+            <div key={player._id || player.id} className="grid grid-cols-[minmax(0,42px)_minmax(0,1fr)_minmax(0,52px)] items-center gap-2 border-b border-[#1F1F1F] px-4 py-4 last:border-0 sm:grid-cols-[minmax(0,60px)_minmax(0,1fr)_minmax(0,140px)] sm:gap-3 sm:px-5">
               <span className="min-w-0 break-all font-bold text-[#FF6A00]">#{player.rank}</span>
               <div className="min-w-0 break-words"><div className="font-semibold">{player.username}</div>{player.title && <div className="mt-1 text-xs text-[#A1A1A1]">({player.title})</div>}</div>
               <span className="min-w-0 break-all text-sm font-semibold">{Number(player.totalWon || 0).toLocaleString()}</span>
-              <button type="button" disabled={String(player._id || player.id) === String(user?.id || user?._id)} onClick={() => setSelectedPlayer(player)} className="w-full min-w-0 break-words rounded-xl border border-[#FF6A00] px-1 py-2 text-xs font-semibold text-[#FF6A00] disabled:cursor-not-allowed disabled:opacity-30">Challenge</button>
             </div>
           ))}
         </div>
-
-        {selectedPlayer && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"><div className="w-full max-w-md rounded-3xl border border-[#2A2A2A] bg-[#111111] p-5"><div className="flex items-center justify-between"><h2 className="text-xl font-semibold">Challenge {selectedPlayer.username}</h2><button type="button" onClick={() => setSelectedPlayer(null)} className="text-[#A1A1A1]">Close</button></div><div className="mt-5 space-y-4"><label className="block text-sm text-[#A1A1A1]">Match Mode<select value={form.mode} onChange={(event) => setForm({ ...form, mode: event.target.value })} className="mt-2 w-full rounded-xl border border-[#2A2A2A] bg-[#0B0B0B] p-3 text-white">{modes.map((mode) => <option key={mode}>{mode}</option>)}</select></label><label className="block text-sm text-[#A1A1A1]">Kill Type<select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value })} className="mt-2 w-full rounded-xl border border-[#2A2A2A] bg-[#0B0B0B] p-3 text-white">{killTypes.map((type) => <option key={type}>{type}</option>)}</select></label><label className="block text-sm text-[#A1A1A1]">Entry Fee<select value={form.entry} onChange={(event) => setForm({ ...form, entry: Number(event.target.value) })} className="mt-2 w-full rounded-xl border border-[#2A2A2A] bg-[#0B0B0B] p-3 text-white">{entryFees.map((fee) => <option key={fee} value={fee}>CZ{fee}</option>)}</select></label><button type="button" onClick={sendChallenge} className="w-full rounded-2xl bg-[#FF6A00] px-5 py-4 text-sm font-bold tracking-[0.14em] text-black">SEND CHALLENGE</button></div></div></div>}
       </div>
     </div>
   );

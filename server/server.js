@@ -22,7 +22,6 @@ import wallpaperRoutes from "./routes/wallpaperRoutes.js";
 import brRoutes from "./routes/brRoutes.js";
 import brResultRoutes from "./routes/brResultRoutes.js";
 import leaderboardRoutes from "./routes/leaderboardRoutes.js";
-import challengeRoutes from "./routes/challengeRoutes.js";
 import tournamentRoutes from "./routes/tournamentRoutes.js";
 import User from "./models/User.js";
 import { initializeCronJobs, stopCronJobs } from "./utils/cronJobs.js";
@@ -295,7 +294,6 @@ app.use("/api/br-match", matchLimiter, brRoutes);
 app.use("/api/br-participant", matchLimiter, brRoutes);
 app.use("/api/br-result", matchLimiter, brResultRoutes);
 app.use("/api/leaderboard", matchLimiter, leaderboardRoutes);
-app.use("/api/challenges", matchLimiter, challengeRoutes);
 app.use("/api/tournaments", matchLimiter, tournamentRoutes);
 app.use("/api/admin", adminLimiter, adminRoutes);
 

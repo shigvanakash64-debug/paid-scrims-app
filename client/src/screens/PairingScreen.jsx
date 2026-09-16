@@ -47,49 +47,6 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('clutchzone_open_my_matches') === 'true' ? 'my-matches' : 'live-opponents');
-  const [pendingChallenges, setPendingChallenges] = useState([]);
-
-  useEffect(() => {
-    sessionStorage.removeItem('clutchzone_open_my_matches');
-    const fetchChallenges = async () => {
-      try {
-        const response = await axios.get(`${API_BASE}/challenges`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
-        });
-        const nextChallenges = response.data.challenges || [];
-        setPendingChallenges(nextChallenges);
-        const acceptedChallenge = nextChallenges.find((challenge) => (
-          challenge.status === 'accepted' && challenge.match &&
-          String(challenge.challenger?._id || challenge.challenger) === String(currentUser?.id || currentUser?._id)
-        ));
-        if (acceptedChallenge?.match) {
-          const matchId = acceptedChallenge.match.id || acceptedChallenge.match._id;
-          const redirectedMatchId = sessionStorage.getItem('clutchzone_accepted_challenge_redirect');
-          if (matchId && redirectedMatchId !== String(matchId)) {
-            sessionStorage.setItem('clutchzone_accepted_challenge_redirect', String(matchId));
-            onMatchSelect?.(acceptedChallenge.match);
-            onScreenChange('match');
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load challenges:', err);
-      }
-    };
-    fetchChallenges();
-    const interval = setInterval(fetchChallenges, 5000);
-    return () => clearInterval(interval);
-  }, [currentUser, onMatchSelect, onScreenChange]);
-
-  const cancelChallenge = async (challengeId) => {
-    try {
-      await axios.post(`${API_BASE}/challenges/${challengeId}/cancel`, {}, {
-        headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
-      });
-      setPendingChallenges((current) => current.filter((challenge) => challenge._id !== challengeId));
-    } catch (err) {
-      alert(err.response?.data?.error || 'Could not cancel challenge');
-    }
-  };
 
   const renderTabContent = () => {
     if (activeTab === 'br-matches') {
@@ -105,12 +62,6 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
       return (
         <div className="section">
           <div className="section-label">Your Active Match</div>
-          {pendingChallenges.filter((challenge) => challenge.status === 'pending' && String(challenge.challenger?._id || challenge.challenger) === String(currentUser?.id || currentUser?._id)).map((challenge) => (
-            <div key={challenge._id} className="match-card pinned-match">
-              <div className="match-card-header"><div><div className="match-tag">CHALLENGE SENT</div><div className="match-title">{challenge.mode} · {challenge.type} · CZ{challenge.entry}</div><div className="match-meta-row" style={{ marginTop: 8 }}><span>Waiting for {challenge.challengedPlayer?.username || 'opponent'} to accept</span></div></div></div>
-              <div className="match-actions"><button className="btn-outline" type="button" onClick={() => cancelChallenge(challenge._id)}>Cancel Challenge</button></div>
-            </div>
-          ))}
           {visibleMyMatches.length > 0 ? (
             visibleMyMatches.map((item) => {
               if (item._listType === 'tournament') {
