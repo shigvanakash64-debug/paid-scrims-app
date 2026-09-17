@@ -422,8 +422,17 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       </button>
 
       <div>
-        <h1 className="text-3xl font-bold text-white">{tournament.name}</h1>
-        <p className="mt-2 text-sm text-[#A1A1A1]">Create and publish one match result at a time.</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-white">{tournament.name}</h1>
+            <p className="mt-2 text-sm text-[#A1A1A1]">Create and publish one match result at a time.</p>
+          </div>
+          {['custom', 'br-custom', 'cs-custom'].includes(tournament.format) && (
+            <Button variant="secondary" size="sm" onClick={addStage}>
+              <Plus size={16} /> Create Stage
+            </Button>
+          )}
+        </div>
       </div>
 
       {error && <p className="text-sm text-[#FCA5A5]">{error}</p>}
@@ -448,7 +457,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                   <div className="flex items-center gap-2">
                     {['custom', 'br-custom', 'cs-custom'].includes(tournament?.format) && (
                       <Button variant="secondary" size="sm" onClick={addStage}>
-                        <Plus size={16} /> Add Stage
+                        <Plus size={16} /> Create Stage
                       </Button>
                     )}
                     {isStageOpen && (
