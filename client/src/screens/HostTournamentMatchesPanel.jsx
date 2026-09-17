@@ -248,7 +248,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   };
 
   const addStage = async () => {
-    if (!['custom', 'br-custom', 'cs-custom'].includes(tournament?.format)) return;
+    if (!['custom', 'br-custom', 'cs-custom', 'cs-every-win'].includes(tournament?.format)) return;
     const stageName = window.prompt('Enter new stage name');
     if (!stageName || !stageName.trim()) return;
 
@@ -364,7 +364,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
             <h1 className="text-3xl font-bold text-white">{tournament.name}</h1>
             <p className="mt-2 text-sm text-[#A1A1A1]">Create and publish one match result at a time.</p>
           </div>
-          {['custom', 'br-custom', 'cs-custom'].includes(tournament.format) && (
+          {['custom', 'br-custom', 'cs-custom', 'cs-every-win'].includes(tournament.format) && (
             <Button variant="secondary" size="sm" onClick={addStage}>
               <Plus size={16} /> Create Stage
             </Button>
@@ -392,7 +392,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {['custom', 'br-custom', 'cs-custom'].includes(tournament?.format) && (
+                    {['custom', 'br-custom', 'cs-custom', 'cs-every-win'].includes(tournament?.format) && (
                       <Button variant="secondary" size="sm" onClick={addStage}>
                         <Plus size={16} /> Create Stage
                       </Button>

@@ -48,7 +48,7 @@ export const calculateFinancials = (entryFee, successfulEntries) => {
 };
 
 const PER_KILL_FORMATS = new Set(['single-match', 'br-per-kill']);
-const CUSTOM_FORMATS = new Set(['custom', 'br-custom', 'cs-custom']);
+const CUSTOM_FORMATS = new Set(['custom', 'br-custom', 'cs-custom', 'cs-every-win']);
 const SINGLE_STAGE_FORMATS = new Set(['single-match', 'br-per-kill']);
 
 const isPerKillFormat = (format) => PER_KILL_FORMATS.has(format);

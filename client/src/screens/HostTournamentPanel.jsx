@@ -23,8 +23,8 @@ const FORMAT_OPTIONS = [
 ];
 
 const isPerKillFormat = (value) => value === 'single-match' || value === 'br-per-kill';
-const isSingleStageFormat = (value) => isPerKillFormat(value) || value === 'cs-every-win';
-const isCustomFormat = (value) => value === 'custom' || value === 'br-custom' || value === 'cs-custom';
+const isSingleStageFormat = (value) => isPerKillFormat(value);
+const isCustomFormat = (value) => value === 'custom' || value === 'br-custom' || value === 'cs-custom' || value === 'cs-every-win';
 const getFormatTitle = (value) => FORMAT_OPTIONS.find((option) => option.value === value)?.title || (value === 'single-match' ? 'BR Per Kill Tournament' : value === 'custom' ? 'BR Custom Tournament' : value);
 
 export const HostTournamentPanel = ({ onBack }) => {
