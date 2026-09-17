@@ -22,10 +22,9 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   const [selectedStageKey, setSelectedStageKey] = useState('');
   const [activeResult, setActiveResult] = useState(null);
   const [draftStageKey, setDraftStageKey] = useState(null);
-  const [form, setForm] = useState({ matchTitle: '', resultType: 'normal', winnerParticipantId: '', entries: [] });
+  const [form, setForm] = useState({ matchTitle: '', resultType: 'normal', entries: [] });
   const isPerKillTournament = tournament?.format === 'single-match' || tournament?.format === 'br-per-kill';
-  const isEveryWinTournament = tournament?.format === 'cs-every-win';
-  const isSingleStageTournament = isPerKillTournament || isEveryWinTournament;
+  const isSingleStageTournament = isPerKillTournament;
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -86,7 +85,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   const openCreateResult = async (stage) => {
     try {
       const publishedStageResult = results.filter((result) => result.stageKey === stage.key && result.status === 'published');
-      if (publishedStageResult.length > 0 && !isEveryWinTournament) {
+      if (publishedStageResult.length > 0) {
         openExistingResult(stage, publishedStageResult[0]);
         return;
       }
@@ -98,40 +97,6 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       }
 
       if (draftStageKey === stage.key) {
-        return;
-      }
-      if (isEveryWinTournament) {
-        const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/results`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}`,
-          },
-          body: JSON.stringify({
-            stageKey: stage.key,
-            matchTitle: buildDefaultMatchTitle(stage),
-            resultType: 'grand-finale',
-          }),
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to create CS knockout match');
-        const participantMap = new Map(stageParticipants.map((participant) => [String(participant._id), participant]));
-        const matchParticipants = (data.match?.participants || []).map((participantId) => {
-          const participant = participantMap.get(String(participantId));
-          return {
-            participantId,
-            participantName: participant?.displayName || participant?.username || 'Participant',
-            kills: '',
-            money: '',
-            points: '',
-          };
-        });
-        setError('');
-        setNotice('CS knockout match ready. Select the winner after the match.');
-        setSelectedStageKey(stage.key);
-        setDraftStageKey(stage.key);
-        setActiveResult(data.result);
-        setForm({ matchTitle: data.result.matchTitle, resultType: 'grand-finale', winnerParticipantId: '', entries: matchParticipants });
         return;
       }
       if (isPerKillTournament && results.some((result) => result.status === 'published')) {
@@ -152,8 +117,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       setForm({
         matchTitle: stage.name || buildDefaultMatchTitle(stage),
         resultType: isSingleStageTournament ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal'),
-        winnerParticipantId: '',
-        entries: tournament?.format === 'cs-every-win' ? stageParticipants.slice(0, 2).map((participant) => ({ participantId: participant._id, participantName: participant.displayName, kills: '', money: '', points: '' })) : [],
+        entries: [],
       });
       setNotice('Result ready. Add the participant scores and publish it.');
     } catch (createError) {
@@ -167,7 +131,6 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
     setForm({
       matchTitle: stage.name || result.matchTitle || buildDefaultMatchTitle(stage),
       resultType: result.resultType || (isSingleStageTournament ? 'grand-finale' : (stage.key === 'grand-final' ? 'grand-finale' : 'normal')),
-      winnerParticipantId: result.winnerParticipantId || '',
       entries: (result.entries || []).map((entry) => ({
         participantId: entry.participantId,
         participantName: entry.participantName,
@@ -205,10 +168,6 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   };
 
   const addEntry = () => {
-    if (isEveryWinTournament && form.entries.length >= 2) {
-      setError('CS Every Single Win matches can contain only two participants.');
-      return;
-    }
     setForm((current) => ({
       ...current,
       entries: [...current.entries, {
@@ -321,8 +280,6 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
 
     const confirmed = window.confirm(isPerKillTournament
       ? 'Publish this per-kill result? This will lock the result and pay winners.'
-      : isEveryWinTournament
-        ? 'Publish this CS every-win result? This will lock the result.'
       : 'Publish this custom tournament result? This will lock the result.');
     if (!confirmed) return;
 
@@ -330,7 +287,6 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       const payload = {
         matchTitle: form.matchTitle,
         resultType: form.resultType,
-        winnerParticipantId: form.winnerParticipantId,
         entries: form.entries.map((entry) => ({
           participantId: entry.participantId,
           points: Number(entry.points || 0),
@@ -351,31 +307,12 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
             stageKey: selectedStageKey,
             matchTitle: form.matchTitle,
             resultType: form.resultType,
-            participantIds: form.entries.map((entry) => entry.participantId).filter(Boolean),
           }),
         });
         const createData = await createResponse.json().catch(() => ({}));
         if (!createResponse.ok) throw new Error(createData.error || 'Failed to create result');
         publishMatchId = createData.result?.matchId || createData.match?._id;
         setActiveResult(createData.result);
-        if (isEveryWinTournament) {
-          const createdParticipants = createData.match?.participants || [];
-          const participantMap = new Map(stageParticipants.map((participant) => [String(participant._id), participant]));
-          setForm((current) => ({
-            ...current,
-            winnerParticipantId: '',
-            entries: createdParticipants.map((participant) => {
-              const details = participantMap.get(String(participant._id || participant));
-              return {
-                participantId: participant._id || participant,
-                participantName: details?.displayName || details?.username || 'Participant',
-                kills: '',
-                money: '',
-                points: '',
-              };
-            }),
-          }));
-        }
       }
 
       const saveResponse = await fetch(`${API_BASE}/tournaments/${tournamentId}/matches/${publishMatchId}/result`, {
@@ -465,7 +402,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                         Close
                       </Button>
                     )}
-                    <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)} disabled={(!isEveryWinTournament && hasPublishedResult) || (draftStageKey === stage.key) || (isPerKillTournament && results.some((result) => result.status === 'published'))}>
+                    <Button variant="primary" size="sm" onClick={() => openCreateResult(stage)} disabled={hasPublishedResult || (draftStageKey === stage.key) || (isPerKillTournament && results.some((result) => result.status === 'published'))}>
                       <Plus size={16} /> {isStageOpen ? 'Reopen Result' : 'Create Result'}
                     </Button>
                   </div>
@@ -504,22 +441,6 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                         readOnly
                       />
                     </label>
-
-                    {isEveryWinTournament && (
-                      <label className="block text-sm text-[#A1A1A1]">
-                        Match Winner
-                        <select
-                          className="auth-input mt-2 w-full"
-                          value={form.winnerParticipantId}
-                          onChange={(event) => setForm((current) => ({ ...current, winnerParticipantId: event.target.value }))}
-                        >
-                          <option value="">Select winner</option>
-                          {form.entries.filter((entry) => entry.participantId).map((entry) => (
-                            <option key={entry.participantId} value={entry.participantId}>{entry.participantName}</option>
-                          ))}
-                        </select>
-                      </label>
-                    )}
 
                     {!isPerKillTournament && <label className="block text-sm text-[#A1A1A1]">
                       Result Type
