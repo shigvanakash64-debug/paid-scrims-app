@@ -45,7 +45,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
     setActivePanel((current) => (current === 'results' ? null : 'results'));
   };
 
-  const handleLoadGroups = async () => {
+  const handleLoadGroups = async (groupNumber = null) => {
     if (!isJoined) return;
     const response = await fetch(`${API_BASE}/tournaments/${tournament._id}/groups`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
@@ -56,6 +56,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
       return;
     }
     setGroupData({ groups: data.groups || [], userGroup: data.userGroup ?? tournament?.userGroup ?? null });
+    if (groupNumber !== null) setExpandedGroup(Number(groupNumber));
     setActivePanel((current) => (current === 'groups' ? null : 'groups'));
   };
   const hostUsername = tournament?.createdBy?.username || tournament?.hostUsername || 'Host';
@@ -139,7 +140,13 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
             ) : (
               stages.map((stage) => (
                 <div key={stage.key || stage.name} className="flex items-center justify-between gap-3 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] px-3 py-2">
-                  <span className="text-sm font-medium text-white">{tournament.format === 'cs-every-win' && stage.key === 'cs-every-win' ? 'Group 1' : stage.name}</span>
+                  {tournament.format === 'cs-every-win' && stage.key === 'cs-every-win' ? (
+                    <button type="button" className="w-full text-left text-sm font-medium text-white" onClick={() => handleLoadGroups(1)}>
+                      Group 1
+                    </button>
+                  ) : (
+                    <span className="text-sm font-medium text-white">{stage.name}</span>
+                  )}
                   {stage.time && <span className="text-xs text-[#FFB066]">{formatTime12Hour(stage.time)}</span>}
                 </div>
               ))
