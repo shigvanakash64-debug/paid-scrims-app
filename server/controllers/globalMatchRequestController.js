@@ -1,5 +1,6 @@
 import GlobalMatchRequest from '../models/GlobalMatchRequest.js';
 
+const REQUEST_TTL_MS = 24 * 60 * 60 * 1000;
 const isHostOrAdmin = (user) => ['host', 'admin'].includes(user?.role);
 
 const serializeRequest = (request) => ({
@@ -19,7 +20,8 @@ const serializeRequest = (request) => ({
 
 export const listGlobalMatchRequests = async (req, res) => {
   try {
-    const query = isHostOrAdmin(req.user) ? {} : { userId: req.userId };
+    const cutoff = new Date(Date.now() - REQUEST_TTL_MS);
+    const query = isHostOrAdmin(req.user) ? { createdAt: { $gte: cutoff } } : { userId: req.userId, createdAt: { $gte: cutoff } };
     const requests = await GlobalMatchRequest.find(query)
       .populate('userId', 'username')
       .sort({ createdAt: -1 })
@@ -61,8 +63,9 @@ export const respondToGlobalMatchRequest = async (req, res) => {
     const { status } = req.body || {};
     if (!['accepted', 'declined'].includes(status)) return res.status(400).json({ error: 'Response must be accepted or declined' });
 
+    const cutoff = new Date(Date.now() - REQUEST_TTL_MS);
     const request = await GlobalMatchRequest.findByIdAndUpdate(
-      req.params.requestId,
+      { _id: req.params.requestId, createdAt: { $gte: cutoff } },
       { $set: { status, respondedBy: req.userId, respondedAt: new Date() } },
       { new: true },
     ).populate('userId', 'username');
