@@ -72,7 +72,7 @@ export const GlobalChatScreen = ({ user }) => {
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-[#FF6A00]">{request.username} wants to play</p>
                   <h2 className="mt-2 text-lg font-semibold text-white">{request.game} · {request.mode}</h2>
-                  <p className="mt-1 text-sm text-[#D4D4D4]">{request.type} · {request.skillSetting} · CZ{request.entryFee}</p>
+                  <p className="mt-1 text-sm text-[#D4D4D4]">{request.type} · {request.skillSetting} · CZ- {request.entryFee}</p>
                   <p className="mt-2 text-xs text-[#737373]">{new Date(request.createdAt).toLocaleString()}</p>
                 </div>
                 <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${request.status === 'accepted' ? 'border-[#22C55E] text-[#22C55E]' : request.status === 'declined' ? 'border-[#EF4444] text-[#EF4444]' : 'border-[#FFB066] text-[#FFB066]'}`}>
