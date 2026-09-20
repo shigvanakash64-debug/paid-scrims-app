@@ -7,6 +7,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { WalletScreen } from './screens/WalletScreen';
 import { PaymentStatusScreen } from './screens/PaymentStatusScreen';
 import { InboxScreen } from './screens/InboxScreen';
+import { GlobalChatScreen } from './screens/GlobalChatScreen';
 import { InstructionsScreen } from './screens/InstructionsScreen';
 import { ContactsScreen } from './screens/ContactsScreen';
 import { LoginScreen } from './screens/LoginScreen';
@@ -35,7 +36,7 @@ const HostLayout = lazy(() => import('./components/admin/AdminLayout').then(m =>
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 const ENTRY_CHOICE_KEY = 'clutchzone_entry_choice';
-const VALID_SCREENS = ['entry', 'home', 'pairing', 'profile', 'wallet', 'leaderboard', 'settings', 'admin', 'host', 'inbox', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
+const VALID_SCREENS = ['entry', 'home', 'pairing', 'profile', 'wallet', 'leaderboard', 'settings', 'admin', 'host', 'inbox', 'global-chat', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
 
 const getStoredEntryChoice = () => {
   if (typeof window === 'undefined') return null;
@@ -796,6 +797,8 @@ function App() {
         );
       case 'inbox':
         return <InboxScreen user={user} onUserUpdate={handleUserUpdate} />;
+      case 'global-chat':
+        return <GlobalChatScreen user={user} />;
       case 'contacts':
         return <ContactsScreen />;
       case 'profile':

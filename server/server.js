@@ -23,6 +23,7 @@ import brRoutes from "./routes/brRoutes.js";
 import brResultRoutes from "./routes/brResultRoutes.js";
 import leaderboardRoutes from "./routes/leaderboardRoutes.js";
 import tournamentRoutes from "./routes/tournamentRoutes.js";
+import globalMatchRequestRoutes from "./routes/globalMatchRequestRoutes.js";
 import User from "./models/User.js";
 import { initializeCronJobs, stopCronJobs } from "./utils/cronJobs.js";
 
@@ -295,6 +296,7 @@ app.use("/api/br-participant", matchLimiter, brRoutes);
 app.use("/api/br-result", matchLimiter, brResultRoutes);
 app.use("/api/leaderboard", matchLimiter, leaderboardRoutes);
 app.use("/api/tournaments", matchLimiter, tournamentRoutes);
+app.use("/api/global-match-requests", matchLimiter, globalMatchRequestRoutes);
 app.use("/api/admin", adminLimiter, adminRoutes);
 
 const PORT = process.env.PORT || 5000;

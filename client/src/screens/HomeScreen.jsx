@@ -138,6 +138,23 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
 
   const handleFindMatch = async () => {
     if (!isHostOrAdmin) {
+      if (isCreatingMatch) return;
+      try {
+        setIsCreatingMatch(true);
+        const response = await axios.post(`${API_BASE}/global-match-requests`, {
+          game: selectedGame,
+          mode: selectedMode,
+          type: selectedType,
+          skillSetting: selectedSkill,
+          entryFee: selectedFee,
+        }, { headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` } });
+        if (!response.data?.success) throw new Error('Unable to send match request');
+        onScreenChange('global-chat');
+      } catch (error) {
+        alert(error.response?.data?.error || error.message || 'Unable to send match request');
+      } finally {
+        setIsCreatingMatch(false);
+      }
       return;
     }
 

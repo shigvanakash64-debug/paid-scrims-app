@@ -17,6 +17,7 @@ export const Header = ({ user, currentScreen, onNavigate, onBack, canGoBack, onL
   const menuItems = [
     { key: 'profile', label: 'Profile', screen: 'profile' },
     { key: 'inbox', label: `Inbox${currentUser?.notifications?.some((n) => !n.read) ? ` (${currentUser.notifications.filter((n) => !n.read).length})` : ''}`, screen: 'inbox' },
+    { key: 'global-chat', label: 'Global Chat', screen: 'global-chat' },
     { key: 'settings', label: 'Settings', screen: 'settings' },
     { key: 'privacy-policy', label: 'Privacy Policy', screen: 'privacy-policy' },
     { key: 'terms-conditions', label: 'Terms & Conditions', screen: 'terms-conditions' },
