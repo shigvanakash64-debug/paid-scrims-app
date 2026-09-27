@@ -34,7 +34,7 @@ const getTrustClass = (score) => {
 };
 
 export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) => {
-  const { currentMatch, clearMatch } = useMatch();
+  const { currentMatch, clearMatch, refreshMatch } = useMatch();
   const { user: currentUser } = useUser();
   const { showNotification } = useNotifications();
   const [game, setGame] = useState(match?.game || 'All');
@@ -140,11 +140,11 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     return (
       <div className="section">
         <div className="section-announce">
-          {error || `Live feed · ${liveMatches.length} matches available`}
+          {error || `CS matches · ${liveMatches.length} available`}
         </div>
         {liveMatches.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-title">No live matches</div>
+            <div className="empty-title">No CS matches</div>
             <div className="empty-copy">Try another filter or create a match.</div>
           </div>
         ) : (
@@ -203,6 +203,11 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
 
     fetchMatches();
   }, [game, mode, type, entry]);
+
+  useEffect(() => {
+    const matchId = currentMatch?.id || currentMatch?._id;
+    if (matchId) refreshMatch(matchId);
+  }, [currentMatch?.id, currentMatch?._id, refreshMatch]);
 
   useEffect(() => {
     const fetchMyMatches = async () => {
@@ -370,7 +375,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
           className={`pairing-tab ${activeTab === 'live-opponents' ? 'active' : ''}`}
           onClick={() => setActiveTab('live-opponents')}
         >
-          Live Opponents
+          CS Match
         </button>
         <button
           className={`pairing-tab ${activeTab === 'br-matches' ? 'active' : ''}`}

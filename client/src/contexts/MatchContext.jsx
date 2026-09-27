@@ -115,6 +115,12 @@ export const MatchProvider = ({ children }) => {
       return updatedMatch;
     } catch (error) {
       console.error('Failed to refresh match:', error);
+      if (error.response?.status === 404) {
+        setMatchPolling(false);
+        localStorage.removeItem('clutchzone_currentMatch');
+        localStorage.removeItem('clutchzone_currentMatchId');
+        setCurrentMatch(null);
+      }
       return null;
     } finally {
       refreshInFlightRef.current = false;
