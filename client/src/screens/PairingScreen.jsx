@@ -26,7 +26,7 @@ const typeOptions = [
   'Rank Clash Squad',
 ];
 const entryOptions = [0, 5, 10, 20, 30, 50, 100, 200, 500, 1000];
-const CS_TOURNAMENT_FORMATS = new Set(['cs-every-win', 'cs-custom']);
+const CS_TOURNAMENT_FORMATS = new Set(['cs-custom']);
 
 const getTrustClass = (score) => {
   if (score >= 80) return 'green';

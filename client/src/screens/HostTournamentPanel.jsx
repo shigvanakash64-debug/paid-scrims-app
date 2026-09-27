@@ -18,13 +18,14 @@ const formatTime12Hour = (value) => {
 const FORMAT_OPTIONS = [
   { value: 'br-per-kill', title: 'BR Per Kill Tournament', description: 'Battle Royale single match', detail: 'Per-kill reward' },
   { value: 'br-custom', title: 'BR Custom Tournament', description: 'Battle Royale stages', detail: 'Host manually creates the stages' },
-  { value: 'cs-every-win', title: 'CS Every Single Win', description: 'Clash Squad single match', detail: 'Score each win' },
+  { value: 'team-vs-team', title: 'Team vs Team Tournament', description: 'Team-based tournament stages', detail: 'Host manually creates the stages' },
   { value: 'cs-custom', title: 'CS Custom Tournament', description: 'Clash Squad stages', detail: 'Host manually creates the stages' },
 ];
 
 const isPerKillFormat = (value) => value === 'single-match' || value === 'br-per-kill';
 const isSingleStageFormat = (value) => isPerKillFormat(value);
-const isCustomFormat = (value) => value === 'custom' || value === 'br-custom' || value === 'cs-custom' || value === 'cs-every-win';
+const isCustomFormat = (value) => value === 'custom' || value === 'br-custom' || value === 'cs-custom' || value === 'team-vs-team';
+const usesTeamSize = (value) => ['br-custom', 'cs-custom', 'team-vs-team'].includes(value);
 const getFormatTitle = (value) => FORMAT_OPTIONS.find((option) => option.value === value)?.title || (value === 'single-match' ? 'BR Per Kill Tournament' : value === 'custom' ? 'BR Custom Tournament' : value);
 
 export const HostTournamentPanel = ({ onBack }) => {
@@ -33,6 +34,7 @@ export const HostTournamentPanel = ({ onBack }) => {
   const [form, setForm] = useState({
     name: '',
     game: 'Free Fire',
+    teamSize: 1,
     entryFee: '',
     maxTeams: '',
     perKillReward: '',
@@ -166,6 +168,12 @@ export const HostTournamentPanel = ({ onBack }) => {
                 <p className="font-semibold text-white">₹{created?.prizePool}</p>
               </div>
             )}
+            {usesTeamSize(created?.format) && (
+              <div>
+                <span className="text-xs text-[#A1A1A1]">Team Size</span>
+                <p className="font-semibold text-white">{created?.teamSize || 1}</p>
+              </div>
+            )}
             <div>
               <span className="text-xs text-[#A1A1A1]">Stages</span>
               <p className="font-semibold text-white">{created?.stages?.length || 0}</p>
@@ -218,6 +226,15 @@ export const HostTournamentPanel = ({ onBack }) => {
                 <option>BGMI</option>
               </select>
             </label>
+
+            {usesTeamSize(format) && (
+              <label className="space-y-2 text-sm text-[#A1A1A1]">
+                Team Size
+                <select className="auth-input" name="teamSize" value={form.teamSize} onChange={updateForm}>
+                  {[1, 2, 3, 4, 5, 6].map((size) => <option key={size} value={size}>{size}</option>)}
+                </select>
+              </label>
+            )}
 
             <label className="space-y-2 text-sm text-[#A1A1A1]">
               Entry Fee

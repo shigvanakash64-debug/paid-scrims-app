@@ -9,6 +9,8 @@ const tournamentParticipantSchema = new mongoose.Schema({
   status: { type: String, enum: ['registered', 'cancelled'], default: 'registered' },
   registeredAt: { type: Date, default: Date.now },
   displayName: { type: String, trim: true, default: '' },
+  teamName: { type: String, trim: true, maxlength: 50, default: '' },
+  teamMembers: { type: [{ type: String, trim: true, maxlength: 50 }], default: [] },
 }, { timestamps: true });
 
 tournamentParticipantSchema.index({ tournamentId: 1, userId: 1 }, { unique: true });

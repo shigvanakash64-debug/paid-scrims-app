@@ -62,6 +62,8 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
         if (!participant?._id) return;
         optionMap.set(String(participant._id), {
           _id: participant._id,
+          teamName: participant.teamName || '',
+          teamMembers: participant.teamMembers || [],
           displayName: participant.displayName || participant.userName || participant.username || 'Participant',
         });
       });
@@ -202,7 +204,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
         return {
           ...entry,
           participantId: participantId || '',
-          participantName: participant?.displayName || participant?.userId || participant?.username || 'Participant',
+          participantName: participant?.teamName || participant?.displayName || participant?.userId || participant?.username || 'Participant',
         };
       }),
     }));
@@ -248,7 +250,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   };
 
   const addStage = async () => {
-    if (!['custom', 'br-custom', 'cs-custom', 'cs-every-win'].includes(tournament?.format)) return;
+    if (!['custom', 'br-custom', 'cs-custom', 'team-vs-team'].includes(tournament?.format)) return;
     const stageName = window.prompt('Enter new stage name');
     if (!stageName || !stageName.trim()) return;
 
@@ -364,7 +366,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
             <h1 className="text-3xl font-bold text-white">{tournament.name}</h1>
             <p className="mt-2 text-sm text-[#A1A1A1]">Create and publish one match result at a time.</p>
           </div>
-          {['custom', 'br-custom', 'cs-custom', 'cs-every-win'].includes(tournament.format) && (
+          {['custom', 'br-custom', 'cs-custom', 'team-vs-team'].includes(tournament.format) && (
             <Button variant="secondary" size="sm" onClick={addStage}>
               <Plus size={16} /> Create Stage
             </Button>
@@ -481,7 +483,8 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                                 })
                                 .map((participant) => (
                                   <option key={participant._id} value={participant._id}>
-                                    {participant.displayName || participant.userId || 'Participant'}
+                                    {participant.teamName || participant.displayName || participant.userId || 'Participant'}
+                                    {participant.teamMembers?.length > 0 ? ` · ${participant.teamMembers.join(', ')}` : ''}
                                   </option>
                                 ))}
                             </select>

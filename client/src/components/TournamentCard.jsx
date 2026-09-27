@@ -23,15 +23,35 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
   const [selectedStageKey, setSelectedStageKey] = useState(null);
   const [groupData, setGroupData] = useState({ groups: [], userGroup: tournament?.userGroup || null });
   const [expandedGroup, setExpandedGroup] = useState(null);
+  const [teamName, setTeamName] = useState('');
+  const [teamMembers, setTeamMembers] = useState(() => Array.from({ length: 6 }, (_, index) => index === 0 ? user?.username || '' : ''));
+  const usesTeamRoster = ['br-custom', 'cs-custom', 'team-vs-team'].includes(tournament?.format);
+  const teamSize = Math.min(6, Math.max(1, Number(tournament?.teamSize) || 1));
+
   const handleJoin = async () => {
     if (!user) {
       window.alert('Please login to join this tournament');
       return;
     }
 
-    if (!inGameName.trim()) {
-      setJoinError('Enter your in-game name to continue.');
-      return;
+    let registration;
+    if (usesTeamRoster) {
+      const normalizedMembers = teamMembers.slice(0, teamSize).map((member) => member.trim());
+      if (!teamName.trim()) {
+        setJoinError('Enter a team name to continue.');
+        return;
+      }
+      if (normalizedMembers.some((member) => !member)) {
+        setJoinError('Enter a name for every team member.');
+        return;
+      }
+      registration = { teamName: teamName.trim(), teamMembers: normalizedMembers };
+    } else {
+      if (!inGameName.trim()) {
+        setJoinError('Enter your in-game name to continue.');
+        return;
+      }
+      registration = { inGameName: inGameName.trim() };
     }
 
     setJoining(true);
@@ -43,7 +63,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
           Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ inGameName: inGameName.trim() }),
+        body: JSON.stringify(registration),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Unable to join tournament');
@@ -83,8 +103,8 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
     ? 'BR Per Kill Tournament'
     : tournament?.format === 'custom' || tournament?.format === 'br-custom'
       ? 'BR Custom Tournament'
-      : tournament?.format === 'cs-every-win'
-        ? 'CS Every Single Win'
+      : tournament?.format === 'team-vs-team'
+        ? 'Team vs Team Tournament'
         : tournament?.format === 'cs-custom' ? 'CS Custom Tournament' : tournament?.format;
   const isJoined = Boolean(tournament?.isRegistered || tournament?.registered || tournament?.joined);
   const stages = Array.isArray(tournament?.stages) ? [...tournament.stages].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
@@ -102,6 +122,10 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
     return (results || []).find((item) => item.stageKey === selectedStageKey && item.status === 'published') || null;
   }, [isPerKillTournament, results, selectedStageKey]);
 
+  const isJoinReady = usesTeamRoster
+    ? Boolean(teamName.trim()) && teamMembers.slice(0, teamSize).every((member) => member.trim())
+    : Boolean(inGameName.trim());
+
   return (
     <Card className="br-match-card">
       <div className="br-match-header">
@@ -112,14 +136,11 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         </div>
       </div>
       <div className="br-match-grid">
-        <div className="br-match-left">
-          <div className="br-match-stat"><span className="label">Game</span><span className="value">{tournament.game}</span></div>
-          <div className="br-match-stat"><span className="label">Entry Fee</span><span className="value">₹{tournament.entryFee}</span></div>
-        </div>
-        <div className="br-match-middle">
-          <div className="br-match-stat"><span className="label">Paid Entries</span><span className="value">{tournament.successfulEntries}/{tournament.maxTeams}</span></div>
-          {tournament.format === 'single-match' ? <div className="br-match-stat"><span className="label">Per Kill</span><span className="value">₹{Number(tournament.perKillReward || 0).toLocaleString()}</span></div> : <div className="br-match-stat"><span className="label">Prize Pool</span><span className="value">₹{Number(tournament.prizePool || 0).toLocaleString()}</span></div>}
-        </div>
+        <div className="br-match-stat"><span className="label">Game</span><span className="value">{tournament.game}</span></div>
+        {usesTeamRoster && <div className="br-match-stat"><span className="label">Team Size</span><span className="value">{teamSize}</span></div>}
+        <div className="br-match-stat"><span className="label">Entry Fee</span><span className="value">₹{tournament.entryFee}</span></div>
+        <div className="br-match-stat"><span className="label">Paid Entries</span><span className="value">{tournament.successfulEntries}/{tournament.maxTeams}</span></div>
+        <div className="br-match-stat"><span className="label">{tournament.format === 'single-match' ? 'Per Kill' : 'Prize Pool'}</span><span className="value">₹{Number(tournament.format === 'single-match' ? tournament.perKillReward || 0 : tournament.prizePool || 0).toLocaleString()}</span></div>
       </div>
       {(tournament.estimatedDate || tournament.hostMessage) && (
         <div className="mt-4 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] p-3 text-xs text-[#A1A1A1]">
@@ -169,13 +190,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
             ) : (
               stages.map((stage) => (
                 <div key={stage.key || stage.name} className="flex items-center justify-between gap-3 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] px-3 py-2">
-                  {tournament.format === 'cs-every-win' && stage.key === 'cs-every-win' ? (
-                    <button type="button" className="w-full text-left text-sm font-medium text-white" onClick={() => handleLoadGroups(1)}>
-                      Group 1
-                    </button>
-                  ) : (
-                    <span className="text-sm font-medium text-white">{stage.name}</span>
-                  )}
+                  <span className="text-sm font-medium text-white">{stage.name}</span>
                   {stage.time && <span className="text-xs text-[#FFB066]">{formatTime12Hour(stage.time)}</span>}
                 </div>
               ))
@@ -198,14 +213,16 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
                 <div key={`group-${group.groupNumber}`} className="rounded-lg border border-[#1F1F1F] bg-[#0D0D0D] p-3">
                   <button type="button" className="flex w-full items-center justify-between text-left text-sm font-medium text-white" onClick={() => setExpandedGroup((current) => current === group.groupNumber ? null : group.groupNumber)}>
                     <span>Group {group.groupNumber}</span>
-                    <span className="text-xs text-[#A1A1A1]">{group.participants.length} players</span>
+                    <span className="text-xs text-[#A1A1A1]">{group.participants.length} {usesTeamRoster ? 'teams' : 'players'}</span>
                   </button>
                   {expandedGroup === group.groupNumber && (
                     <div className="mt-2 space-y-1 border-t border-[#1F1F1F] pt-2 text-sm text-[#E5E5E5]">
                       {group.participants.map((participant) => (
                         <div key={participant._id || participant.participantId} className="flex items-center justify-between gap-2 rounded-md bg-[#111111] px-2 py-1">
-                          <span>{participant.displayName || participant.username || 'Participant'}</span>
-                          {group.groupNumber === Number(groupData.userGroup) && <span className="text-[10px] uppercase tracking-wide text-[#FFB066]" />}
+                          <div className="min-w-0">
+                            <span className="block break-words">{participant.teamName || participant.displayName || participant.username || 'Participant'}</span>
+                            {participant.teamMembers?.length > 0 && <span className="block break-words text-xs text-[#A1A1A1]">{participant.teamMembers.join(' · ')}</span>}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -231,7 +248,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
                 return (
                   <div key={stage.key || stage.name} className="rounded-lg border border-[#1F1F1F] bg-[#0D0D0D] p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-white">{tournament.format === 'cs-every-win' && stage.key === 'cs-every-win' ? 'Group 1' : stage.name}</span>
+                      <span className="text-sm font-medium text-white">{stage.name}</span>
                       <button
                         type="button"
                         disabled={!stageHasResult}
@@ -275,7 +292,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
       {showJoinForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="presentation">
           <form
-            className="w-full max-w-md space-y-4 rounded-xl border border-[#2A2A2A] bg-[#111111] p-5 text-white"
+            className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-xl border border-[#2A2A2A] bg-[#111111] p-5 text-white"
             onSubmit={(event) => {
               event.preventDefault();
               handleJoin();
@@ -283,24 +300,56 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
           >
             <div>
               <h2 className="text-lg font-semibold">Join tournament</h2>
-              <p className="mt-1 text-sm text-[#A1A1A1]">Enter the in-game name to use for {tournament.name}.</p>
+              <p className="mt-1 text-sm text-[#A1A1A1]">
+                {usesTeamRoster ? `Enter your team name and ${teamSize} member names for ${tournament.name}.` : `Enter the in-game name to use for ${tournament.name}.`}
+              </p>
             </div>
-            <label className="block text-sm text-[#D4D4D4]" htmlFor={`tournament-ign-${tournament._id}`}>
-              In-game name
-              <input
-                id={`tournament-ign-${tournament._id}`}
-                className="mt-2 w-full rounded-lg border border-[#333333] bg-[#0B0B0B] px-3 py-2 text-white"
-                value={inGameName}
-                onChange={(event) => setInGameName(event.target.value.slice(0, 50))}
-                maxLength={50}
-                autoFocus
-                required
-              />
-            </label>
+            {usesTeamRoster ? (
+              <div className="space-y-3">
+                <label className="block text-sm text-[#D4D4D4]" htmlFor={`tournament-team-name-${tournament._id}`}>
+                  Team name
+                  <input
+                    id={`tournament-team-name-${tournament._id}`}
+                    className="mt-2 w-full rounded-lg border border-[#333333] bg-[#0B0B0B] px-3 py-2 text-white"
+                    value={teamName}
+                    onChange={(event) => setTeamName(event.target.value.slice(0, 50))}
+                    maxLength={50}
+                    autoFocus
+                    required
+                  />
+                </label>
+                {Array.from({ length: teamSize }, (_, index) => (
+                  <label key={index} className="block text-sm text-[#D4D4D4]" htmlFor={`tournament-team-member-${tournament._id}-${index}`}>
+                    Team member {index + 1}
+                    <input
+                      id={`tournament-team-member-${tournament._id}-${index}`}
+                      className="mt-2 w-full rounded-lg border border-[#333333] bg-[#0B0B0B] px-3 py-2 text-white"
+                      value={teamMembers[index]}
+                      onChange={(event) => setTeamMembers((current) => current.map((member, memberIndex) => memberIndex === index ? event.target.value.slice(0, 50) : member))}
+                      maxLength={50}
+                      required
+                    />
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <label className="block text-sm text-[#D4D4D4]" htmlFor={`tournament-ign-${tournament._id}`}>
+                In-game name
+                <input
+                  id={`tournament-ign-${tournament._id}`}
+                  className="mt-2 w-full rounded-lg border border-[#333333] bg-[#0B0B0B] px-3 py-2 text-white"
+                  value={inGameName}
+                  onChange={(event) => setInGameName(event.target.value.slice(0, 50))}
+                  maxLength={50}
+                  autoFocus
+                  required
+                />
+              </label>
+            )}
             {joinError && <p className="text-sm text-red-400" role="alert">{joinError}</p>}
             <div className="flex justify-end gap-2">
               <button className="btn btn-sm btn-secondary" type="button" onClick={() => { setShowJoinForm(false); setJoinError(''); }} disabled={joining}>Cancel</button>
-              <button className="btn btn-sm btn-primary" type="submit" disabled={joining || !inGameName.trim()}>{joining ? 'Joining...' : 'Join tournament'}</button>
+              <button className="btn btn-sm btn-primary" type="submit" disabled={joining || !isJoinReady}>{joining ? 'Joining...' : 'Join tournament'}</button>
             </div>
           </form>
         </div>

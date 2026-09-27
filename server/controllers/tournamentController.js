@@ -48,12 +48,45 @@ export const calculateFinancials = (entryFee, successfulEntries) => {
 };
 
 const PER_KILL_FORMATS = new Set(['single-match', 'br-per-kill']);
-const CUSTOM_FORMATS = new Set(['custom', 'br-custom', 'cs-custom', 'cs-every-win']);
+const CUSTOM_FORMATS = new Set(['custom', 'br-custom', 'cs-custom', 'team-vs-team']);
 const SINGLE_STAGE_FORMATS = new Set(['single-match', 'br-per-kill']);
+const TEAM_SIZE_FORMATS = new Set(['br-custom', 'cs-custom', 'team-vs-team']);
 
 const isPerKillFormat = (format) => PER_KILL_FORMATS.has(format);
 const isCustomFormat = (format) => CUSTOM_FORMATS.has(format);
 const requiresSingleStageSchedule = (format) => SINGLE_STAGE_FORMATS.has(format);
+
+export const normalizeTournamentRegistration = ({ format, teamSize = 1, inGameName, teamName, teamMembers }) => {
+  if (!TEAM_SIZE_FORMATS.has(format)) {
+    if (typeof inGameName !== 'string' || !inGameName.trim() || inGameName.trim().length > 50) {
+      throw new Error('In-game name must be between 1 and 50 characters');
+    }
+    return { displayName: inGameName.trim(), teamName: '', teamMembers: [] };
+  }
+
+  const normalizedTeamName = typeof teamName === 'string' ? teamName.trim() : '';
+  const expectedTeamSize = Number(teamSize);
+  if (!normalizedTeamName || normalizedTeamName.length > 50) {
+    throw new Error('Team name must be between 1 and 50 characters');
+  }
+  if (!Number.isInteger(expectedTeamSize) || expectedTeamSize < 1 || expectedTeamSize > 6) {
+    throw new Error('Tournament team size is invalid');
+  }
+  if (!Array.isArray(teamMembers) || teamMembers.length !== expectedTeamSize) {
+    throw new Error(`Enter exactly ${expectedTeamSize} team member names`);
+  }
+
+  const normalizedMembers = teamMembers.map((name) => typeof name === 'string' ? name.trim() : '');
+  if (normalizedMembers.some((name) => !name || name.length > 50)) {
+    throw new Error('Each team member name must be between 1 and 50 characters');
+  }
+
+  return {
+    displayName: normalizedMembers[0],
+    teamName: normalizedTeamName,
+    teamMembers: normalizedMembers,
+  };
+};
 
 const buildStages = (format, customStages = []) => {
   if (format === 'single-match' || format === 'br-per-kill') {
@@ -74,7 +107,7 @@ const buildStages = (format, customStages = []) => {
 export const normalizeResultEntry = ({ entry, participantMap, isPerKill, perKillReward }) => {
   const participantId = entry.participantId;
   const participant = participantMap.get(String(participantId));
-  const participantName = participant?.displayName || participant?.userName || participant?.username || 'Participant';
+  const participantName = participant?.teamName || participant?.displayName || participant?.userName || participant?.username || 'Participant';
 
   if (isPerKill) {
     const kills = Number(entry.kills || 0);
@@ -114,36 +147,13 @@ export const assignTournamentGroups = (participants = [], rng = Math.random, gro
   return assignments;
 };
 
-const assignPersistentGroups = (participants = [], groupSize = 12) => {
-  const assignments = new Map();
-  const groupCounts = new Map();
-
-  participants.forEach((participant) => {
-    const existingGroup = Number(participant.groupNumber || 0);
-    if (existingGroup > 0 && (groupCounts.get(existingGroup) || 0) < groupSize) {
-      assignments.set(String(participant._id), existingGroup);
-      groupCounts.set(existingGroup, (groupCounts.get(existingGroup) || 0) + 1);
-    }
-  });
-
-  participants.forEach((participant) => {
-    const participantId = String(participant._id);
-    if (assignments.has(participantId)) return;
-    let groupNumber = 1;
-    while ((groupCounts.get(groupNumber) || 0) >= groupSize) groupNumber += 1;
-    assignments.set(participantId, groupNumber);
-    groupCounts.set(groupNumber, (groupCounts.get(groupNumber) || 0) + 1);
-  });
-
-  return assignments;
-};
-
 export const validateTournamentInput = ({
   name,
   format,
   game,
   entryFee,
   maxTeams,
+  teamSize = 1,
   successfulEntries = 0,
   perKillReward = 0,
   estimatedDate,
@@ -155,7 +165,7 @@ export const validateTournamentInput = ({
   if (!name || !format || entryFee === undefined || maxTeams === undefined) {
     throw new Error('Tournament name, format, entry fee and maximum teams are required');
   }
-  if (!['single-match', 'custom', 'br-per-kill', 'br-custom', 'cs-every-win', 'cs-custom'].includes(format)) {
+  if (!['single-match', 'custom', 'br-per-kill', 'br-custom', 'cs-custom', 'team-vs-team'].includes(format)) {
     throw new Error('Invalid tournament format');
   }
   if (!['Free Fire', 'BGMI'].includes(game)) {
@@ -166,6 +176,7 @@ export const validateTournamentInput = ({
   const numericMaxTeams = Number(maxTeams);
   const numericSuccessfulEntries = isPerKillFormat(format) ? 0 : Number(successfulEntries);
   const numericPerKillReward = Number(perKillReward);
+  const numericTeamSize = TEAM_SIZE_FORMATS.has(format) ? Number(teamSize) : 1;
   if (!Number.isFinite(numericEntryFee) || numericEntryFee < 0 || !Number.isInteger(numericMaxTeams) || numericMaxTeams < 1 || !Number.isInteger(numericSuccessfulEntries) || numericSuccessfulEntries < 0 || numericSuccessfulEntries > numericMaxTeams) {
     throw new Error('Invalid entry fee or maximum teams');
   }
@@ -183,6 +194,10 @@ export const validateTournamentInput = ({
     throw new Error('Tournament message must be text');
   }
 
+  if (TEAM_SIZE_FORMATS.has(format) && (!Number.isInteger(numericTeamSize) || numericTeamSize < 1 || numericTeamSize > 6)) {
+    throw new Error('Team size must be a whole number from 1 to 6');
+  }
+
   if (isPerKillFormat(format)) {
     if (!Number.isFinite(numericPerKillReward) || numericPerKillReward < 0) {
       throw new Error('Per kill reward is required for single match tournaments');
@@ -195,6 +210,7 @@ export const validateTournamentInput = ({
   return {
     numericEntryFee,
     numericMaxTeams,
+    numericTeamSize,
     numericSuccessfulEntries,
     numericPerKillReward,
     estimatedDate: parsedDate,
@@ -207,7 +223,7 @@ export const validateTournamentInput = ({
 
 export const createTournament = async (req, res) => {
   try {
-    const { name, game = 'Free Fire', format, entryFee, maxTeams, successfulEntries = 0, customStages = [], perKillReward = 0, estimatedDate, estimatedTime, roomId, roomPassword, hostMessage } = req.body;
+    const { name, game = 'Free Fire', format, entryFee, maxTeams, teamSize = 1, successfulEntries = 0, customStages = [], perKillReward = 0, estimatedDate, estimatedTime, roomId, roomPassword, hostMessage } = req.body;
 
     let normalizedValues;
     try {
@@ -217,6 +233,7 @@ export const createTournament = async (req, res) => {
         format,
         entryFee,
         maxTeams,
+        teamSize,
         successfulEntries,
         perKillReward,
         estimatedDate,
@@ -239,6 +256,7 @@ export const createTournament = async (req, res) => {
       format,
       entryFee: normalizedValues.numericEntryFee,
       maxTeams: normalizedValues.numericMaxTeams,
+      teamSize: normalizedValues.numericTeamSize,
       successfulEntries: normalizedValues.numericSuccessfulEntries,
       perKillReward: isPerKillFormat(format) ? normalizedValues.numericPerKillReward : 0,
       estimatedDate: normalizedValues.estimatedDate,
@@ -407,9 +425,18 @@ export const listPublicTournaments = async (req, res) => {
 export const joinTournament = async (req, res) => {
   try {
     const { tournamentId } = req.params;
-    const { inGameName } = req.body;
-    if (typeof inGameName !== 'string' || !inGameName.trim() || inGameName.trim().length > 50) {
-      return res.status(400).json({ error: 'In-game name must be between 1 and 50 characters' });
+    const tournamentForRegistration = await Tournament.findById(tournamentId).select('format teamSize').lean();
+    if (!tournamentForRegistration) return res.status(404).json({ error: 'Tournament not found' });
+
+    let registration;
+    try {
+      registration = normalizeTournamentRegistration({
+        ...(req.body || {}),
+        format: tournamentForRegistration.format,
+        teamSize: tournamentForRegistration.teamSize || 1,
+      });
+    } catch (validationError) {
+      return res.status(400).json({ error: validationError.message });
     }
 
     const existingParticipant = await TournamentParticipant.findOne({ tournamentId, userId: req.userId, status: 'registered' });
@@ -452,12 +479,10 @@ export const joinTournament = async (req, res) => {
         tournamentId: tournament._id,
         userId: req.userId,
         entryFee: tournament.entryFee,
-        displayName: inGameName.trim(),
+        ...registration,
       });
       const allParticipants = await TournamentParticipant.find({ tournamentId: tournament._id, status: 'registered' }).sort({ registeredAt: 1 }).lean();
-      const assignments = tournament.format === 'cs-every-win'
-        ? assignPersistentGroups(allParticipants, 2)
-        : assignTournamentGroups(allParticipants, Math.random, 12);
+      const assignments = assignTournamentGroups(allParticipants, Math.random, 12);
       const updates = allParticipants.map((entry) => ({
         updateOne: {
           filter: { _id: entry._id },
@@ -472,11 +497,11 @@ export const joinTournament = async (req, res) => {
         : calculateFinancials(tournament.entryFee, tournament.successfulEntries);
       const tournamentUpdate = { $set: financials };
       const hasScheduledStageMatches = tournament.stages.some((stage) => stage.matches.length > 0);
-      if (tournament.format !== 'cs-every-win' && hasScheduledStageMatches) {
+      if (hasScheduledStageMatches) {
         tournamentUpdate.$addToSet = { 'stages.$[].matches.$[].participants': participant._id };
       }
       await Tournament.updateOne({ _id: tournament._id }, tournamentUpdate);
-      return res.json({ success: true, message: 'Tournament registration successful', walletBalance: user.wallet.balance, userGroup: Number(assignments.get(String(participant._id)) || 1) });
+      return res.json({ success: true, message: 'Tournament registration successful', walletBalance: user.wallet.balance, userGroup: Number(assignments.get(String(participant._id)) || 1), teamName: registration.teamName, teamMembers: registration.teamMembers });
     } catch (error) {
       await Tournament.findByIdAndUpdate(tournament._id, { $inc: { successfulEntries: -1 } });
       await User.findByIdAndUpdate(req.userId, {
@@ -508,16 +533,10 @@ export const getTournamentGroups = async (req, res) => {
       return res.json({ success: true, groups: [], userGroup: null });
     }
 
-    const hasInvalidCsGroups = tournament.format === 'cs-every-win'
-      && [...new Set(participants.map((participant) => Number(participant.groupNumber) || 0))].some((groupNumber) => (
-        groupNumber > 0 && participants.filter((participant) => Number(participant.groupNumber) === groupNumber).length > 2
-      ));
-    const persistedGroups = participants.every((participant) => Number(participant.groupNumber) > 0) && !hasInvalidCsGroups;
+    const persistedGroups = participants.every((participant) => Number(participant.groupNumber) > 0);
     const assignments = persistedGroups
       ? new Map(participants.map((participant) => [String(participant._id), Number(participant.groupNumber)]))
-      : tournament.format === 'cs-every-win'
-        ? assignPersistentGroups(participants.map((participant) => ({ ...participant, groupNumber: hasInvalidCsGroups ? 0 : participant.groupNumber })), 2)
-        : assignTournamentGroups(participants, Math.random, 12);
+      : assignTournamentGroups(participants, Math.random, 12);
 
     if (!persistedGroups) {
       const updates = participants.map((participant) => ({
@@ -533,7 +552,15 @@ export const getTournamentGroups = async (req, res) => {
       const groupNumber = Number(assignments.get(String(participant._id)) || 1);
       const memberName = participant.displayName || participant.userId?.username || 'Participant';
       const bucket = groupMap.get(groupNumber) || [];
-      bucket.push({ _id: participant._id, participantId: participant._id, userId: participant.userId?._id || participant.userId, displayName: memberName, username: participant.userId?.username || memberName });
+      bucket.push({
+        _id: participant._id,
+        participantId: participant._id,
+        userId: participant.userId?._id || participant.userId,
+        displayName: memberName,
+        username: participant.userId?.username || memberName,
+        teamName: participant.teamName || '',
+        teamMembers: participant.teamMembers || [],
+      });
       groupMap.set(groupNumber, bucket);
     });
 
@@ -547,7 +574,7 @@ export const getTournamentGroups = async (req, res) => {
       ? groups.find((group) => group.participants.some((participant) => String(participant.userId) === String(currentUserId)))?.groupNumber ?? null
       : null;
 
-    return res.json({ success: true, groups, userGroup, groupSize: tournament.format === 'cs-every-win' ? 2 : 12 });
+    return res.json({ success: true, groups, userGroup, groupSize: 12 });
   } catch (error) {
     console.error('getTournamentGroups error:', error);
     return res.status(500).json({ error: 'Failed to load groups' });

@@ -7,7 +7,7 @@ import TournamentCard from './TournamentCard';
 import { Button } from './Button';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
-const BR_TOURNAMENT_FORMATS = new Set(['single-match', 'custom', 'br-per-kill', 'br-custom']);
+const BR_TOURNAMENT_FORMATS = new Set(['single-match', 'custom', 'br-per-kill', 'br-custom', 'team-vs-team']);
 
 const parseJsonResponse = async (response) => {
   const contentType = response.headers.get('content-type') || '';

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { assignTournamentGroups, calculateFinancials, isCompletedTournamentExpired, normalizeResultEntry, validateTournamentInput } from './controllers/tournamentController.js';
+import { assignTournamentGroups, calculateFinancials, isCompletedTournamentExpired, normalizeResultEntry, normalizeTournamentRegistration, validateTournamentInput } from './controllers/tournamentController.js';
 
 test('validateTournamentInput requires match schedule and room details', () => {
   assert.throws(() => validateTournamentInput({
@@ -53,16 +53,6 @@ test('validateTournamentInput requires match schedule and room details', () => {
   }));
 
   assert.doesNotThrow(() => validateTournamentInput({
-    name: 'CS Every Win Cup',
-    format: 'cs-every-win',
-    game: 'Free Fire',
-    entryFee: 20,
-    maxTeams: 10,
-    estimatedDate: '2026-09-15',
-    estimatedTime: '19:30',
-  }));
-
-  assert.doesNotThrow(() => validateTournamentInput({
     name: 'CS Custom Cup',
     format: 'cs-custom',
     game: 'Free Fire',
@@ -70,6 +60,38 @@ test('validateTournamentInput requires match schedule and room details', () => {
     maxTeams: 10,
     estimatedDate: '2026-09-15',
   }));
+
+  for (const format of ['br-custom', 'cs-custom', 'team-vs-team']) {
+    const validated = validateTournamentInput({
+      name: 'Team Cup',
+      format,
+      game: 'Free Fire',
+      entryFee: 20,
+      maxTeams: 10,
+      teamSize: 4,
+      estimatedDate: '2026-09-15',
+    });
+    assert.equal(validated.numericTeamSize, 4);
+  }
+
+  assert.throws(() => validateTournamentInput({
+    name: 'Team Cup',
+    format: 'team-vs-team',
+    game: 'Free Fire',
+    entryFee: 20,
+    maxTeams: 10,
+    teamSize: 7,
+    estimatedDate: '2026-09-15',
+  }), /Team size must be/i);
+
+  assert.throws(() => validateTournamentInput({
+    name: 'Old Format Cup',
+    format: 'cs-every-win',
+    game: 'Free Fire',
+    entryFee: 20,
+    maxTeams: 10,
+    estimatedDate: '2026-09-15',
+  }), /Invalid tournament format/i);
 });
 
 test('normalizeResultEntry keeps both kills and points for custom tournament results', () => {
@@ -87,6 +109,39 @@ test('normalizeResultEntry keeps both kills and points for custom tournament res
     points: 180,
     money: 0,
   });
+});
+
+test('normalizeTournamentRegistration validates and trims the full team roster', () => {
+  assert.deepEqual(normalizeTournamentRegistration({ format: 'custom', inGameName: ' Solo Player ' }), {
+    displayName: 'Solo Player',
+    teamName: '',
+    teamMembers: [],
+  });
+
+  assert.deepEqual(normalizeTournamentRegistration({
+    format: 'team-vs-team',
+    teamSize: 3,
+    teamName: '  Team Alpha  ',
+    teamMembers: [' Player One ', 'Player Two', 'Player Three '],
+  }), {
+    displayName: 'Player One',
+    teamName: 'Team Alpha',
+    teamMembers: ['Player One', 'Player Two', 'Player Three'],
+  });
+
+  assert.throws(() => normalizeTournamentRegistration({
+    format: 'br-custom',
+    teamSize: 2,
+    teamName: 'Team Alpha',
+    teamMembers: ['Player One'],
+  }), /exactly 2 team member names/i);
+
+  assert.throws(() => normalizeTournamentRegistration({
+    format: 'cs-custom',
+    teamSize: 2,
+    teamName: 'Team Alpha',
+    teamMembers: ['Player One', '  '],
+  }), /Each team member name/i);
 });
 
 test('calculateFinancials keeps 70% prize pool and splits the 30% profit as 20% host and 10% platform', () => {
