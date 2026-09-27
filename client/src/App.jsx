@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState, lazy, Suspense, useRef } from 'react';
 import axios from 'axios';
-import { HomeScreen } from './screens/HomeScreen';
 import { PairingScreen } from './screens/PairingScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -32,6 +31,7 @@ import './App.css';
 // Lazy load admin dashboard
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
 const HostLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
+const HomeScreen = lazy(() => import('./screens/HomeScreen').then(m => ({ default: m.HomeScreen })));
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
@@ -496,15 +496,16 @@ function App() {
   };
 
   const navigateTo = (screen, wallpaper = null, replace = false) => {
+    const targetScreen = screen === 'home' && user?.role === 'host' ? 'host' : screen;
     setScreenHistory((prev) => {
-      if (replace || screen === currentScreen) return prev;
+      if (replace || targetScreen === currentScreen) return prev;
       if (prev.length === 0 || prev[prev.length - 1] !== currentScreen) {
         return [...prev, currentScreen];
       }
       return prev;
     });
-    setCurrentScreen(screen);
-    if (screen === 'wallpaper-details' && wallpaper) {
+    setCurrentScreen(targetScreen);
+    if (targetScreen === 'wallpaper-details' && wallpaper) {
       setSelectedWallpaper(wallpaper);
     } else {
       setSelectedWallpaper(null);
@@ -533,7 +534,7 @@ function App() {
     }
 
     if (user) {
-      navigateTo('home', null, true);
+      navigateTo(user.role === 'host' ? 'host' : 'home', null, true);
     } else {
       setPendingAction('clutch-zone');
       navigateTo('login', null, true);
@@ -738,6 +739,11 @@ function App() {
     const isAdmin = user?.role === 'admin' || user?.isAdmin === true;
     const isHost = user?.role === 'host';
 
+    if (isHost && currentScreen === 'home') {
+      setCurrentScreen('host');
+      return <div className="loading-screen">Opening Host Dashboard...</div>;
+    }
+
     if (!user) {
       if (currentScreen === 'entry') {
         return <EntryChoiceOverlay onChoose={handleEntryChoice} />;
@@ -760,8 +766,9 @@ function App() {
     if (currentScreen === 'admin') {
       if (!isAdmin) {
         alert('Admin access required');
-        setCurrentScreen('home');
-        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} currentMatch={currentMatch} />;
+        const fallbackScreen = isHost ? 'host' : 'home';
+        setCurrentScreen(fallbackScreen);
+        return isHost ? <div className="loading-screen">Opening Host Dashboard...</div> : <Suspense fallback={<div className="loading-screen">Loading...</div>}><HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} currentMatch={currentMatch} /></Suspense>;
       }
       return (
         <Suspense fallback={<div className="loading-screen">Loading Admin Dashboard...</div>}>
@@ -774,7 +781,7 @@ function App() {
       if (!isHost) {
         alert('Host access required');
         setCurrentScreen('home');
-        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} currentMatch={currentMatch} />;
+        return <Suspense fallback={<div className="loading-screen">Loading...</div>}><HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} currentMatch={currentMatch} /></Suspense>;
       }
       return (
         <Suspense fallback={<div className="loading-screen">Loading Host Dashboard...</div>}>
@@ -785,7 +792,7 @@ function App() {
 
     switch (currentScreen) {
       case 'home':
-        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} currentMatch={currentMatch} />;
+        return <Suspense fallback={<div className="loading-screen">Loading...</div>}><HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} currentMatch={currentMatch} /></Suspense>;
       case 'pairing':
         return (
           <PairingScreen
@@ -854,13 +861,13 @@ function App() {
       case 'store-contact':
         return <StoreContactScreen />;
       default:
-        return <HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} />;
+        return isHost ? <HostLayout mode="host" /> : <Suspense fallback={<div className="loading-screen">Loading...</div>}><HomeScreen user={user} onFindMatch={setMatch} onScreenChange={handleScreenChange} /></Suspense>;
     }
   };
 
   const isStoreScreen = ['wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'wallpaper-manager', 'about-us', 'login', 'register', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact'].includes(currentScreen);
 
-  const layoutContent = renderScreen();
+  const layoutContent = <Suspense fallback={<div className="loading-screen">Loading...</div>}>{renderScreen()}</Suspense>;
 
   if (isStoreScreen) {
     return (
