@@ -407,6 +407,11 @@ export const listPublicTournaments = async (req, res) => {
 export const joinTournament = async (req, res) => {
   try {
     const { tournamentId } = req.params;
+    const { inGameName } = req.body;
+    if (typeof inGameName !== 'string' || !inGameName.trim() || inGameName.trim().length > 50) {
+      return res.status(400).json({ error: 'In-game name must be between 1 and 50 characters' });
+    }
+
     const existingParticipant = await TournamentParticipant.findOne({ tournamentId, userId: req.userId, status: 'registered' });
     if (existingParticipant) {
       return res.status(409).json({ error: 'You are already registered for this tournament' });
@@ -447,7 +452,7 @@ export const joinTournament = async (req, res) => {
         tournamentId: tournament._id,
         userId: req.userId,
         entryFee: tournament.entryFee,
-        displayName: req.user?.username || 'Participant',
+        displayName: inGameName.trim(),
       });
       const allParticipants = await TournamentParticipant.find({ tournamentId: tournament._id, status: 'registered' }).sort({ registeredAt: 1 }).lean();
       const assignments = tournament.format === 'cs-every-win'

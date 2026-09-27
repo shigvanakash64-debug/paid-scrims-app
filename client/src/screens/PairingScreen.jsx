@@ -46,6 +46,8 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const [registeredTournaments, setRegisteredTournaments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [joiningMatch, setJoiningMatch] = useState(null);
+  const [joinerGameName, setJoinerGameName] = useState('');
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('clutchzone_open_my_matches') === 'true' ? 'my-matches' : 'live-opponents');
 
   const renderTabContent = () => {
@@ -111,6 +113,13 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                     <span>{matchItem.status}</span>
                     <span>Prize Pool CZ{matchItem.prizePool || 0}</span>
                   </div>
+                  {matchItem.players?.some((player) => player.inGameName) && (
+                    <div className="mt-2 text-sm text-[#A1A1A1]">
+                      {matchItem.players.filter((player) => player.inGameName).map((player) => (
+                        <div key={player.id}>In-game name: <span className="text-white">{player.inGameName}</span></div>
+                      ))}
+                    </div>
+                  )}
                   <div className="match-actions">
                     <button className="btn-outline" type="button" onClick={() => {
                       onMatchSelect?.(matchItem);
@@ -179,7 +188,10 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                           Cancel Match
                         </button>
                       ) : (
-                        <button className="btn-outline" type="button" onClick={() => handleJoin(item)}>
+                        <button className="btn-outline" type="button" onClick={() => {
+                          setJoiningMatch(item);
+                          setJoinerGameName(currentUser?.username || '');
+                        }}>
                           Join
                         </button>
                       )}
@@ -272,17 +284,19 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     }
   };
 
-  const handleJoin = async (matchItem) => {
+  const handleJoin = async () => {
     if (!currentUser) {
       alert('Please login to join a match.');
       return;
     }
 
+    if (!joinerGameName.trim()) return;
+
     try {
       const token = localStorage.getItem(TOKEN_KEY);
       const response = await axios.post(
         `${API_BASE}/match/accept`,
-        { matchId: matchItem.id },
+        { matchId: joiningMatch.id || joiningMatch._id, inGameName: joinerGameName.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       showNotification({
@@ -293,6 +307,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         duration: 5000,
       });
       onMatchSelect?.(response.data.match);
+      setJoiningMatch(null);
       onScreenChange('pairing');
     } catch (error) {
       alert(error.response?.data?.error || 'Could not accept match');
@@ -426,6 +441,38 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
       </div>
 
       {renderTabContent()}
+      {joiningMatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="presentation">
+          <form
+            className="w-full max-w-md space-y-4 rounded-xl border border-[#2A2A2A] bg-[#111111] p-5 text-white"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleJoin();
+            }}
+          >
+            <div>
+              <h2 className="text-lg font-semibold">Join match</h2>
+              <p className="mt-1 text-sm text-[#A1A1A1]">Enter the in-game name other players should see.</p>
+            </div>
+            <label className="block text-sm text-[#D4D4D4]" htmlFor="joiner-game-name">
+              In-game name
+              <input
+                id="joiner-game-name"
+                className="mt-2 w-full rounded-lg border border-[#333333] bg-[#0B0B0B] px-3 py-2 text-white"
+                value={joinerGameName}
+                onChange={(event) => setJoinerGameName(event.target.value.slice(0, 50))}
+                maxLength={50}
+                autoFocus
+                required
+              />
+            </label>
+            <div className="flex justify-end gap-2">
+              <button className="btn-outline" type="button" onClick={() => setJoiningMatch(null)}>Cancel</button>
+              <button className="btn-primary" type="submit" disabled={!joinerGameName.trim()}>Join match</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

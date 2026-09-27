@@ -14,6 +14,10 @@ const formatTime12Hour = (value) => {
 };
 
 export const TournamentCard = ({ tournament, user, onJoined }) => {
+  const [showJoinForm, setShowJoinForm] = useState(false);
+  const [inGameName, setInGameName] = useState(user?.username || '');
+  const [joinError, setJoinError] = useState('');
+  const [joining, setJoining] = useState(false);
   const [activePanel, setActivePanel] = useState(null);
   const [results, setResults] = useState([]);
   const [selectedStageKey, setSelectedStageKey] = useState(null);
@@ -24,17 +28,31 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
       window.alert('Please login to join this tournament');
       return;
     }
+
+    if (!inGameName.trim()) {
+      setJoinError('Enter your in-game name to continue.');
+      return;
+    }
+
+    setJoining(true);
+    setJoinError('');
     try {
       const response = await fetch(`${API_BASE}/tournaments/${tournament._id}/join`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ inGameName: inGameName.trim() }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Unable to join tournament');
-      window.alert('Tournament joined successfully');
+      setShowJoinForm(false);
       onJoined?.();
     } catch (error) {
-      window.alert(error.message);
+      setJoinError(error.message);
+    } finally {
+      setJoining(false);
     }
   };
 
@@ -119,7 +137,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
       )}
       <div className="br-match-actions">
         <span className="registered-badge">{formatTitle} · OPEN</span>
-        <button type="button" className="btn btn-sm btn-primary" onClick={handleJoin} disabled={isJoined || tournament.successfulEntries >= tournament.maxTeams}>
+        <button type="button" className="btn btn-sm btn-primary" onClick={() => setShowJoinForm(true)} disabled={isJoined || tournament.successfulEntries >= tournament.maxTeams}>
           {isJoined ? 'Joined' : tournament.successfulEntries >= tournament.maxTeams ? 'Full' : 'Join'}
         </button>
         {!isPerKillTournament && (
@@ -240,6 +258,39 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
           </div>
         )}
       </div>}
+      {showJoinForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="presentation">
+          <form
+            className="w-full max-w-md space-y-4 rounded-xl border border-[#2A2A2A] bg-[#111111] p-5 text-white"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleJoin();
+            }}
+          >
+            <div>
+              <h2 className="text-lg font-semibold">Join tournament</h2>
+              <p className="mt-1 text-sm text-[#A1A1A1]">Enter the in-game name to use for {tournament.name}.</p>
+            </div>
+            <label className="block text-sm text-[#D4D4D4]" htmlFor={`tournament-ign-${tournament._id}`}>
+              In-game name
+              <input
+                id={`tournament-ign-${tournament._id}`}
+                className="mt-2 w-full rounded-lg border border-[#333333] bg-[#0B0B0B] px-3 py-2 text-white"
+                value={inGameName}
+                onChange={(event) => setInGameName(event.target.value.slice(0, 50))}
+                maxLength={50}
+                autoFocus
+                required
+              />
+            </label>
+            {joinError && <p className="text-sm text-red-400" role="alert">{joinError}</p>}
+            <div className="flex justify-end gap-2">
+              <button className="btn btn-sm btn-secondary" type="button" onClick={() => { setShowJoinForm(false); setJoinError(''); }} disabled={joining}>Cancel</button>
+              <button className="btn btn-sm btn-primary" type="submit" disabled={joining || !inGameName.trim()}>{joining ? 'Joining...' : 'Join tournament'}</button>
+            </div>
+          </form>
+        </div>
+      )}
     </Card>
   );
 };

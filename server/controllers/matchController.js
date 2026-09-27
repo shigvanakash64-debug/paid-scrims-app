@@ -418,6 +418,7 @@ export const rejectResult = async (req, res) => {
  */
 export const serializeMatch = (match) => {
   const record = match.toObject ? match.toObject() : match;
+  const gameNamesByUserId = new Map((record.playerGameNames || []).map((entry) => [entry.userId?.toString(), entry.inGameName]));
   return {
     id: record._id.toString(),
     creator: record.creator ? {
@@ -425,12 +426,12 @@ export const serializeMatch = (match) => {
       username: record.creator.username || record.creator
     } : null,
     players: (record.players || []).map((player) => {
-      if (typeof player === 'string' || player instanceof String) {
-        return { id: player.toString(), username: player.toString() };
-      }
+      const playerId = player?._id?.toString() || player?.toString();
+      const isPopulatedPlayer = Boolean(player?.username);
       return {
-        id: player._id.toString(),
-        username: player.username,
+        id: playerId,
+        username: isPopulatedPlayer ? player.username : playerId,
+        inGameName: gameNamesByUserId.get(playerId) || null,
       };
     }),
     game: record.game || 'Free Fire',
@@ -649,11 +650,15 @@ export const createMatch = async (req, res) => {
 
 export const acceptMatch = async (req, res) => {
   try {
-    const { matchId } = req.body;
+    const { matchId, inGameName } = req.body;
     const userId = req.userId;
 
-    if (!matchId) {
-      return res.status(400).json({ error: 'matchId is required' });
+    if (!matchId || typeof inGameName !== 'string' || !inGameName.trim()) {
+      return res.status(400).json({ error: 'matchId and inGameName are required' });
+    }
+
+    if (inGameName.trim().length > 50) {
+      return res.status(400).json({ error: 'In-game name must be 50 characters or fewer' });
     }
 
     const match = await Match.findById(matchId)
@@ -688,6 +693,7 @@ export const acceptMatch = async (req, res) => {
     const opponentUsername = opponent?.username || 'Opponent';
 
     match.players.push(userId);
+    match.playerGameNames.push({ userId, inGameName: inGameName.trim() });
     match.paymentUpi = await getNextPaymentUpi();
     match.status = 'payment_pending';
     match.paymentDueAt = null;

@@ -14,6 +14,21 @@ const matchSchema = new mongoose.Schema(
         required: true,
       },
     ],
+    playerGameNames: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        inGameName: {
+          type: String,
+          required: true,
+          trim: true,
+          maxlength: 50,
+        },
+      },
+    ],
     game: {
       type: String,
       enum: ["Free Fire", "BGMI"],
