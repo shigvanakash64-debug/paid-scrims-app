@@ -471,7 +471,8 @@ export const joinTournament = async (req, res) => {
         ? { totalCollection: tournament.entryFee * tournament.successfulEntries, prizePool: 0, retainedAmount: 0, clutchZoneFee: 0, hostShare: 0 }
         : calculateFinancials(tournament.entryFee, tournament.successfulEntries);
       const tournamentUpdate = { $set: financials };
-      if (tournament.format !== 'cs-every-win') {
+      const hasScheduledStageMatches = tournament.stages.some((stage) => stage.matches.length > 0);
+      if (tournament.format !== 'cs-every-win' && hasScheduledStageMatches) {
         tournamentUpdate.$addToSet = { 'stages.$[].matches.$[].participants': participant._id };
       }
       await Tournament.updateOne({ _id: tournament._id }, tournamentUpdate);

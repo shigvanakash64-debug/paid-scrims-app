@@ -7,6 +7,7 @@ import TournamentCard from './TournamentCard';
 import { Button } from './Button';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+const BR_TOURNAMENT_FORMATS = new Set(['single-match', 'custom', 'br-per-kill', 'br-custom']);
 
 const parseJsonResponse = async (response) => {
   const contentType = response.headers.get('content-type') || '';
@@ -55,7 +56,7 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
       setMatches(data.matches || []);
       if (tournamentResponse.ok) {
         const tournamentData = await parseJsonResponse(tournamentResponse);
-        setTournaments(tournamentData.tournaments || []);
+        setTournaments((tournamentData.tournaments || []).filter((tournament) => BR_TOURNAMENT_FORMATS.has(tournament.format)));
       }
       
       // Build registration map

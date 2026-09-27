@@ -26,6 +26,7 @@ const typeOptions = [
   'Rank Clash Squad',
 ];
 const entryOptions = [0, 5, 10, 20, 30, 50, 100, 200, 500, 1000];
+const CS_TOURNAMENT_FORMATS = new Set(['cs-every-win', 'cs-custom']);
 
 const getTrustClass = (score) => {
   if (score >= 80) return 'green';
@@ -42,6 +43,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const [type, setType] = useState(match?.type || 'All');
   const [entry, setEntry] = useState(match?.entryFee || 0);
   const [matches, setMatches] = useState([]);
+  const [csTournaments, setCsTournaments] = useState([]);
   const [myMatches, setMyMatches] = useState([]);
   const [registeredTournaments, setRegisteredTournaments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -151,13 +153,21 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         <div className="section-announce">
           {error || `CS matches · ${liveMatches.length} available`}
         </div>
-        {liveMatches.length === 0 ? (
+        {liveMatches.length === 0 && csTournaments.length === 0 ? (
           <div className="empty-state">
             <div className="empty-title">No CS matches</div>
             <div className="empty-copy">Try another filter or create a match.</div>
           </div>
         ) : (
           <div className="live-match-list">
+            {csTournaments.map((tournament) => (
+              <TournamentCard
+                key={`cs-tournament-${tournament._id}`}
+                tournament={tournament}
+                user={user}
+                onJoined={fetchPublicTournaments}
+              />
+            ))}
             {liveMatches.map((item) => (
               (() => {
                 const matchId = item.id || item._id;
@@ -230,6 +240,22 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
 
     fetchMatches();
   }, [game, mode, type, entry]);
+
+  const fetchPublicTournaments = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/tournaments/public`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+      });
+      setCsTournaments((response.data.tournaments || []).filter((tournament) => CS_TOURNAMENT_FORMATS.has(tournament.format)));
+    } catch (error) {
+      console.error('Failed to load CS tournaments:', error);
+      setCsTournaments([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchPublicTournaments();
+  }, [currentUser?.id, currentUser?._id]);
 
   useEffect(() => {
     const matchId = currentMatch?.id || currentMatch?._id;
