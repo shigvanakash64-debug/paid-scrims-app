@@ -1,6 +1,8 @@
 import cron from "node-cron";
 import Match from "../models/Match.js";
 import BRMatch from "../models/BRMatch.js";
+import BRParticipant from "../models/BRParticipant.js";
+import BRMatchResult from "../models/BRMatchResult.js";
 import { batchAutoResolveMatches } from "./autoResolveMatch.js";
 import { cleanupExpiredUploads } from "./cleanupExpiredUploads.js";
 import {
@@ -15,31 +17,35 @@ let retentionNotificationJobInstance = null;
 const RESULT_DEADLINE_MS = 5 * 60 * 1000;
 const RETENTION_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
 
-const pruneClosedBRMatches = async () => {
+const pruneOldBRMatches = async () => {
   const cutoff = new Date(Date.now() - RETENTION_WINDOW_MS);
+  const expiredMatches = await BRMatch.find({ createdAt: { $lt: cutoff } })
+    .select("_id")
+    .lean();
 
-  const result = await BRMatch.deleteMany({
-    status: { $in: ['CLOSED', 'COMPLETED'] },
-    updatedAt: { $lt: cutoff },
-  });
+  if (expiredMatches.length === 0) return 0;
+
+  const matchIds = expiredMatches.map((match) => match._id);
+  await Promise.all([
+    BRParticipant.deleteMany({ brMatchId: { $in: matchIds } }),
+    BRMatchResult.deleteMany({ matchId: { $in: matchIds } }),
+  ]);
+  const result = await BRMatch.deleteMany({ _id: { $in: matchIds } });
 
   if (result.deletedCount > 0) {
-    console.log(`[CRON] Deleted ${result.deletedCount} old BR matches older than 2 days`);
+    console.log(`[CRON] Deleted ${result.deletedCount} BR matches and related records older than 2 days`);
   }
 
   return result.deletedCount;
 };
 
-const pruneClosedMatches = async () => {
+const pruneOldMatches = async () => {
   const cutoff = new Date(Date.now() - RETENTION_WINDOW_MS);
 
-  const result = await Match.deleteMany({
-    status: { $in: ['completed', 'cancelled', 'disputed'] },
-    updatedAt: { $lt: cutoff },
-  });
+  const result = await Match.deleteMany({ createdAt: { $lt: cutoff } });
 
   if (result.deletedCount > 0) {
-    console.log(`[CRON] Deleted ${result.deletedCount} old matches older than 2 days`);
+    console.log(`[CRON] Deleted ${result.deletedCount} CS matches older than 2 days`);
   }
 
   return result.deletedCount;
@@ -120,14 +126,12 @@ export const initializeCronJobs = (userModel, options = {}) => {
         console.log(`[CRON] Removed ${cleanupResult.deletedCount} expired screenshots older than 48 hours`);
       }
 
-      // Waiting matches remain visible until their creator cancels them.
-
-      const prunedBRMatches = await pruneClosedBRMatches();
+      const prunedBRMatches = await pruneOldBRMatches();
       if (prunedBRMatches > 0) {
         console.log(`[CRON] Removed ${prunedBRMatches} stale BR matches older than 2 days`);
       }
 
-      const prunedMatches = await pruneClosedMatches();
+      const prunedMatches = await pruneOldMatches();
       if (prunedMatches > 0) {
         console.log(`[CRON] Removed ${prunedMatches} stale matches older than 2 days`);
       }
