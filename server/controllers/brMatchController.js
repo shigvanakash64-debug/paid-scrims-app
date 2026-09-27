@@ -93,7 +93,7 @@ export const listBRMatches = async (req, res) => {
     const { status } = req.query;
     const retentionCutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
 
-    const filter = {};
+    const filter = { createdAt: { $gte: retentionCutoff } };
 
     if (req.user?.role === 'host') {
       filter.createdBy = req.userId;

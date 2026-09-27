@@ -364,7 +364,10 @@ export const listPublicTournaments = async (req, res) => {
       }
     }
 
-    const tournaments = await Tournament.find({ status: { $in: ['open', 'upcoming', 'active'] } })
+    const tournaments = await Tournament.find({
+      status: { $in: ['open', 'upcoming', 'active'] },
+      createdAt: { $gte: new Date(Date.now() - COMPLETED_TOURNAMENT_EXPIRY_MS) },
+    })
       .select('name game format entryFee maxTeams successfulEntries prizePool perKillReward stages status createdBy createdAt estimatedDate estimatedTime hostMessage roomId roomPassword')
       .populate('createdBy', 'username')
       .sort({ createdAt: -1 })

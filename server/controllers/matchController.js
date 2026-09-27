@@ -1110,7 +1110,10 @@ export const addChatMessage = async (req, res) => {
 export const listMatches = async (req, res) => {
   try {
     const { game, mode, type, entry } = req.query;
-    const query = { status: 'waiting' };
+    const query = {
+      status: 'waiting',
+      createdAt: { $gte: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
+    };
     if (game) query.game = game;
     if (mode) query.mode = mode;
     if (type) query.type = type;

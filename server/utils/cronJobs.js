@@ -3,6 +3,9 @@ import Match from "../models/Match.js";
 import BRMatch from "../models/BRMatch.js";
 import BRParticipant from "../models/BRParticipant.js";
 import BRMatchResult from "../models/BRMatchResult.js";
+import Tournament from "../models/Tournament.js";
+import TournamentParticipant from "../models/TournamentParticipant.js";
+import TournamentMatchResult from "../models/TournamentMatchResult.js";
 import { batchAutoResolveMatches } from "./autoResolveMatch.js";
 import { cleanupExpiredUploads } from "./cleanupExpiredUploads.js";
 import {
@@ -46,6 +49,28 @@ const pruneOldMatches = async () => {
 
   if (result.deletedCount > 0) {
     console.log(`[CRON] Deleted ${result.deletedCount} CS matches older than 2 days`);
+  }
+
+  return result.deletedCount;
+};
+
+const pruneOldTournaments = async () => {
+  const cutoff = new Date(Date.now() - RETENTION_WINDOW_MS);
+  const expiredTournaments = await Tournament.find({ createdAt: { $lt: cutoff } })
+    .select("_id")
+    .lean();
+
+  if (expiredTournaments.length === 0) return 0;
+
+  const tournamentIds = expiredTournaments.map((tournament) => tournament._id);
+  await Promise.all([
+    TournamentParticipant.deleteMany({ tournamentId: { $in: tournamentIds } }),
+    TournamentMatchResult.deleteMany({ tournamentId: { $in: tournamentIds } }),
+  ]);
+  const result = await Tournament.deleteMany({ _id: { $in: tournamentIds } });
+
+  if (result.deletedCount > 0) {
+    console.log(`[CRON] Deleted ${result.deletedCount} old tournaments and related records older than 2 days`);
   }
 
   return result.deletedCount;
@@ -135,6 +160,8 @@ export const initializeCronJobs = (userModel, options = {}) => {
       if (prunedMatches > 0) {
         console.log(`[CRON] Removed ${prunedMatches} stale matches older than 2 days`);
       }
+
+      await pruneOldTournaments();
 
       const repairedMatches = await repairLegacyMatches(userModel, batchSize);
       if (repairedMatches.length > 0) {
