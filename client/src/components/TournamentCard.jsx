@@ -149,8 +149,19 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         {isJoined && <button type="button" className="btn btn-sm btn-secondary" onClick={handleLoadGroups}>Your Group</button>}
       </div>
 
+      {activePanel && (
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#0B0B0B] p-4" role="dialog" aria-modal="true">
+          <div className="relative mx-auto min-h-full max-w-xl pt-12">
+            <button
+              type="button"
+              aria-label="Close panel"
+              className="absolute right-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg border border-[#2A2A2A] bg-[#111111] text-2xl text-white hover:bg-[#1A1A1A]"
+              onClick={() => { setActivePanel(null); setSelectedStageKey(null); }}
+            >
+              ×
+            </button>
       {!isPerKillTournament && activePanel === 'structure' && (
-        <div className="mt-4 border-t border-[#1F1F1F] pt-3">
+        <div className="border-t border-[#1F1F1F] pt-3">
           <div className="mb-2 text-xs uppercase tracking-wide text-[#A1A1A1]">Match Structure</div>
           <div className="space-y-2">
             {stages.length === 0 ? (
@@ -174,7 +185,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
       )}
 
       {activePanel === 'groups' && (
-        <div className="mt-3 border-t border-[#1F1F1F] pt-3">
+        <div className="border-t border-[#1F1F1F] pt-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-semibold text-white">Your Group</span>
             <span className="text-xs text-[#FFB066]">{groupData.userGroup ? `Group ${groupData.userGroup}` : 'Not assigned'}</span>
@@ -206,7 +217,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         </div>
       )}
 
-      {activePanel === 'results' && <div className="mt-3 border-t border-[#1F1F1F] pt-2"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-white">Published Results</span><button type="button" className="text-sm text-[#A1A1A1]" onClick={() => { setActivePanel(null); setSelectedStageKey(null); }}>Close</button></div>
+      {activePanel === 'results' && <div className="border-t border-[#1F1F1F] pt-2"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-white">Published Results</span></div>
         {isPerKillTournament ? (
           results.length === 0 ? <p className="mt-2 text-sm text-[#A1A1A1]">Result not published yet.</p> : <div className="mt-2 space-y-2">{results.map((result) => <div key={`${result.matchId}-${result._id}`} className="border-t border-[#1F1F1F] pt-2"><p className="text-xs text-[#FFB066]">{result.stageKey} · Match</p><div className="mt-1 grid grid-cols-4 text-xs uppercase tracking-wide text-[#A1A1A1]"><span>Top</span><span>Name</span><span>Kill</span><span>Money</span></div>{[...result.entries].sort((a, b) => Number(b.kills ?? 0) - Number(a.kills ?? 0) || Number(b.money ?? 0) - Number(a.money ?? 0)).map((entry, index) => <div key={entry.participantId} className="mt-1 grid grid-cols-4 text-sm text-white"><span>{index + 1}</span><span>{entry.participantName}</span><span>{Number(entry.kills ?? 0)}</span><span>₹{Number(entry.money ?? 0)}</span></div>)}</div>)}</div>
         ) : (
@@ -258,6 +269,9 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
           </div>
         )}
       </div>}
+          </div>
+        </div>
+      )}
       {showJoinForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="presentation">
           <form

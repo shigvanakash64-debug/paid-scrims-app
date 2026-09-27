@@ -392,11 +392,6 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {['custom', 'br-custom', 'cs-custom', 'cs-every-win'].includes(tournament?.format) && (
-                      <Button variant="secondary" size="sm" onClick={addStage}>
-                        <Plus size={16} /> Create Stage
-                      </Button>
-                    )}
                     {isStageOpen && (
                       <Button variant="secondary" size="sm" onClick={closeResultEditor}>
                         Close
