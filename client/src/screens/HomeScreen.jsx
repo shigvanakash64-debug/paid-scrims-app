@@ -84,25 +84,6 @@ const skillOptions = [
 
 const entryFees = [5, 10, 20, 30, 50, 100, 200, 500, 1000];
 
-const calculateCommission = (entryFee) => {
-  if (entryFee <= 30) return entryFee / 3;
-  if (entryFee <= 50) return entryFee * 0.4;
-  return entryFee * 0.3;
-};
-
-const getPlayersCount = (mode) => {
-  switch (mode) {
-    case '2v2':
-      return 4;
-    case '3v3':
-      return 6;
-    case '4v4':
-      return 8;
-    default:
-      return 2;
-  }
-};
-
 const getPrizePool = (entryFee) => {
   const prizePoolTable = {
     5: 7,
@@ -122,74 +103,35 @@ const getPrizePool = (entryFee) => {
     .find(([fee]) => entryFee <= fee)?.[1] ?? 0;
 };
 
-export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) => {
+export const HomeScreen = ({ onScreenChange }) => {
   const { user: currentUser } = useUser();
   const [selectedGame, setSelectedGame] = useState('Free Fire');
   const [selectedMode, setSelectedMode] = useState('1v1');
   const [selectedType, setSelectedType] = useState('Normal Headshot');
   const [selectedSkill, setSelectedSkill] = useState('Skill On');
   const [selectedFee, setSelectedFee] = useState(50);
-  const [isCreatingMatch, setIsCreatingMatch] = useState(false);
+  const [isSendingRequest, setIsSendingRequest] = useState(false);
 
-  const isHostOrAdmin = user?.role === 'host' || user?.role === 'admin' || currentUser?.role === 'host' || currentUser?.role === 'admin' || currentUser?.isAdmin === true;
-  const playersCount = getPlayersCount(selectedMode);
-  const platformFee = calculateCommission(selectedFee);
   const prizePool = getPrizePool(selectedFee);
 
-  const handleFindMatch = async () => {
-    if (!isHostOrAdmin) {
-      if (isCreatingMatch) return;
-      try {
-        setIsCreatingMatch(true);
-        const response = await axios.post(`${API_BASE}/global-match-requests`, {
-          game: selectedGame,
-          mode: selectedMode,
-          type: selectedType,
-          skillSetting: selectedSkill,
-          entryFee: selectedFee,
-        }, { headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` } });
-        if (!response.data?.success) throw new Error('Unable to send match request');
-        onScreenChange('global-chat');
-      } catch (error) {
-        alert(error.response?.data?.error || error.message || 'Unable to send match request');
-      } finally {
-        setIsCreatingMatch(false);
-      }
-      return;
-    }
-
-    if (isCreatingMatch) return;
-
-    if (currentMatch && !['completed', 'cancelled', 'disputed'].includes(currentMatch.status)) {
-      alert('You already have an active match. Complete it first before creating a new one.');
-      return;
-    }
+  const handleSendRequest = async () => {
+    if (isSendingRequest) return;
 
     try {
-      setIsCreatingMatch(true);
-      const token = localStorage.getItem(TOKEN_KEY);
-      const response = await axios.post(
-        `${API_BASE}/match/create`,
-        {
-          game: selectedGame,
-          mode: selectedMode,
-          type: selectedType,
-          entry: selectedFee,
-          skillSetting: selectedSkill,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      onFindMatch(response.data.match);
-      onScreenChange('pairing');
+      setIsSendingRequest(true);
+      const response = await axios.post(`${API_BASE}/global-match-requests`, {
+        game: selectedGame,
+        mode: selectedMode,
+        type: selectedType,
+        skillSetting: selectedSkill,
+        entryFee: selectedFee,
+      }, { headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` } });
+      if (!response.data?.success) throw new Error('Unable to send match request');
+      onScreenChange('global-chat');
     } catch (error) {
-      alert(error.response?.data?.error || 'API error while creating match');
+      alert(error.response?.data?.error || error.message || 'Unable to send match request');
     } finally {
-      setIsCreatingMatch(false);
+      setIsSendingRequest(false);
     }
   };
 
@@ -324,8 +266,8 @@ export const HomeScreen = ({ user, onFindMatch, onScreenChange, currentMatch }) 
       </div>
 
       <div className="btn-cta-wrap">
-        <button className="btn-primary" type="button" onClick={handleFindMatch} disabled={isCreatingMatch}>
-          {isCreatingMatch ? 'SENDING...' : isHostOrAdmin ? 'CREATE MATCH' : 'SEND'}
+        <button className="btn-primary" type="button" onClick={handleSendRequest} disabled={isSendingRequest}>
+          {isSendingRequest ? 'SENDING...' : 'SEND REQUEST'}
         </button>
       </div>
     </div>
