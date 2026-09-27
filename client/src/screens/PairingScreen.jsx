@@ -150,28 +150,43 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         ) : (
           <div className="live-match-list">
             {liveMatches.map((item) => (
-              <div key={item.id || item._id} className="match-card">
-                <div className="match-card-header">
-                  <div>
-                    <div className="match-tag">{item.game || 'Free Fire'}</div>
-                    <div className="match-title">{item.mode} · {item.type}</div>
+              (() => {
+                const matchId = item.id || item._id;
+                const creatorId = item.creator?.id || item.creator?._id || item.creator;
+                const currentUserId = currentUser?.id || currentUser?._id;
+                const isOwnMatch = creatorId && currentUserId && String(creatorId) === String(currentUserId);
+
+                return (
+                  <div key={matchId} className="match-card">
+                    <div className="match-card-header">
+                      <div>
+                        <div className="match-tag">{item.game || 'Free Fire'}</div>
+                        <div className="match-title">{item.mode} · {item.type}</div>
+                      </div>
+                      <div className={`trust-pill ${getTrustClass(item.trustScore ?? 90)}`}>{item.trustScore ?? 90}</div>
+                    </div>
+                    <div className="match-meta-row">
+                      <span>Entry CZ{item.entryFee || item.entry || 0}</span>
+                      <span>Prize CZ{item.prizePool || 0}</span>
+                    </div>
+                    <div className="match-meta-row">
+                      <span>{item.skillSetting || 'Skill Off'}</span>
+                      <span>{item.status || 'Waiting for opponent'}</span>
+                    </div>
+                    <div className="match-actions">
+                      {isOwnMatch ? (
+                        <button className="btn-outline" type="button" onClick={() => handleCancelListing(item)}>
+                          Cancel Match
+                        </button>
+                      ) : (
+                        <button className="btn-outline" type="button" onClick={() => handleJoin(item)}>
+                          Join
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className={`trust-pill ${getTrustClass(item.trustScore ?? 90)}`}>{item.trustScore ?? 90}</div>
-                </div>
-                <div className="match-meta-row">
-                  <span>Entry CZ{item.entryFee || item.entry || 0}</span>
-                  <span>Prize CZ{item.prizePool || 0}</span>
-                </div>
-                <div className="match-meta-row">
-                  <span>{item.skillSetting || 'Skill Off'}</span>
-                  <span>{item.status || 'Waiting for opponent'}</span>
-                </div>
-                <div className="match-actions">
-                  <button className="btn-outline" type="button" onClick={() => handleJoin(item)}>
-                    Join
-                  </button>
-                </div>
-              </div>
+                );
+              })()
             ))}
           </div>
         )}
@@ -281,6 +296,31 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
       onScreenChange('pairing');
     } catch (error) {
       alert(error.response?.data?.error || 'Could not accept match');
+    }
+  };
+
+  const handleCancelListing = async (matchItem) => {
+    const matchId = matchItem.id || matchItem._id;
+    if (!window.confirm('Cancel your waiting match request?')) return;
+
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+      await axios.post(
+        `${API_BASE}/match/cancel`,
+        { matchId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMatches((currentMatches) => currentMatches.filter((item) => String(item.id || item._id) !== String(matchId)));
+      if (String(currentMatch?.id || currentMatch?._id) === String(matchId)) clearMatch();
+      showNotification({
+        id: `cancel-${Date.now()}`,
+        type: 'match',
+        title: 'Match cancelled',
+        message: 'Your waiting match request has been removed.',
+        duration: 4000,
+      });
+    } catch (error) {
+      alert(error.response?.data?.error || 'Could not cancel match');
     }
   };
 

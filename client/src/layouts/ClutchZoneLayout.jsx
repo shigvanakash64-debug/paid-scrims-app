@@ -12,7 +12,7 @@ export const ClutchZoneLayout = ({ children, user, currentScreen, navVisible, on
       <Header user={user} currentScreen={currentScreen} onNavigate={onNavigate} onBack={onBack} canGoBack={canGoBack} onLogout={onLogout} />
       <div className="scroll-area">{children}</div>
       {showFooter && <Footer onNavigate={onNavigate} />}
-      {showBottomNav && <BottomNav currentScreen={currentScreen} onScreenChange={onNavigate} isVisible={navVisible} />}
+      {showBottomNav && <BottomNav currentScreen={currentScreen} onScreenChange={onNavigate} user={user} isVisible={navVisible} />}
     </div>
   );
 };
