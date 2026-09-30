@@ -49,7 +49,10 @@ export const HostTournamentPanel = ({ onBack }) => {
   const [error, setError] = useState('');
   const [created, setCreated] = useState(null);
 
-  const updateForm = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const updateForm = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: name === 'teamSize' ? Number(value) : value }));
+  };
   const isPerKill = isPerKillFormat(format);
   const isSingleStage = isSingleStageFormat(format);
   const isCustom = isCustomFormat(format);
@@ -92,7 +95,7 @@ export const HostTournamentPanel = ({ onBack }) => {
       const response = await fetch(`${API_BASE}/tournaments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
-        body: JSON.stringify({ ...form, format, customStages: isCustom ? customStages : [] }),
+        body: JSON.stringify({ ...form, teamSize: Number(form.teamSize), format, customStages: isCustom ? customStages : [] }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to create tournament');

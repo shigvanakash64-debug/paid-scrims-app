@@ -386,7 +386,7 @@ export const listPublicTournaments = async (req, res) => {
       status: { $in: ['open', 'upcoming', 'active'] },
       createdAt: { $gte: new Date(Date.now() - COMPLETED_TOURNAMENT_EXPIRY_MS) },
     })
-      .select('name game format entryFee maxTeams successfulEntries prizePool perKillReward stages status createdBy createdAt estimatedDate estimatedTime hostMessage roomId roomPassword')
+      .select('name game format entryFee maxTeams teamSize successfulEntries prizePool perKillReward stages status createdBy createdAt estimatedDate estimatedTime hostMessage roomId roomPassword')
       .populate('createdBy', 'username')
       .sort({ createdAt: -1 })
       .lean();
