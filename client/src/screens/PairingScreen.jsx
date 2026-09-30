@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import BRMatchSection from '../components/BRMatchSection';
 import TournamentCard from '../components/TournamentCard';
 import { useMatch } from '../contexts/MatchContext';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -144,16 +143,6 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('clutchzone_open_my_matches') === 'true' ? 'my-matches' : 'live-opponents');
 
   const renderTabContent = () => {
-    if (activeTab === 'br-matches') {
-      return <BRMatchSection
-        user={user}
-        onMatchSelect={onMatchSelect}
-        gameFilter={game}
-        entryRange={entryOptions.find((option) => option.label === entry)}
-        modeFilter={mode}
-      />;
-    }
-
     if (activeTab === 'my-matches') {
       const visibleMyMatches = [
         ...registeredTournaments.map((tournament) => ({ _listType: 'tournament', tournament })),
@@ -570,12 +559,6 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
           onClick={() => setActiveTab('live-opponents')}
         >
           Matches
-        </button>
-        <button
-          className={`pairing-tab ${activeTab === 'br-matches' ? 'active' : ''}`}
-          onClick={() => setActiveTab('br-matches')}
-        >
-          BR Match
         </button>
       </div>
 

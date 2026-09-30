@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Card } from './Card';
+import TVTResultsPage from '../screens/TVTResultsPage';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -107,6 +108,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         ? 'Team vs Team Tournament'
         : tournament?.format;
   const isJoined = Boolean(tournament?.isRegistered || tournament?.registered || tournament?.joined);
+  const teamBracketStarted = tournament?.format === 'team-vs-team' && tournament?.status === 'active';
   const stages = Array.isArray(tournament?.stages) ? [...tournament.stages].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
 
   const customStageResults = useMemo(() => {
@@ -132,7 +134,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         <div className="br-match-title">
           <div className="mb-1 text-xs text-[#A1A1A1]">Host: {hostUsername}</div>
           <h3>{tournament.name}</h3>
-          <span className="br-status-badge text-green-400">OPEN FOR REGISTRATION</span>
+          <span className={`br-status-badge ${teamBracketStarted ? 'text-[#FFB066]' : 'text-green-400'}`}>{teamBracketStarted ? 'BRACKET IN PROGRESS' : 'OPEN FOR REGISTRATION'}</span>
         </div>
       </div>
       <div className="br-match-grid">
@@ -158,19 +160,24 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
       )}
       <div className="br-match-actions">
         <span className="registered-badge">{formatTitle} · OPEN</span>
-        <button type="button" className="btn btn-sm btn-primary" onClick={() => setShowJoinForm(true)} disabled={isJoined || tournament.successfulEntries >= tournament.maxTeams}>
-          {isJoined ? 'Joined' : tournament.successfulEntries >= tournament.maxTeams ? 'Full' : 'Join'}
+        <button type="button" className="btn btn-sm btn-primary" onClick={() => setShowJoinForm(true)} disabled={isJoined || teamBracketStarted || tournament.successfulEntries >= tournament.maxTeams}>
+          {isJoined ? 'Joined' : teamBracketStarted ? 'Bracket Started' : tournament.successfulEntries >= tournament.maxTeams ? 'Full' : 'Join'}
         </button>
         {!isPerKillTournament && (
           <button type="button" className="btn btn-sm btn-secondary" onClick={() => setActivePanel((current) => (current === 'structure' ? null : 'structure'))}>
             Match Structure
           </button>
         )}
+        {isJoined && tournament?.format === 'team-vs-team' && (
+          <button type="button" className="btn btn-sm btn-primary" onClick={() => setActivePanel('tvt-results')}>
+            TVT Result
+          </button>
+        )}
         {isJoined && <button type="button" className="btn btn-sm btn-secondary" onClick={handleViewResults}>View Results</button>}
         {isJoined && <button type="button" className="btn btn-sm btn-secondary" onClick={handleLoadGroups}>Your Group</button>}
       </div>
 
-      {activePanel && (
+      {activePanel && activePanel !== 'tvt-results' && (
         <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#0B0B0B] p-4" role="dialog" aria-modal="true">
           <div className="relative mx-auto min-h-full max-w-xl pt-12">
             <button
@@ -289,6 +296,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
           </div>
         </div>
       )}
+      {activePanel === 'tvt-results' && <TVTResultsPage tournamentId={tournament._id} onClose={() => setActivePanel(null)} />}
       {showJoinForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="presentation">
           <form

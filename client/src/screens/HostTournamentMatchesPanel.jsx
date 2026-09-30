@@ -4,6 +4,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+const getTeamName = (team) => team?.teamName || team?.displayName || team?.userId?.username || 'Waiting for team';
 
 const formatTime12Hour = (value) => {
   if (!value || value === 'undefined' || value === 'null') return '';
@@ -25,6 +26,9 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   const [form, setForm] = useState({ matchTitle: '', resultType: 'normal', entries: [] });
   const isPerKillTournament = tournament?.format === 'single-match' || tournament?.format === 'br-per-kill';
   const isSingleStageTournament = isPerKillTournament;
+  const isTeamTournament = tournament?.format === 'team-vs-team';
+  const hasTeamBracket = Boolean(tournament?.stages?.some((stage) => stage.key.startsWith('tvt-round-')));
+  const [startingBracket, setStartingBracket] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -350,6 +354,47 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
     }
   };
 
+  const startTeamBracket = async () => {
+    if (!window.confirm('Start the automatic team bracket? Registration will close.')) return;
+    setStartingBracket(true);
+    setError('');
+    try {
+      const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/team-bracket`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to start Team vs Team bracket');
+      setNotice('Team bracket started. Registration is now closed.');
+      await loadTournament();
+    } catch (startError) {
+      setError(startError.message);
+    } finally {
+      setStartingBracket(false);
+    }
+  };
+
+  const resolveTeamMatch = async (match, winnerParticipantId, gameNumber) => {
+    if (!window.confirm(`Confirm ${winnerParticipantId === String(match.teamA?._id) ? match.teamA?.teamName || 'Team A' : match.teamB?.teamName || 'Team B'} as the winner?`)) return;
+    setError('');
+    try {
+      const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/team-matches/${match._id}/resolve`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}`,
+        },
+        body: JSON.stringify({ winnerParticipantId, gameNumber }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to resolve TVT result');
+      setNotice('Disputed result resolved.');
+      await loadTournament();
+    } catch (resolveError) {
+      setError(resolveError.message);
+    }
+  };
+
   if (!tournament) {
     return <div className="text-[#A1A1A1]">{error || 'Loading tournament...'}</div>;
   }
@@ -366,7 +411,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
             <h1 className="text-3xl font-bold text-white">{tournament.name}</h1>
             <p className="mt-2 text-sm text-[#A1A1A1]">Create and publish one match result at a time.</p>
           </div>
-          {['custom', 'br-custom', 'cs-custom', 'team-vs-team'].includes(tournament.format) && (
+          {['custom', 'br-custom', 'cs-custom'].includes(tournament.format) && (
             <Button variant="secondary" size="sm" onClick={addStage}>
               <Plus size={16} /> Create Stage
             </Button>
@@ -377,7 +422,58 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       {error && <p className="text-sm text-[#FCA5A5]">{error}</p>}
       {notice && <p className="text-sm text-[#22C55E]">{notice}</p>}
 
-      <div className="space-y-3">
+      {isTeamTournament && (
+        <div className="space-y-4">
+          {!hasTeamBracket ? (
+            <Card>
+              <h2 className="text-lg font-semibold text-white">Automatic {tournament.teamTournamentMode === 'bo3' ? 'BO3' : 'Knockout'} Bracket</h2>
+              <p className="mt-2 text-sm text-[#A1A1A1]">{participants.length} teams registered. Starting the bracket closes registration and creates all rounds automatically.</p>
+              <Button variant="primary" size="sm" className="mt-4" onClick={startTeamBracket} disabled={startingBracket || participants.length < 2}>
+                {startingBracket ? 'Starting...' : 'Start Bracket'}
+              </Button>
+            </Card>
+          ) : (
+            tournament.stages.filter((stage) => stage.key.startsWith('tvt-round-')).map((stage) => (
+              <Card key={stage.key}>
+                <div className="flex items-center justify-between gap-3 border-b border-[#252525] pb-3">
+                  <h2 className="font-semibold text-white">{stage.name}</h2>
+                  <span className="text-xs text-[#A1A1A1]">{tournament.teamTournamentMode === 'bo3' ? 'Best of 3' : 'Knockout'}</span>
+                </div>
+                <div className="mt-3 space-y-3">
+                  {stage.matches.map((match) => (
+                    <div key={match._id} className="rounded-lg border border-[#282828] bg-[#0D0D0D] p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-white">{getTeamName(match.teamA)} <span className="text-[#737373]">vs</span> {getTeamName(match.teamB)}</span>
+                        <span className={`text-xs uppercase ${match.status === 'disputed' ? 'text-[#F59E0B]' : match.status === 'completed' ? 'text-[#22C55E]' : 'text-[#A1A1A1]'}`}>{match.status}</span>
+                      </div>
+                      {tournament.teamTournamentMode === 'bo3' && <p className="mt-1 text-xs text-[#A1A1A1]">Score {match.teamAWins || 0}-{match.teamBWins || 0} · Game {match.currentGame || 1}</p>}
+                      {(match.gameResults || []).map((game) => (
+                        <div key={game.gameNumber} className="mt-3 space-y-2 border-t border-[#252525] pt-2 text-xs text-[#D4D4D4]">
+                          <p className="text-[#A1A1A1]">{tournament.teamTournamentMode === 'bo3' ? `Game ${game.gameNumber}` : 'Result claims'} · {game.status}</p>
+                          {game.claims.map((claim, index) => (
+                            <div key={`${claim.userId?._id || claim.userId}-${index}`} className="flex flex-wrap items-center justify-between gap-2">
+                              <span>{claim.userId?.username || 'Player'} reported {claim.outcome === 'win' ? 'I WON' : 'I LOST'}</span>
+                              {claim.screenshotUrl && <a href={claim.screenshotUrl} target="_blank" rel="noreferrer" className="text-[#FFB066] underline">View screenshot</a>}
+                            </div>
+                          ))}
+                          {match.status === 'disputed' && game.status === 'disputed' && (
+                            <div className="flex flex-wrap gap-2 pt-2">
+                              <Button variant="secondary" size="sm" onClick={() => resolveTeamMatch(match, String(match.teamA?._id), game.gameNumber)}>Award {getTeamName(match.teamA)}</Button>
+                              <Button variant="secondary" size="sm" onClick={() => resolveTeamMatch(match, String(match.teamB?._id), game.gameNumber)}>Award {getTeamName(match.teamB)}</Button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+
+      {!isTeamTournament && <div className="space-y-3">
         {tournament.stages.map((stage) => {
           const publishedStageResults = results.filter((result) => result.stageKey === stage.key && result.status === 'published');
           const hasPublishedResult = publishedStageResults.length > 0;
@@ -552,7 +648,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
             </div>
           );
         })}
-      </div>
+      </div>}
     </div>
   );
 };

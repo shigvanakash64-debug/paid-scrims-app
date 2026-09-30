@@ -1,7 +1,33 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { assignTournamentGroups, calculateFinancials, isCompletedTournamentExpired, normalizeResultEntry, normalizeTournamentRegistration, validateTournamentInput } from './controllers/tournamentController.js';
+import { assignTournamentGroups, buildTournamentBracket, calculateFinancials, isCompletedTournamentExpired, normalizeResultEntry, normalizeTournamentRegistration, resolveTeamMatchClaims, validateTournamentInput } from './controllers/tournamentController.js';
+
+test('buildTournamentBracket creates the expected knockout rounds and automatic byes', () => {
+  const bracket = buildTournamentBracket(Array.from({ length: 16 }, (_, index) => `team-${index + 1}`));
+  assert.deepEqual(bracket.map((round) => [round.name, round.matches.length]), [
+    ['Round 1', 8],
+    ['Quarterfinal', 4],
+    ['Semifinal', 2],
+    ['Final', 1],
+  ]);
+
+  const fiveTeamBracket = buildTournamentBracket(['one', 'two', 'three', 'four', 'five']);
+  assert.equal(fiveTeamBracket[0].matches.length, 4);
+  assert.equal(fiveTeamBracket[0].matches.filter((match) => match.status === 'completed').length, 3);
+});
+
+test('resolveTeamMatchClaims accepts agreement and flags conflicting winner claims', () => {
+  assert.deepEqual(resolveTeamMatchClaims([
+    { claimedWinnerId: 'team-b' },
+    { claimedWinnerId: 'team-b' },
+  ]), { status: 'completed', winnerParticipantId: 'team-b' });
+
+  assert.deepEqual(resolveTeamMatchClaims([
+    { claimedWinnerId: 'team-a' },
+    { claimedWinnerId: 'team-b' },
+  ]), { status: 'disputed', winnerParticipantId: null });
+});
 
 test('validateTournamentInput requires match schedule and room details', () => {
   assert.throws(() => validateTournamentInput({
@@ -63,18 +89,56 @@ test('validateTournamentInput requires match schedule and room details', () => {
 
   assert.doesNotThrow(() => validateTournamentInput({
     name: 'No Host View Cup',
+    format: 'team-vs-team',
+    game: 'COD Mobile',
+    entryFee: 20,
+    maxTeams: 10,
+    teamTournamentMode: 'bo3',
+    estimatedDate: '2026-09-15',
+  }));
+
+  assert.doesNotThrow(() => validateTournamentInput({
+    name: 'Message Limit Cup',
+    format: 'custom',
+    game: 'Free Fire',
+    entryFee: 20,
+    maxTeams: 10,
+    estimatedDate: '2026-09-15',
+    hostMessage: `${'a'.repeat(297)} !?`,
+  }));
+  assert.throws(() => validateTournamentInput({
+    name: 'Long Message Cup',
+    format: 'custom',
+    game: 'Free Fire',
+    entryFee: 20,
+    maxTeams: 10,
+    estimatedDate: '2026-09-15',
+    hostMessage: 'a'.repeat(301),
+  }), /cannot exceed 300/i);
+
+  assert.throws(() => validateTournamentInput({
+    name: 'Invalid Custom Cup',
     format: 'custom',
     game: 'COD Mobile',
     entryFee: 20,
     maxTeams: 10,
     estimatedDate: '2026-09-15',
-  }));
+  }), /supports Team vs Team tournaments/i);
+
+  assert.throws(() => validateTournamentInput({
+    name: 'Invalid TVT Cup',
+    format: 'team-vs-team',
+    game: 'Free Fire',
+    entryFee: 20,
+    maxTeams: 10,
+    estimatedDate: '2026-09-15',
+  }), /supports Custom tournaments/i);
 
   for (const format of ['br-custom', 'cs-custom', 'team-vs-team']) {
     const validated = validateTournamentInput({
       name: 'Team Cup',
       format,
-      game: 'Free Fire',
+      game: format === 'team-vs-team' ? 'Valorant' : 'Free Fire',
       entryFee: 20,
       maxTeams: 10,
       teamSize: 4,
@@ -86,7 +150,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
   assert.throws(() => validateTournamentInput({
     name: 'Team Cup',
     format: 'team-vs-team',
-    game: 'Free Fire',
+    game: 'Valorant',
     entryFee: 20,
     maxTeams: 10,
     teamSize: 7,

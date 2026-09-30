@@ -18,13 +18,21 @@ const formatTime12Hour = (value) => {
 const FORMAT_OPTIONS = [
   { value: 'br-per-kill', title: 'Per Kill Tournament', description: 'Single match format', detail: 'Per-kill reward' },
   { value: 'br-custom', title: 'Custom Tournament', description: 'Manual stage setup', detail: 'Host manually creates the stages' },
-  { value: 'team-vs-team', title: 'Team vs Team Tournament', description: 'Team-based tournament stages', detail: 'Host manually creates the stages' },
+  { value: 'team-vs-team', title: 'Team vs Team Tournament', description: 'Automatic head-to-head tournament', detail: 'Automatic Knockout or BO3 bracket' },
 ];
 
+const CUSTOM_GAMES = ['Free Fire', 'BGMI', 'PUBG Mobile', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds', 'Call of Duty: Warzone', 'Minecraft', 'Trackmania', 'Teamfight Tactics'];
+const TEAM_VS_TEAM_GAMES = ['Clash Royale', 'EA Sports FC Mobile', 'eFootball', 'Tekken 8', 'Street Fighter 6', 'EA Sports FC 26', 'Chess', 'COD Mobile', 'Mobile Legends: Bang Bang', 'Honor of Kings', 'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends', 'Rainbow Six Siege', 'Overwatch 2', 'Marvel Rivals', 'Rocket League', 'Brawl Stars', 'Clash of Clans', 'Age of Empires II', 'Age of Empires IV'];
+const ALL_GAMES = [...CUSTOM_GAMES, ...TEAM_VS_TEAM_GAMES.filter((game) => !CUSTOM_GAMES.includes(game))];
 const isPerKillFormat = (value) => value === 'single-match' || value === 'br-per-kill';
 const isSingleStageFormat = (value) => isPerKillFormat(value);
 const isCustomFormat = (value) => value === 'custom' || value === 'br-custom' || value === 'cs-custom' || value === 'team-vs-team';
 const usesTeamSize = (value) => ['br-custom', 'cs-custom', 'team-vs-team'].includes(value);
+const getGameFormatWarning = (format, game) => {
+  if (['custom', 'br-custom', 'cs-custom'].includes(format) && TEAM_VS_TEAM_GAMES.includes(game)) return `${game} supports Team vs Team tournaments, not Custom tournaments.`;
+  if (format === 'team-vs-team' && CUSTOM_GAMES.includes(game)) return `${game} supports Custom tournaments, not Team vs Team tournaments.`;
+  return '';
+};
 const getFormatTitle = (value) => FORMAT_OPTIONS.find((option) => option.value === value)?.title || (value === 'single-match' ? 'Per Kill Tournament' : value === 'custom' ? 'Custom Tournament' : value);
 
 export const HostTournamentPanel = ({ onBack }) => {
@@ -34,6 +42,7 @@ export const HostTournamentPanel = ({ onBack }) => {
     name: '',
     game: 'Free Fire',
     teamSize: 1,
+    teamTournamentMode: 'knockout',
     entryFee: '',
     maxTeams: '',
     perKillReward: '',
@@ -55,6 +64,8 @@ export const HostTournamentPanel = ({ onBack }) => {
   const isPerKill = isPerKillFormat(format);
   const isSingleStage = isSingleStageFormat(format);
   const isCustom = isCustomFormat(format);
+  const canConfigureStages = isCustom && format !== 'team-vs-team';
+  const gameFormatWarning = getGameFormatWarning(format, form.game);
   const successfulEntries = 0;
   const prizePool = isPerKill ? 0 : (Number(form.entryFee) || 0) * successfulEntries * 0.7;
 
@@ -72,6 +83,11 @@ export const HostTournamentPanel = ({ onBack }) => {
       return;
     }
 
+    if (gameFormatWarning) {
+      setError(gameFormatWarning);
+      return;
+    }
+
     if (isPerKill) {
       const entryFee = Number(form.entryFee);
       const perKillReward = Number(form.perKillReward);
@@ -81,7 +97,7 @@ export const HostTournamentPanel = ({ onBack }) => {
       }
     }
 
-    if (isCustom) {
+    if (canConfigureStages) {
       const validStages = customStages.filter((stage) => stage?.name?.trim());
       if (validStages.length === 0) {
         setError('Add at least one stage name before creating the custom tournament.');
@@ -94,7 +110,7 @@ export const HostTournamentPanel = ({ onBack }) => {
       const response = await fetch(`${API_BASE}/tournaments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
-        body: JSON.stringify({ ...form, teamSize: Number(form.teamSize), format, customStages: isCustom ? customStages : [] }),
+        body: JSON.stringify({ ...form, teamSize: Number(form.teamSize), format, customStages: canConfigureStages ? customStages : [] }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to create tournament');
@@ -176,22 +192,24 @@ export const HostTournamentPanel = ({ onBack }) => {
                 <p className="font-semibold text-white">{created?.teamSize || 1}</p>
               </div>
             )}
-            <div>
+            {created?.format === 'team-vs-team' && (
+              <div>
+                <span className="text-xs text-[#A1A1A1]">TVT Format</span>
+                <p className="font-semibold text-white">{created?.teamTournamentMode === 'bo3' ? 'Best of 3' : 'Knockout'}</p>
+              </div>
+            )}
+            {created?.format !== 'team-vs-team' && <div>
               <span className="text-xs text-[#A1A1A1]">Stages</span>
               <p className="font-semibold text-white">{created?.stages?.length || 0}</p>
-            </div>
+            </div>}
           </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4">
             <div>
               <span className="text-xs text-[#A1A1A1]">{isSingleStageFormat(created?.format) ? 'Estimated Date & Time' : 'Estimated Date'}</span>
               <p className="font-semibold text-white">
                 {created?.estimatedDate ? new Date(created.estimatedDate).toLocaleDateString() : 'Not scheduled'}
                 {isSingleStageFormat(created?.format) && created?.estimatedTime && ` • ${formatTime12Hour(created.estimatedTime)}`}
               </p>
-            </div>
-            <div>
-              <span className="text-xs text-[#A1A1A1]">Room Details</span>
-              <p className="font-semibold text-white">{created?.roomId || 'No room set'} / {created?.roomPassword || 'No password set'}</p>
             </div>
           </div>
         </Card>
@@ -224,43 +242,11 @@ export const HostTournamentPanel = ({ onBack }) => {
               Game
               <select className="auth-input" name="game" value={form.game} onChange={updateForm}
               >
-                {[
-                  'Free Fire',
-                  'BGMI',
-                  'PUBG Mobile',
-                  'Brawl Stars',
-                  'Honor of Kings',
-                  'Pokémon Unite',
-                  'Valorant',
-                  'Counter-Strike 2',
-                  'Dota 2',
-                  'League of Legends',
-                  'Rocket League',
-                  'Fortnite',
-                  'Apex Legends',
-                  'PUBG: Battlegrounds',
-                  'Overwatch 2',
-                  'Rainbow Six Siege',
-                  'Marvel Rivals',
-                  'Trackmania',
-                  'Minecraft',
-                  'Chess',
-                  'Age of Empires II',
-                  'Age of Empires IV',
-                  'COD Mobile',
-                  'Mobile Legends: Bang Bang',
-                  'Clash Royale',
-                  'Clash of Clans',
-                  'EA Sports FC Mobile',
-                  'eFootball',
-                  'Tekken 8',
-                  'Street Fighter 6',
-                  'EA Sports FC 26',
-                  'Teamfight Tactics',
-                ].map((game) => (
-                  <option key={game} value={game}>{game}</option>
+                {ALL_GAMES.map((game) => (
+                  <option key={game} value={game}>{game}{CUSTOM_GAMES.includes(game) ? ' · Custom' : ' · Team vs Team'}</option>
                 ))}
               </select>
+              {gameFormatWarning && <p className="text-xs text-[#FCA5A5]">{gameFormatWarning}</p>}
             </label>
 
             {usesTeamSize(format) && (
@@ -270,6 +256,24 @@ export const HostTournamentPanel = ({ onBack }) => {
                   {[1, 2, 3, 4, 5, 6].map((size) => <option key={size} value={size}>{size}</option>)}
                 </select>
               </label>
+            )}
+
+            {format === 'team-vs-team' && (
+              <fieldset className="space-y-2 text-sm text-[#A1A1A1]">
+                <legend>Tournament Mode</legend>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'knockout', label: 'Knockout' },
+                    { value: 'bo3', label: 'BO3 (Best of 3)' },
+                  ].map((option) => (
+                    <label key={option.value} className={`flex flex-1 cursor-pointer items-center gap-2 rounded-lg border px-3 py-3 ${form.teamTournamentMode === option.value ? 'border-[#FF6A00] bg-[#21150D] text-white' : 'border-[#2A2A2A] bg-[#0B0B0B]'}`}>
+                      <input type="radio" name="teamTournamentMode" value={option.value} checked={form.teamTournamentMode === option.value} onChange={updateForm} />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs">Rounds and matchups are generated automatically after registration closes.</p>
+              </fieldset>
             )}
 
             <label className="space-y-2 text-sm text-[#A1A1A1]">
@@ -309,8 +313,11 @@ export const HostTournamentPanel = ({ onBack }) => {
             )}
 
             <label className="space-y-2 text-sm text-[#A1A1A1] md:col-span-2">
-              Host Message for Players
-              <textarea className="auth-input min-h-[100px] w-full" name="hostMessage" value={form.hostMessage} onChange={updateForm} required placeholder="Add any notes for players joining this tournament" />
+              <span className="flex items-center justify-between gap-3">
+                <span>Host Message for Players</span>
+                <span className="text-xs">{form.hostMessage.length}/300</span>
+              </span>
+              <textarea className="auth-input min-h-[100px] w-full" name="hostMessage" value={form.hostMessage} onChange={updateForm} maxLength={300} required placeholder="Add any notes for players joining this tournament" />
             </label>
           </div>
         </Card>
@@ -334,7 +341,7 @@ export const HostTournamentPanel = ({ onBack }) => {
             ))}
           </div>
 
-          {isCustom && (
+          {canConfigureStages && (
             <div className="mt-5">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h3 className="text-base font-semibold text-white">Stage Names</h3>

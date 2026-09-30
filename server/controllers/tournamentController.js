@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Tournament from '../models/Tournament.js';
 import TournamentParticipant from '../models/TournamentParticipant.js';
 import User from '../models/User.js';
@@ -51,6 +52,18 @@ const PER_KILL_FORMATS = new Set(['single-match', 'br-per-kill']);
 const CUSTOM_FORMATS = new Set(['custom', 'br-custom', 'cs-custom', 'team-vs-team']);
 const SINGLE_STAGE_FORMATS = new Set(['single-match', 'br-per-kill']);
 const TEAM_SIZE_FORMATS = new Set(['br-custom', 'cs-custom', 'team-vs-team']);
+export const CUSTOM_TOURNAMENT_GAMES = new Set([
+  'Free Fire', 'BGMI', 'PUBG Mobile', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds',
+  'Call of Duty: Warzone', 'Minecraft', 'Trackmania', 'Teamfight Tactics',
+]);
+export const TEAM_VS_TEAM_GAMES = new Set([
+  'Clash Royale', 'EA Sports FC Mobile', 'eFootball', 'Tekken 8', 'Street Fighter 6',
+  'EA Sports FC 26', 'Chess', 'COD Mobile', 'Mobile Legends: Bang Bang', 'Honor of Kings',
+  'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends',
+  'Rainbow Six Siege', 'Overwatch 2', 'Marvel Rivals', 'Rocket League', 'Brawl Stars',
+  'Clash of Clans', 'Age of Empires II', 'Age of Empires IV',
+]);
+export const ALL_TOURNAMENT_GAMES = new Set([...CUSTOM_TOURNAMENT_GAMES, ...TEAM_VS_TEAM_GAMES]);
 
 const isPerKillFormat = (format) => PER_KILL_FORMATS.has(format);
 const isCustomFormat = (format) => CUSTOM_FORMATS.has(format);
@@ -154,6 +167,7 @@ export const validateTournamentInput = ({
   entryFee,
   maxTeams,
   teamSize = 1,
+  teamTournamentMode = 'knockout',
   successfulEntries = 0,
   perKillReward = 0,
   estimatedDate,
@@ -168,8 +182,14 @@ export const validateTournamentInput = ({
   if (!['single-match', 'custom', 'br-per-kill', 'br-custom', 'cs-custom', 'team-vs-team'].includes(format)) {
     throw new Error('Invalid tournament format');
   }
-  if (!['Free Fire', 'BGMI', 'PUBG Mobile', 'Brawl Stars', 'Honor of Kings', 'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends', 'Rocket League', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds', 'Overwatch 2', 'Rainbow Six Siege', 'Marvel Rivals', 'Trackmania', 'Minecraft', 'Chess', 'Age of Empires II', 'Age of Empires IV', 'COD Mobile', 'Mobile Legends: Bang Bang', 'Clash Royale', 'Clash of Clans', 'EA Sports FC Mobile', 'eFootball', 'Tekken 8', 'Street Fighter 6', 'EA Sports FC 26', 'Teamfight Tactics'].includes(game)) {
+  if (!ALL_TOURNAMENT_GAMES.has(game)) {
     throw new Error('Invalid game');
+  }
+  if (['custom', 'br-custom', 'cs-custom'].includes(format) && !CUSTOM_TOURNAMENT_GAMES.has(game)) {
+    throw new Error(`${game} supports Team vs Team tournaments, not Custom tournaments`);
+  }
+  if (format === 'team-vs-team' && !TEAM_VS_TEAM_GAMES.has(game)) {
+    throw new Error(`${game} supports Custom tournaments, not Team vs Team tournaments`);
   }
 
   const numericEntryFee = Number(entryFee);
@@ -193,9 +213,15 @@ export const validateTournamentInput = ({
   if (hostMessage !== undefined && typeof hostMessage !== 'string') {
     throw new Error('Tournament message must be text');
   }
+  if (typeof hostMessage === 'string' && hostMessage.length > 300) {
+    throw new Error('Tournament message cannot exceed 300 characters');
+  }
 
   if (TEAM_SIZE_FORMATS.has(format) && (!Number.isInteger(numericTeamSize) || numericTeamSize < 1 || numericTeamSize > 6)) {
     throw new Error('Team size must be a whole number from 1 to 6');
+  }
+  if (format === 'team-vs-team' && !['knockout', 'bo3'].includes(teamTournamentMode)) {
+    throw new Error('Team tournament mode must be Knockout or BO3');
   }
 
   if (isPerKillFormat(format)) {
@@ -211,6 +237,7 @@ export const validateTournamentInput = ({
     numericEntryFee,
     numericMaxTeams,
     numericTeamSize,
+    teamTournamentMode: format === 'team-vs-team' ? teamTournamentMode : '',
     numericSuccessfulEntries,
     numericPerKillReward,
     estimatedDate: parsedDate,
@@ -223,7 +250,7 @@ export const validateTournamentInput = ({
 
 export const createTournament = async (req, res) => {
   try {
-    const { name, game = 'Free Fire', format, entryFee, maxTeams, teamSize = 1, successfulEntries = 0, customStages = [], perKillReward = 0, estimatedDate, estimatedTime, roomId, roomPassword, hostMessage } = req.body;
+    const { name, game = 'Free Fire', format, entryFee, maxTeams, teamSize = 1, teamTournamentMode = 'knockout', successfulEntries = 0, customStages = [], perKillReward = 0, estimatedDate, estimatedTime, roomId, roomPassword, hostMessage } = req.body;
 
     let normalizedValues;
     try {
@@ -234,6 +261,7 @@ export const createTournament = async (req, res) => {
         entryFee,
         maxTeams,
         teamSize,
+        teamTournamentMode,
         successfulEntries,
         perKillReward,
         estimatedDate,
@@ -257,6 +285,7 @@ export const createTournament = async (req, res) => {
       entryFee: normalizedValues.numericEntryFee,
       maxTeams: normalizedValues.numericMaxTeams,
       teamSize: normalizedValues.numericTeamSize,
+      teamTournamentMode: normalizedValues.teamTournamentMode || undefined,
       successfulEntries: normalizedValues.numericSuccessfulEntries,
       perKillReward: isPerKillFormat(format) ? normalizedValues.numericPerKillReward : 0,
       estimatedDate: normalizedValues.estimatedDate,
@@ -265,7 +294,7 @@ export const createTournament = async (req, res) => {
       roomPassword: normalizedValues.roomPassword,
       hostMessage: normalizedValues.hostMessage,
       ...financials,
-      stages: buildStages(format, customStages),
+      stages: format === 'team-vs-team' ? [] : buildStages(format, customStages),
       createdBy: req.userId,
     });
 
@@ -301,6 +330,9 @@ export const listMyTournaments = async (req, res) => {
 export const updateTournamentMessage = async (req, res) => {
   try {
     const { message } = req.body || {};
+    if (typeof message === 'string' && message.length > 300) {
+      return res.status(400).json({ error: 'Tournament message cannot exceed 300 characters' });
+    }
     const tournament = await Tournament.findOne({ _id: req.params.tournamentId, createdBy: req.userId });
     if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
     tournament.hostMessage = String(message || '').trim();
@@ -317,6 +349,7 @@ export const addTournamentStage = async (req, res) => {
     const tournament = await Tournament.findOne({ _id: req.params.tournamentId, createdBy: req.userId });
     if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
     if (!isCustomFormat(tournament.format)) return res.status(400).json({ error: 'Stages can only be added to custom tournaments' });
+    if (tournament.format === 'team-vs-team') return res.status(400).json({ error: 'Team vs Team rounds are generated automatically' });
 
     const stageName = String(req.body?.name || '').trim();
     if (!stageName) return res.status(400).json({ error: 'Stage name is required' });
@@ -340,6 +373,267 @@ export const addTournamentStage = async (req, res) => {
   } catch (error) {
     console.error('addTournamentStage error:', error);
     return res.status(500).json({ error: 'Failed to add stage' });
+  }
+};
+
+export const generateTeamTournamentBracket = async (req, res) => {
+  try {
+    const tournament = await Tournament.findOne({ _id: req.params.tournamentId, createdBy: req.userId });
+    if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+    if (tournament.format !== 'team-vs-team') return res.status(400).json({ error: 'Automatic brackets are only available for Team vs Team tournaments' });
+    if (tournament.stages.some((stage) => stage.key.startsWith('tvt-round-'))) {
+      return res.status(409).json({ error: 'The Team vs Team bracket has already started' });
+    }
+
+    const participants = await TournamentParticipant.find({ tournamentId: tournament._id, status: 'registered' })
+      .sort({ registeredAt: 1, _id: 1 })
+      .select('_id')
+      .lean();
+    if (participants.length < 2) return res.status(400).json({ error: 'At least two registered teams are required to start the bracket' });
+
+    const bracket = buildTournamentBracket(participants.map((participant) => participant._id));
+    const stages = bracket.map((round) => ({
+      name: round.name,
+      key: round.key,
+      order: round.order,
+      status: 'active',
+      matches: round.matches.map((match) => ({
+        _id: new mongoose.Types.ObjectId(),
+        name: match.name,
+        order: match.order,
+        round: match.round,
+        participants: match.participants,
+        teamA: match.teamA,
+        teamB: match.teamB,
+        winnerParticipantId: match.winnerParticipantId,
+        status: match.status,
+        currentGame: 1,
+      })),
+    }));
+
+    for (let stageIndex = 0; stageIndex < stages.length - 1; stageIndex += 1) {
+      for (let matchIndex = 0; matchIndex < stages[stageIndex].matches.length; matchIndex += 1) {
+        const matchConfig = bracket[stageIndex].matches[matchIndex];
+        const match = stages[stageIndex].matches[matchIndex];
+        const nextMatch = stages[stageIndex + 1].matches[matchConfig.advancesToIndex];
+        match.advancesToMatchId = nextMatch._id;
+        match.advancesToSlot = matchConfig.advancesToSlot;
+        if (match.winnerParticipantId) {
+          if (matchConfig.advancesToSlot === 0) nextMatch.teamA = match.winnerParticipantId;
+          else nextMatch.teamB = match.winnerParticipantId;
+          nextMatch.participants = [nextMatch.teamA, nextMatch.teamB].filter(Boolean);
+          if (nextMatch.teamA && nextMatch.teamB) nextMatch.status = 'active';
+        }
+      }
+    }
+
+    tournament.stages = stages;
+    tournament.status = 'active';
+    await tournament.save();
+    return res.json({ success: true, tournament });
+  } catch (error) {
+    console.error('generateTeamTournamentBracket error:', error);
+    return res.status(500).json({ error: 'Failed to generate Team vs Team bracket' });
+  }
+};
+
+const payoutTeamTournamentWinner = async (tournament, winnerParticipantId) => {
+  const participant = await TournamentParticipant.findById(winnerParticipantId);
+  if (!participant) throw new Error('Winning team was not found');
+  const admin = await User.findOne({ role: 'admin' });
+  if (!admin) throw new Error('Admin wallet account not found');
+  const financials = calculateFinancials(tournament.entryFee, tournament.successfulEntries);
+  const payoutClaim = await Tournament.findOneAndUpdate(
+    { _id: tournament._id, payoutsDistributed: { $ne: true } },
+    { $set: { payoutsDistributed: true, payoutsDistributedAt: new Date(), status: 'completed' } },
+    { new: true },
+  );
+  if (!payoutClaim) return;
+
+  await User.findByIdAndUpdate(participant.userId, {
+    $inc: { 'wallet.balance': financials.prizePool },
+    $push: { 'wallet.transactions': { type: 'match_win', amount: financials.prizePool, description: `Team tournament winner: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
+  });
+  if (financials.hostShare > 0) {
+    await User.findByIdAndUpdate(tournament.createdBy, {
+      $inc: { 'wallet.balance': financials.hostShare },
+      $push: { 'wallet.transactions': { type: 'admin_adjustment', amount: financials.hostShare, description: `Host share: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
+    });
+  }
+  if (financials.clutchZoneFee > 0) {
+    await User.findByIdAndUpdate(admin._id, {
+      $inc: { 'wallet.balance': financials.clutchZoneFee },
+      $push: { 'wallet.transactions': { type: 'admin_adjustment', amount: financials.clutchZoneFee, description: `Platform share: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
+    });
+  }
+};
+
+export const getMyTeamTournamentMatches = async (req, res) => {
+  try {
+    const tournament = await Tournament.findById(req.params.tournamentId)
+      .populate({ path: 'stages.matches.teamA', populate: { path: 'userId', select: 'username' } })
+      .populate({ path: 'stages.matches.teamB', populate: { path: 'userId', select: 'username' } })
+      .populate('stages.matches.gameResults.claims.userId', 'username')
+      .lean();
+    if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+    if (tournament.format !== 'team-vs-team') return res.status(400).json({ error: 'TVT results are only available for Team vs Team tournaments' });
+
+    const participant = await TournamentParticipant.findOne({ tournamentId: tournament._id, userId: req.userId, status: 'registered' }).lean();
+    if (!participant) return res.status(403).json({ error: 'Join this tournament to view its team results' });
+    const participantId = String(participant._id);
+    const matches = tournament.stages.flatMap((stage) => (stage.matches || [])
+      .filter((match) => [match.teamA, match.teamB].some((team) => String(team?._id || team || '') === participantId))
+      .map((match) => ({
+        id: String(match._id),
+        name: match.name,
+        roundName: stage.name,
+        roundOrder: stage.order,
+        matchOrder: match.order,
+        status: match.status,
+        teamA: match.teamA ? { id: String(match.teamA._id || match.teamA), name: match.teamA.teamName || match.teamA.displayName || match.teamA.userId?.username || 'Team A' } : null,
+        teamB: match.teamB ? { id: String(match.teamB._id || match.teamB), name: match.teamB.teamName || match.teamB.displayName || match.teamB.userId?.username || 'Team B' } : null,
+        winnerParticipantId: match.winnerParticipantId ? String(match.winnerParticipantId) : null,
+        currentGame: match.currentGame || 1,
+        teamAWins: match.teamAWins || 0,
+        teamBWins: match.teamBWins || 0,
+        bestOf: tournament.teamTournamentMode === 'bo3' ? 3 : 1,
+        viewerParticipantId: participantId,
+        gameResults: (match.gameResults || []).map((game) => ({
+          gameNumber: game.gameNumber,
+          status: game.status,
+          winnerParticipantId: game.winnerParticipantId ? String(game.winnerParticipantId) : null,
+          claims: (game.claims || []).map((claim) => ({
+            userId: String(claim.userId?._id || claim.userId),
+            username: claim.userId?.username || 'Player',
+            participantId: String(claim.participantId),
+            outcome: claim.outcome,
+            screenshotUrl: claim.screenshotUrl || '',
+            submittedAt: claim.submittedAt,
+          })),
+        })),
+      })))
+      .sort((left, right) => left.roundOrder - right.roundOrder || left.matchOrder - right.matchOrder);
+
+    return res.json({ success: true, tournament: { id: String(tournament._id), name: tournament.name, game: tournament.game, teamTournamentMode: tournament.teamTournamentMode, status: tournament.status }, participantId, matches });
+  } catch (error) {
+    console.error('getMyTeamTournamentMatches error:', error);
+    return res.status(500).json({ error: 'Failed to load TVT matches' });
+  }
+};
+
+export const submitTeamTournamentResult = async (req, res) => {
+  try {
+    const tournament = await Tournament.findById(req.params.tournamentId);
+    if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+    if (tournament.format !== 'team-vs-team') return res.status(400).json({ error: 'TVT results are only available for Team vs Team tournaments' });
+
+    const { stage, match } = findTournamentStageMatch(tournament, req.params.matchId) || {};
+    if (!match || !stage?.key.startsWith('tvt-round-')) return res.status(404).json({ error: 'Team match not found' });
+    if (!['active', 'result_pending'].includes(match.status)) return res.status(409).json({ error: 'This team match is not accepting results' });
+
+    const { outcome } = req.body || {};
+    if (!['win', 'lose'].includes(outcome)) return res.status(400).json({ error: 'Choose I WON or I LOST' });
+    if (outcome === 'win' && !req.file) return res.status(400).json({ error: 'A screenshot is required when you choose I WON' });
+
+    const participant = await TournamentParticipant.findOne({ tournamentId: tournament._id, userId: req.userId, status: 'registered' });
+    if (!participant) return res.status(403).json({ error: 'Only registered teams can submit results' });
+    const participantId = String(participant._id);
+    const teamAId = String(match.teamA || '');
+    const teamBId = String(match.teamB || '');
+    if (![teamAId, teamBId].includes(participantId) || !teamAId || !teamBId) {
+      return res.status(403).json({ error: 'Your team is not assigned to this matchup yet' });
+    }
+    const opponentId = participantId === teamAId ? teamBId : teamAId;
+    const gameNumber = tournament.teamTournamentMode === 'bo3' ? Number(match.currentGame || 1) : 1;
+    let screenshotUrl = '';
+    let screenshotHash = '';
+
+    if (req.file) {
+      const mimeType = ScreenshotValidator.detectMimeType(req.file.buffer);
+      if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mimeType)) {
+        return res.status(400).json({ error: 'Upload a valid image screenshot' });
+      }
+      screenshotHash = ScreenshotValidator.generateHash(req.file.buffer);
+      const existingHash = tournament.stages.some((item) => item.matches.some((teamMatch) =>
+        (teamMatch.gameResults || []).some((game) => (game.claims || []).some((claim) => claim.screenshotHash === screenshotHash)),
+      ));
+      if (existingHash) return res.status(400).json({ error: 'This screenshot has already been submitted in the tournament' });
+      try {
+        screenshotUrl = await uploadToCloudinary(req.file.buffer, req.file.originalname);
+      } catch (uploadError) {
+        return res.status(500).json({ error: `Upload failed: ${uploadError.message}` });
+      }
+    }
+
+    let gameResult = match.gameResults.find((game) => game.gameNumber === gameNumber);
+    if (!gameResult) {
+      match.gameResults.push({ gameNumber, status: 'pending', claims: [] });
+      gameResult = match.gameResults[match.gameResults.length - 1];
+    }
+    if (gameResult.status === 'disputed' || gameResult.status === 'completed') {
+      return res.status(409).json({ error: 'This game result has already been finalized or sent for review' });
+    }
+    if (gameResult.claims.some((claim) => String(claim.participantId) === participantId)) {
+      return res.status(409).json({ error: 'Your team has already submitted this game result' });
+    }
+
+    gameResult.claims.push({
+      participantId,
+      userId: req.userId,
+      outcome,
+      claimedWinnerId: outcome === 'win' ? participantId : opponentId,
+      screenshotUrl,
+      screenshotHash,
+      submittedAt: new Date(),
+    });
+
+    const resolution = resolveTeamMatchClaims(gameResult.claims);
+    let tournamentComplete = false;
+    if (resolution.status === 'disputed') {
+      gameResult.status = 'disputed';
+      match.status = 'disputed';
+    } else if (resolution.status === 'completed') {
+      tournamentComplete = completeTeamTournamentGame(tournament, match, gameResult, resolution.winnerParticipantId);
+    } else {
+      gameResult.status = 'result_pending';
+      match.status = 'result_pending';
+    }
+
+    await tournament.save();
+    if (tournamentComplete) await payoutTeamTournamentWinner(tournament, resolution.winnerParticipantId);
+    return res.json({ success: true, status: match.status, currentGame: match.currentGame, teamAWins: match.teamAWins, teamBWins: match.teamBWins, screenshotUrl });
+  } catch (error) {
+    console.error('submitTeamTournamentResult error:', error);
+    return res.status(500).json({ error: 'Failed to submit Team vs Team result' });
+  }
+};
+
+export const resolveTeamTournamentDispute = async (req, res) => {
+  try {
+    const tournament = await Tournament.findById(req.params.tournamentId);
+    if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+    if (req.user?.role !== 'admin' && String(tournament.createdBy) !== String(req.userId)) {
+      return res.status(403).json({ error: 'Only this tournament host can resolve TVT results' });
+    }
+
+    const { match } = findTournamentStageMatch(tournament, req.params.matchId) || {};
+    if (!match || match.status !== 'disputed') return res.status(404).json({ error: 'Disputed team match not found' });
+    const winnerParticipantId = String(req.body?.winnerParticipantId || '');
+    if (![String(match.teamA), String(match.teamB)].includes(winnerParticipantId)) {
+      return res.status(400).json({ error: 'Select one of the two teams in this matchup' });
+    }
+
+    const gameNumber = tournament.teamTournamentMode === 'bo3' ? Number(req.body?.gameNumber || match.currentGame || 1) : 1;
+    const gameResult = match.gameResults.find((game) => game.gameNumber === gameNumber && game.status === 'disputed');
+    if (!gameResult) return res.status(404).json({ error: 'Disputed game result not found' });
+
+    const tournamentComplete = completeTeamTournamentGame(tournament, match, gameResult, winnerParticipantId);
+    await tournament.save();
+    if (tournamentComplete) await payoutTeamTournamentWinner(tournament, winnerParticipantId);
+    return res.json({ success: true, status: match.status, currentGame: match.currentGame, teamAWins: match.teamAWins, teamBWins: match.teamBWins });
+  } catch (error) {
+    console.error('resolveTeamTournamentDispute error:', error);
+    return res.status(500).json({ error: 'Failed to resolve TVT result dispute' });
   }
 };
 
@@ -386,7 +680,7 @@ export const listPublicTournaments = async (req, res) => {
       status: { $in: ['open', 'upcoming', 'active'] },
       createdAt: { $gte: new Date(Date.now() - COMPLETED_TOURNAMENT_EXPIRY_MS) },
     })
-      .select('name game format entryFee maxTeams teamSize successfulEntries prizePool perKillReward stages status createdBy createdAt estimatedDate estimatedTime hostMessage roomId roomPassword')
+      .select('name game format entryFee maxTeams teamSize teamTournamentMode successfulEntries prizePool perKillReward stages status createdBy createdAt estimatedDate estimatedTime hostMessage roomId roomPassword')
       .populate('createdBy', 'username')
       .sort({ createdAt: -1 })
       .lean();
@@ -425,7 +719,7 @@ export const listPublicTournaments = async (req, res) => {
 export const joinTournament = async (req, res) => {
   try {
     const { tournamentId } = req.params;
-    const tournamentForRegistration = await Tournament.findById(tournamentId).select('format teamSize').lean();
+    const tournamentForRegistration = await Tournament.findById(tournamentId).select('format teamSize status').lean();
     if (!tournamentForRegistration) return res.status(404).json({ error: 'Tournament not found' });
 
     let registration;
@@ -444,8 +738,9 @@ export const joinTournament = async (req, res) => {
       return res.status(409).json({ error: 'You are already registered for this tournament' });
     }
 
+    const acceptedStatuses = tournamentForRegistration.format === 'team-vs-team' ? ['open', 'upcoming'] : ['open', 'upcoming', 'active'];
     const tournament = await Tournament.findOneAndUpdate(
-      { _id: tournamentId, status: { $in: ['open', 'upcoming', 'active'] }, $expr: { $lt: ['$successfulEntries', '$maxTeams'] } },
+      { _id: tournamentId, status: { $in: acceptedStatuses }, $expr: { $lt: ['$successfulEntries', '$maxTeams'] } },
       { $inc: { successfulEntries: 1 } },
       { new: true },
     );
@@ -497,7 +792,7 @@ export const joinTournament = async (req, res) => {
         : calculateFinancials(tournament.entryFee, tournament.successfulEntries);
       const tournamentUpdate = { $set: financials };
       const hasScheduledStageMatches = tournament.stages.some((stage) => stage.matches.length > 0);
-      if (hasScheduledStageMatches) {
+      if (hasScheduledStageMatches && tournament.format !== 'team-vs-team') {
         tournamentUpdate.$addToSet = { 'stages.$[].matches.$[].participants': participant._id };
       }
       await Tournament.updateOne({ _id: tournament._id }, tournamentUpdate);
@@ -627,7 +922,13 @@ export const getTournamentManageView = async (req, res) => {
     const query = req.user.role === 'admin'
       ? { _id: req.params.tournamentId }
       : { _id: req.params.tournamentId, createdBy: req.userId };
-    const tournament = await Tournament.findOne(query).populate('stages.matches.participants');
+    const tournament = await Tournament.findOne(query)
+      .populate('stages.matches.participants')
+      .populate({ path: 'stages.matches.teamA', populate: { path: 'userId', select: 'username' } })
+      .populate({ path: 'stages.matches.teamB', populate: { path: 'userId', select: 'username' } })
+      .populate('stages.matches.winnerParticipantId')
+      .populate('stages.matches.gameResults.winnerParticipantId')
+      .populate('stages.matches.gameResults.claims.userId', 'username');
     if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
 
     const participants = await TournamentParticipant.find({ tournamentId: tournament._id, status: 'registered' })
@@ -838,4 +1139,94 @@ export const getPublicTournamentMatches = async (req, res) => {
     console.error('getPublicTournamentMatches error:', error);
     return res.status(500).json({ error: 'Failed to load published results' });
   }
+};
+
+export const buildTournamentBracket = (participantIds = []) => {
+  const bracketSize = 2 ** Math.ceil(Math.log2(participantIds.length));
+  const normalizedParticipants = participantIds.map(String);
+  const byeCount = bracketSize - normalizedParticipants.length;
+  let participantIndex = 0;
+  const roundCount = Math.log2(bracketSize);
+  const roundNames = Array.from({ length: roundCount }, (_, index) => {
+    const remainingRounds = roundCount - index;
+    if (remainingRounds === 1) return 'Final';
+    if (remainingRounds === 2) return 'Semifinal';
+    if (remainingRounds === 3) return 'Quarterfinal';
+    return `Round ${index + 1}`;
+  });
+
+  return roundNames.map((name, roundIndex) => {
+    const matchCount = bracketSize / (2 ** (roundIndex + 1));
+    return {
+      name,
+      order: roundIndex + 1,
+      key: `tvt-round-${roundIndex + 1}`,
+      matches: Array.from({ length: matchCount }, (_, matchIndex) => {
+        let teamA = null;
+        let teamB = null;
+        if (roundIndex === 0) {
+          teamA = normalizedParticipants[participantIndex++] || null;
+          if (matchIndex >= byeCount) teamB = normalizedParticipants[participantIndex++] || null;
+        }
+        return {
+          name: `${name} - Match ${matchIndex + 1}`,
+          order: matchIndex + 1,
+          round: roundIndex + 1,
+          participants: [teamA, teamB].filter(Boolean),
+          teamA,
+          teamB,
+          winnerParticipantId: teamA && !teamB ? teamA : null,
+          status: teamA && !teamB ? 'completed' : teamA && teamB ? 'active' : 'pending',
+          advancesToIndex: roundIndex < roundCount - 1 ? Math.floor(matchIndex / 2) : null,
+          advancesToSlot: matchIndex % 2,
+        };
+      }),
+    };
+  });
+};
+
+export const resolveTeamMatchClaims = (claims = []) => {
+  if (claims.length < 2) return { status: 'result_pending', winnerParticipantId: null };
+  const firstClaimedWinner = String(claims[0].claimedWinnerId);
+  const secondClaimedWinner = String(claims[1].claimedWinnerId);
+  return firstClaimedWinner === secondClaimedWinner
+    ? { status: 'completed', winnerParticipantId: firstClaimedWinner }
+    : { status: 'disputed', winnerParticipantId: null };
+};
+
+const findTournamentStageMatch = (tournament, matchId) => {
+  for (const stage of tournament.stages) {
+    const match = stage.matches.id(matchId);
+    if (match) return { stage, match };
+  }
+  return null;
+};
+
+const advanceTeamWinner = (tournament, match, winnerParticipantId) => {
+  if (!match.advancesToMatchId) return false;
+  const next = findTournamentStageMatch(tournament, match.advancesToMatchId);
+  if (!next) throw new Error('Next Team vs Team round was not found');
+  if (match.advancesToSlot === 0) next.match.teamA = winnerParticipantId;
+  else next.match.teamB = winnerParticipantId;
+  next.match.participants = [next.match.teamA, next.match.teamB].filter(Boolean);
+  next.match.status = next.match.teamA && next.match.teamB ? 'active' : 'pending';
+  return true;
+};
+
+const completeTeamTournamentGame = (tournament, match, gameResult, winnerParticipantId) => {
+  gameResult.status = 'completed';
+  gameResult.winnerParticipantId = winnerParticipantId;
+  if (String(winnerParticipantId) === String(match.teamA)) match.teamAWins += 1;
+  else match.teamBWins += 1;
+
+  const hasWonSeries = tournament.teamTournamentMode !== 'bo3' || match.teamAWins >= 2 || match.teamBWins >= 2;
+  if (!hasWonSeries) {
+    match.currentGame += 1;
+    match.status = 'active';
+    return false;
+  }
+
+  match.winnerParticipantId = winnerParticipantId;
+  match.status = 'completed';
+  return !advanceTeamWinner(tournament, match, winnerParticipantId);
 };
