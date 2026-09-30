@@ -8,29 +8,29 @@ import { useUser } from '../contexts/UserContext';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
-const modeOptions = ['All', '1v1', '2v2', '3v3', '4v4'];
-const typeOptions = [
-  'All',
-  'Headshot',
-  'Normal Headshot',
-  'Bodyshot',
-  'Only One Tap',
-  'Only Punch',
-  'Only Desert',
-  'Only Melee Weapon',
-  'Only Knife Throw',
-  'Only SMG Headshot',
-  'Only AR Headshot',
-  'Only AWM Bodyshot',
-  'Only Grenade',
-  'Rank Clash Squad',
+const modeOptions = ['All', 'Per Kill', 'Custom', 'Team vs Team'];
+const entryOptions = [
+  { label: 'All', min: null, max: null },
+  { label: 'CZ 0 - 5', min: 0, max: 5 },
+  { label: 'CZ 6 - 10', min: 6, max: 10 },
+  { label: 'CZ 11 - 20', min: 11, max: 20 },
+  { label: 'CZ 21 - 30', min: 21, max: 30 },
+  { label: 'CZ 31 - 50', min: 31, max: 50 },
+  { label: 'CZ 51 - 100', min: 51, max: 100 },
+  { label: 'CZ 101 - 200', min: 101, max: 200 },
+  { label: 'CZ 201 - 500', min: 201, max: 500 },
+  { label: 'CZ 501 - 1000', min: 501, max: 1000 },
 ];
-const entryOptions = [0, 5, 10, 20, 30, 50, 100, 200, 500, 1000];
-const CS_TOURNAMENT_FORMATS = new Set(['cs-custom']);
 const HOST_VIEW_GAMES = ['Free Fire', 'BGMI', 'PUBG Mobile', 'Brawl Stars', 'Honor of Kings', 'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends', 'Rocket League', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds', 'Overwatch 2', 'Rainbow Six Siege', 'Marvel Rivals', 'Trackmania', 'Minecraft', 'Chess', 'Age of Empires II', 'Age of Empires IV'];
 const NO_HOST_VIEW_GAMES = ['COD Mobile', 'Mobile Legends: Bang Bang', 'Clash Royale', 'Clash of Clans', 'EA Sports FC Mobile', 'eFootball', 'Tekken 8', 'Street Fighter 6', 'EA Sports FC 26', 'Teamfight Tactics'];
 const GAME_OPTIONS = [...HOST_VIEW_GAMES, ...NO_HOST_VIEW_GAMES];
 const isNoHostViewGame = (game) => NO_HOST_VIEW_GAMES.includes(game);
+const getTournamentMode = (format) => {
+  if (['single-match', 'br-per-kill'].includes(format)) return 'Per Kill';
+  if (['custom', 'br-custom', 'cs-custom'].includes(format)) return 'Custom';
+  if (format === 'team-vs-team') return 'Team vs Team';
+  return null;
+};
 
 const getTrustClass = (score) => {
   if (score >= 80) return 'green';
@@ -130,12 +130,11 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const { currentMatch, clearMatch, refreshMatch } = useMatch();
   const { user: currentUser } = useUser();
   const { showNotification } = useNotifications();
-  const [game, setGame] = useState(match?.game || 'All');
-  const [mode, setMode] = useState(match?.mode || 'All');
-  const [type, setType] = useState(match?.type || 'All');
-  const [entry, setEntry] = useState(match?.entryFee || 0);
+  const [game, setGame] = useState('All');
+  const [mode, setMode] = useState('All');
+  const [entry, setEntry] = useState('All');
   const [matches, setMatches] = useState([]);
-  const [csTournaments, setCsTournaments] = useState([]);
+  const [publicTournaments, setPublicTournaments] = useState([]);
   const [myMatches, setMyMatches] = useState([]);
   const [registeredTournaments, setRegisteredTournaments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -146,7 +145,13 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
 
   const renderTabContent = () => {
     if (activeTab === 'br-matches') {
-      return <BRMatchSection user={user} onMatchSelect={onMatchSelect} />;
+      return <BRMatchSection
+        user={user}
+        onMatchSelect={onMatchSelect}
+        gameFilter={game}
+        entryRange={entryOptions.find((option) => option.label === entry)}
+        modeFilter={mode}
+      />;
     }
 
     if (activeTab === 'my-matches') {
@@ -246,24 +251,24 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     return (
       <div className="section">
         <div className="section-announce">
-          {error || `CS matches · ${liveMatches.length} available`}
+          {error || `Matches · ${visibleLiveMatches.length + visibleTournaments.length} available`}
         </div>
-        {liveMatches.length === 0 && csTournaments.length === 0 ? (
+        {visibleLiveMatches.length === 0 && visibleTournaments.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-title">No CS matches</div>
+            <div className="empty-title">No matches</div>
             <div className="empty-copy">Try another filter or create a match.</div>
           </div>
         ) : (
           <div className="live-match-list">
-            {csTournaments.map((tournament) => (
+            {visibleTournaments.map((tournament) => (
               <TournamentCard
-                key={`cs-tournament-${tournament._id}`}
+                key={`tournament-${tournament._id}`}
                 tournament={tournament}
                 user={user}
                 onJoined={fetchPublicTournaments}
               />
             ))}
-            {liveMatches.map((item) => (
+            {visibleLiveMatches.map((item) => (
               (() => {
                 const matchId = item.id || item._id;
                 const creatorId = item.creator?.id || item.creator?._id || item.creator;
@@ -318,9 +323,11 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
       try {
         const params = new URLSearchParams();
         if (game !== 'All') params.append('game', game);
-        if (mode !== 'All') params.append('mode', mode);
-        if (type !== 'All') params.append('type', type);
-        if (entry !== 0) params.append('entry', String(entry));
+        const selectedEntryRange = entryOptions.find((option) => option.label === entry);
+        if (selectedEntryRange?.min !== null && selectedEntryRange?.min !== undefined) {
+          params.append('entryMin', String(selectedEntryRange.min));
+          params.append('entryMax', String(selectedEntryRange.max));
+        }
 
         const url = `${API_BASE}/match/list${params.toString() ? `?${params.toString()}` : ''}`;
         const response = await axios.get(url);
@@ -334,17 +341,17 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     };
 
     fetchMatches();
-  }, [game, mode, type, entry]);
+  }, [game, entry]);
 
   const fetchPublicTournaments = async () => {
     try {
       const response = await axios.get(`${API_BASE}/tournaments/public`, {
         headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
       });
-      setCsTournaments((response.data.tournaments || []).filter((tournament) => CS_TOURNAMENT_FORMATS.has(tournament.format)));
+      setPublicTournaments(response.data.tournaments || []);
     } catch (error) {
-      console.error('Failed to load CS tournaments:', error);
-      setCsTournaments([]);
+      console.error('Failed to load public tournaments:', error);
+      setPublicTournaments([]);
     }
   };
 
@@ -480,15 +487,36 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     return !['ongoing', 'completed', 'cancelled'].includes(value);
   };
 
+  const selectedEntryRange = entryOptions.find((option) => option.label === entry);
+  const matchesSelectedFilters = (matchItem) => {
+    if (game !== 'All' && matchItem.game !== game) return false;
+    if (selectedEntryRange?.min !== null && selectedEntryRange?.min !== undefined) {
+      const entryFee = Number(matchItem.entryFee ?? matchItem.entry ?? 0);
+      if (entryFee < selectedEntryRange.min || entryFee > selectedEntryRange.max) return false;
+    }
+    return true;
+  };
+
   const liveMatches = useMemo(() => {
     const current = matches.filter((item) => {
       return isLiveMatch(item.status);
     });
-    if (activeMatch && isLiveMatch(activeMatch.status) && !current.some((item) => item.id === activeMatch.id)) {
+    if (activeMatch && isLiveMatch(activeMatch.status) && matchesSelectedFilters(activeMatch) && !current.some((item) => item.id === activeMatch.id)) {
       current.unshift(activeMatch);
     }
     return current;
-  }, [matches, activeMatch]);
+  }, [matches, activeMatch, game, selectedEntryRange]);
+
+  const visibleTournaments = useMemo(() => publicTournaments.filter((tournament) => {
+    if (game !== 'All' && tournament.game !== game) return false;
+    if (mode !== 'All' && getTournamentMode(tournament.format) !== mode) return false;
+    if (selectedEntryRange?.min !== null && selectedEntryRange?.min !== undefined) {
+      const entryFee = Number(tournament.entryFee);
+      if (entryFee < selectedEntryRange.min || entryFee > selectedEntryRange.max) return false;
+    }
+    return true;
+  }), [publicTournaments, game, mode, selectedEntryRange]);
+  const visibleLiveMatches = mode === 'All' ? liveMatches : [];
 
   return (
     <div id="screen-pairing" className="screen-pairing">
@@ -519,21 +547,11 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
           </select>
         </div>
         <div className="pairing-filter">
-          <span className="filter-label">Type</span>
-          <select className="pairing-select" value={type} onChange={(e) => setType(e.target.value)}>
-            {typeOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="pairing-filter">
           <span className="filter-label">Entry</span>
-          <select className="pairing-select" value={entry} onChange={(e) => setEntry(Number(e.target.value))}>
+          <select className="pairing-select" value={entry} onChange={(e) => setEntry(e.target.value)}>
             {entryOptions.map((option) => (
-              <option key={option} value={option}>
-                {option === 0 ? 'All' : `CZ${option}`}
+              <option key={option.label} value={option.label}>
+                {option.label}
               </option>
             ))}
           </select>
@@ -551,7 +569,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
           className={`pairing-tab ${activeTab === 'live-opponents' ? 'active' : ''}`}
           onClick={() => setActiveTab('live-opponents')}
         >
-          CS Match
+          Matches
         </button>
         <button
           className={`pairing-tab ${activeTab === 'br-matches' ? 'active' : ''}`}

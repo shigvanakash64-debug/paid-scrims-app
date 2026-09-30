@@ -24,7 +24,7 @@ const parseJsonResponse = async (response) => {
  * Integrates into the main Clutch Zone interface
  * Shows "BR Match" as a collapsible/tab section
  */
-export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
+export const BRMatchSection = ({ user = null, onMatchSelect = () => {}, gameFilter = 'All', entryRange = null, modeFilter = 'All' }) => {
   const [matches, setMatches] = useState([]);
   const [tournaments, setTournaments] = useState([]);
   const [registrations, setRegistrations] = useState({});
@@ -34,6 +34,28 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
   const [joinFlowMatch, setJoinFlowMatch] = useState(null);
   const [detailViewMatch, setDetailViewMatch] = useState(null);
   const [filter, setFilter] = useState('OPEN'); // OPEN, FULL, CLOSED, ALL
+  const visibleTournaments = tournaments.filter((tournament) => {
+    if (gameFilter !== 'All' && tournament.game !== gameFilter) return false;
+    const tournamentMode = ['single-match', 'br-per-kill'].includes(tournament.format)
+      ? 'Per Kill'
+      : ['custom', 'br-custom', 'cs-custom'].includes(tournament.format)
+        ? 'Custom'
+        : tournament.format === 'team-vs-team' ? 'Team vs Team' : null;
+    if (modeFilter !== 'All' && tournamentMode !== modeFilter) return false;
+    if (entryRange?.min !== null && entryRange?.min !== undefined) {
+      const entryFee = Number(tournament.entryFee);
+      if (entryFee < entryRange.min || entryFee > entryRange.max) return false;
+    }
+    return true;
+  });
+  const visibleMatches = matches.filter((match) => {
+    if (gameFilter !== 'All' && gameFilter !== 'Free Fire') return false;
+    if (modeFilter !== 'All' && modeFilter !== 'Per Kill') return false;
+    if (entryRange?.min !== null && entryRange?.min !== undefined) {
+      if (match.entryFee < entryRange.min || match.entryFee > entryRange.max) return false;
+    }
+    return true;
+  });
 
   // Fetch BR matches
   const fetchMatches = async () => {
@@ -162,19 +184,19 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
       )}
 
       {/* Matches list */}
-      {!loading && matches.length === 0 && tournaments.length === 0 && (
+      {!loading && visibleMatches.length === 0 && visibleTournaments.length === 0 && (
         <div className="empty-state">
           <p>No BR matches available</p>
           <p className="subtitle">Check back later!</p>
         </div>
       )}
 
-      {!loading && matches.length > 0 && (
+      {!loading && (visibleMatches.length > 0 || visibleTournaments.length > 0) && (
         <div className="br-matches-list">
-          {tournaments.map((tournament) => (
+          {visibleTournaments.map((tournament) => (
             <TournamentCard key={`tournament-${tournament._id}`} tournament={tournament} user={user} onJoined={fetchMatches} />
           ))}
-          {matches.map((match) => (
+          {visibleMatches.map((match) => (
             <BRMatchCard
               key={match._id}
               match={match}
@@ -184,14 +206,6 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {} }) => {
               onViewDetails={() => handleViewDetails(match)}
               user={user}
             />
-          ))}
-        </div>
-      )}
-
-      {!loading && matches.length === 0 && tournaments.length > 0 && (
-        <div className="br-matches-list">
-          {tournaments.map((tournament) => (
-            <TournamentCard key={`tournament-${tournament._id}`} tournament={tournament} user={user} onJoined={fetchMatches} />
           ))}
         </div>
       )}

@@ -495,6 +495,22 @@ export const buildMyMatchesQuery = (userId) => ({
   },
 });
 
+export const buildMatchListQuery = ({ game, entryMin, entryMax, now = Date.now() }) => {
+  const query = {
+    status: 'waiting',
+    createdAt: { $gte: new Date(now - 2 * 24 * 60 * 60 * 1000) },
+  };
+  if (game) query.game = game;
+
+  const minimumEntry = Number(entryMin);
+  const maximumEntry = Number(entryMax);
+  if (Number.isFinite(minimumEntry) && Number.isFinite(maximumEntry) && minimumEntry <= maximumEntry) {
+    query.entry = { $gte: minimumEntry, $lte: maximumEntry };
+  }
+
+  return query;
+};
+
 export const getMyMatches = async (req, res) => {
   try {
     const userId = req.userId;
@@ -1116,14 +1132,13 @@ export const addChatMessage = async (req, res) => {
 export const listMatches = async (req, res) => {
   try {
     const { game, mode, type, entry } = req.query;
-    const query = {
-      status: 'waiting',
-      createdAt: { $gte: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
-    };
-    if (game) query.game = game;
+    const query = buildMatchListQuery({
+      game,
+      entryMin: req.query.entryMin ?? (entry ? entry : undefined),
+      entryMax: req.query.entryMax ?? (entry ? entry : undefined),
+    });
     if (mode) query.mode = mode;
     if (type) query.type = type;
-    if (entry) query.entry = Number(entry);
 
     const matches = await Match.find(query)
       .populate('creator', 'username trustScore')
