@@ -168,7 +168,7 @@ export const validateTournamentInput = ({
   if (!['single-match', 'custom', 'br-per-kill', 'br-custom', 'cs-custom', 'team-vs-team'].includes(format)) {
     throw new Error('Invalid tournament format');
   }
-  if (!['Free Fire', 'BGMI'].includes(game)) {
+  if (!['Free Fire', 'BGMI', 'PUBG Mobile', 'Brawl Stars', 'Honor of Kings', 'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends', 'Rocket League', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds', 'Overwatch 2', 'Rainbow Six Siege', 'Marvel Rivals', 'Trackmania', 'Minecraft', 'Chess', 'Age of Empires II', 'Age of Empires IV', 'COD Mobile', 'Mobile Legends: Bang Bang', 'Clash Royale', 'Clash of Clans', 'EA Sports FC Mobile', 'eFootball', 'Tekken 8', 'Street Fighter 6', 'EA Sports FC 26', 'Teamfight Tactics'].includes(game)) {
     throw new Error('Invalid game');
   }
 

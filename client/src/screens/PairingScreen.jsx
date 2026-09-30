@@ -27,11 +27,103 @@ const typeOptions = [
 ];
 const entryOptions = [0, 5, 10, 20, 30, 50, 100, 200, 500, 1000];
 const CS_TOURNAMENT_FORMATS = new Set(['cs-custom']);
+const HOST_VIEW_GAMES = ['Free Fire', 'BGMI', 'PUBG Mobile', 'Brawl Stars', 'Honor of Kings', 'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends', 'Rocket League', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds', 'Overwatch 2', 'Rainbow Six Siege', 'Marvel Rivals', 'Trackmania', 'Minecraft', 'Chess', 'Age of Empires II', 'Age of Empires IV'];
+const NO_HOST_VIEW_GAMES = ['COD Mobile', 'Mobile Legends: Bang Bang', 'Clash Royale', 'Clash of Clans', 'EA Sports FC Mobile', 'eFootball', 'Tekken 8', 'Street Fighter 6', 'EA Sports FC 26', 'Teamfight Tactics'];
+const GAME_OPTIONS = [...HOST_VIEW_GAMES, ...NO_HOST_VIEW_GAMES];
+const isNoHostViewGame = (game) => NO_HOST_VIEW_GAMES.includes(game);
 
 const getTrustClass = (score) => {
   if (score >= 80) return 'green';
   if (score >= 40) return 'yellow';
   return 'red';
+};
+
+const MatchResultPanel = ({ match, onResultSubmitted }) => {
+  const [selection, setSelection] = useState(null);
+  const [screenshot, setScreenshot] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  if (!match || !isNoHostViewGame(match.game)) return null;
+
+  const handleSubmit = async () => {
+    if (!selection) return;
+    if (selection === 'win' && !screenshot) {
+      setError('Please upload a screenshot when choosing I WON.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError('');
+      const formData = new FormData();
+      formData.append('matchId', match._id || match.id);
+      formData.append('winner', selection);
+      if (selection === 'win' && screenshot) {
+        formData.append('screenshot', screenshot);
+      }
+
+      const response = await axios.post(`${API_BASE}/match/submit-result`, formData, {
+        headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+      });
+
+      if (!response.data?.success) {
+        throw new Error(response.data?.error || 'Unable to submit result');
+      }
+
+      setSubmitted(true);
+      onResultSubmitted?.();
+    } catch (submitError) {
+      setError(submitError.response?.data?.error || submitError.message || 'Unable to submit result');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-[#2A2A2A] bg-[#111111] p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-[0.18em] text-[#FF6A00]">Result page</div>
+          <h3 className="mt-1 text-lg font-semibold text-white">Submit your result</h3>
+        </div>
+        <span className="rounded-full border border-[#FFB066] px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-[#FFB066]">No host view</span>
+      </div>
+
+      {submitted ? (
+        <div className="rounded-xl border border-[#22C55E] bg-[#051405] p-3 text-sm text-[#8AE7A2]">Your result was submitted successfully.</div>
+      ) : (
+        <>
+          {error && <div className="mb-3 rounded-lg border border-[#EF4444] bg-[#1A0B0B] p-2 text-sm text-[#FCA5A5]">{error}</div>}
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" className={`rounded-lg border px-4 py-3 font-semibold ${selection === 'win' ? 'border-[#22C55E] bg-[#05250e] text-[#22C55E]' : 'border-[#2A2A2A] bg-[#0B0B0B] text-white'}`} onClick={() => setSelection('win')}>
+              I WON
+            </button>
+            <button type="button" className={`rounded-lg border px-4 py-3 font-semibold ${selection === 'lose' ? 'border-[#EF4444] bg-[#1A0B0B] text-[#EF4444]' : 'border-[#2A2A2A] bg-[#0B0B0B] text-white'}`} onClick={() => setSelection('lose')}>
+              I LOST
+            </button>
+          </div>
+
+          {selection === 'win' && (
+            <label className="mt-3 block text-sm text-[#D4D4D4]">
+              Screenshot proof
+              <input
+                type="file"
+                accept="image/*"
+                className="mt-2 block w-full rounded-lg border border-[#2A2A2A] bg-[#0B0B0B] p-2 text-sm text-[#D4D4D4]"
+                onChange={(event) => setScreenshot(event.target.files?.[0] || null)}
+              />
+            </label>
+          )}
+
+          <button type="button" className="mt-4 w-full rounded-lg bg-[#FF6A00] px-4 py-3 font-semibold text-black disabled:opacity-60" onClick={handleSubmit} disabled={submitting || !selection}>
+            {submitting ? 'Submitting...' : 'Send result'}
+          </button>
+        </>
+      )}
+    </div>
+  );
 };
 
 export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) => {
@@ -122,6 +214,9 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                       ))}
                     </div>
                   )}
+                  <div className="mt-4">
+                    <MatchResultPanel match={matchItem} onResultSubmitted={() => fetchMyMatches()} />
+                  </div>
                   <div className="match-actions">
                     <button className="btn-outline" type="button" onClick={() => {
                       onMatchSelect?.(matchItem);
@@ -406,7 +501,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         <div className="pairing-filter">
           <span className="filter-label">Game</span>
           <select className="pairing-select" value={game} onChange={(e) => setGame(e.target.value)}>
-            {['All', 'Free Fire', 'BGMI'].map((option) => (
+            {['All', ...GAME_OPTIONS].map((option) => (
               <option key={option} value={option}>
                 {option === 'All' ? 'All' : option}
               </option>

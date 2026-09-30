@@ -540,7 +540,7 @@ export const createMatch = async (req, res) => {
   try {
     const { game, mode, type, entry, skillSetting } = req.body;
     const userId = req.userId;
-    const allowedGames = ['Free Fire', 'BGMI'];
+    const allowedGames = ['Free Fire', 'BGMI', 'PUBG Mobile', 'Brawl Stars', 'Honor of Kings', 'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends', 'Rocket League', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds', 'Overwatch 2', 'Rainbow Six Siege', 'Marvel Rivals', 'Trackmania', 'Minecraft', 'Chess', 'Age of Empires II', 'Age of Empires IV', 'COD Mobile', 'Mobile Legends: Bang Bang', 'Clash Royale', 'Clash of Clans', 'EA Sports FC Mobile', 'eFootball', 'Tekken 8', 'Street Fighter 6', 'EA Sports FC 26', 'Teamfight Tactics'];
     const finalGame = allowedGames.includes(game) ? game : 'Free Fire';
 
     if (!mode || !type || !entry) {

@@ -61,6 +61,15 @@ test('validateTournamentInput requires match schedule and room details', () => {
     estimatedDate: '2026-09-15',
   }));
 
+  assert.doesNotThrow(() => validateTournamentInput({
+    name: 'No Host View Cup',
+    format: 'custom',
+    game: 'COD Mobile',
+    entryFee: 20,
+    maxTeams: 10,
+    estimatedDate: '2026-09-15',
+  }));
+
   for (const format of ['br-custom', 'cs-custom', 'team-vs-team']) {
     const validated = validateTournamentInput({
       name: 'Team Cup',

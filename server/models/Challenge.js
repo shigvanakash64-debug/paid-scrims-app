@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const challengeSchema = new mongoose.Schema({
   challenger: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   challengedPlayer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  game: { type: String, enum: ['Free Fire', 'BGMI'], default: 'Free Fire' },
+  game: { type: String, enum: ['Free Fire', 'BGMI', 'PUBG Mobile', 'Brawl Stars', 'Honor of Kings', 'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends', 'Rocket League', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds', 'Overwatch 2', 'Rainbow Six Siege', 'Marvel Rivals', 'Trackmania', 'Minecraft', 'Chess', 'Age of Empires II', 'Age of Empires IV', 'COD Mobile', 'Mobile Legends: Bang Bang', 'Clash Royale', 'Clash of Clans', 'EA Sports FC Mobile', 'eFootball', 'Tekken 8', 'Street Fighter 6', 'EA Sports FC 26', 'Teamfight Tactics'], default: 'Free Fire' },
   mode: { type: String, enum: ['1v1', '2v2', '3v3', '4v4'], required: true },
   type: { type: String, required: true, trim: true },
   entry: { type: Number, required: true, min: 1 },

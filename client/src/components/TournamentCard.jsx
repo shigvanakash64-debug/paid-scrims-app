@@ -100,12 +100,12 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
   const hostUsername = tournament?.createdBy?.username || tournament?.hostUsername || 'Host';
   const isPerKillTournament = tournament?.format === 'single-match' || tournament?.format === 'br-per-kill';
   const formatTitle = tournament?.format === 'single-match' || tournament?.format === 'br-per-kill'
-    ? 'BR Per Kill Tournament'
-    : tournament?.format === 'custom' || tournament?.format === 'br-custom'
-      ? 'BR Custom Tournament'
+    ? 'Per Kill Tournament'
+    : tournament?.format === 'custom' || tournament?.format === 'br-custom' || tournament?.format === 'cs-custom'
+      ? 'Custom Tournament'
       : tournament?.format === 'team-vs-team'
         ? 'Team vs Team Tournament'
-        : tournament?.format === 'cs-custom' ? 'CS Custom Tournament' : tournament?.format;
+        : tournament?.format;
   const isJoined = Boolean(tournament?.isRegistered || tournament?.registered || tournament?.joined);
   const stages = Array.isArray(tournament?.stages) ? [...tournament.stages].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [];
 

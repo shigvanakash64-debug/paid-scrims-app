@@ -16,17 +16,16 @@ const formatTime12Hour = (value) => {
 };
 
 const FORMAT_OPTIONS = [
-  { value: 'br-per-kill', title: 'BR Per Kill Tournament', description: 'Battle Royale single match', detail: 'Per-kill reward' },
-  { value: 'br-custom', title: 'BR Custom Tournament', description: 'Battle Royale stages', detail: 'Host manually creates the stages' },
+  { value: 'br-per-kill', title: 'Per Kill Tournament', description: 'Single match format', detail: 'Per-kill reward' },
+  { value: 'br-custom', title: 'Custom Tournament', description: 'Manual stage setup', detail: 'Host manually creates the stages' },
   { value: 'team-vs-team', title: 'Team vs Team Tournament', description: 'Team-based tournament stages', detail: 'Host manually creates the stages' },
-  { value: 'cs-custom', title: 'CS Custom Tournament', description: 'Clash Squad stages', detail: 'Host manually creates the stages' },
 ];
 
 const isPerKillFormat = (value) => value === 'single-match' || value === 'br-per-kill';
 const isSingleStageFormat = (value) => isPerKillFormat(value);
 const isCustomFormat = (value) => value === 'custom' || value === 'br-custom' || value === 'cs-custom' || value === 'team-vs-team';
 const usesTeamSize = (value) => ['br-custom', 'cs-custom', 'team-vs-team'].includes(value);
-const getFormatTitle = (value) => FORMAT_OPTIONS.find((option) => option.value === value)?.title || (value === 'single-match' ? 'BR Per Kill Tournament' : value === 'custom' ? 'BR Custom Tournament' : value);
+const getFormatTitle = (value) => FORMAT_OPTIONS.find((option) => option.value === value)?.title || (value === 'single-match' ? 'Per Kill Tournament' : value === 'custom' ? 'Custom Tournament' : value);
 
 export const HostTournamentPanel = ({ onBack }) => {
   const [step, setStep] = useState('format');
@@ -225,8 +224,42 @@ export const HostTournamentPanel = ({ onBack }) => {
               Game
               <select className="auth-input" name="game" value={form.game} onChange={updateForm}
               >
-                <option>Free Fire</option>
-                <option>BGMI</option>
+                {[
+                  'Free Fire',
+                  'BGMI',
+                  'PUBG Mobile',
+                  'Brawl Stars',
+                  'Honor of Kings',
+                  'Pokémon Unite',
+                  'Valorant',
+                  'Counter-Strike 2',
+                  'Dota 2',
+                  'League of Legends',
+                  'Rocket League',
+                  'Fortnite',
+                  'Apex Legends',
+                  'PUBG: Battlegrounds',
+                  'Overwatch 2',
+                  'Rainbow Six Siege',
+                  'Marvel Rivals',
+                  'Trackmania',
+                  'Minecraft',
+                  'Chess',
+                  'Age of Empires II',
+                  'Age of Empires IV',
+                  'COD Mobile',
+                  'Mobile Legends: Bang Bang',
+                  'Clash Royale',
+                  'Clash of Clans',
+                  'EA Sports FC Mobile',
+                  'eFootball',
+                  'Tekken 8',
+                  'Street Fighter 6',
+                  'EA Sports FC 26',
+                  'Teamfight Tactics',
+                ].map((game) => (
+                  <option key={game} value={game}>{game}</option>
+                ))}
               </select>
             </label>
 

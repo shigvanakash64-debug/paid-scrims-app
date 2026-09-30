@@ -84,6 +84,46 @@ const skillOptions = [
 
 const entryFees = [5, 10, 20, 30, 50, 100, 200, 500, 1000];
 
+const HOST_VIEW_GAMES = [
+  'Free Fire',
+  'BGMI',
+  'PUBG Mobile',
+  'Brawl Stars',
+  'Honor of Kings',
+  'Pokémon Unite',
+  'Valorant',
+  'Counter-Strike 2',
+  'Dota 2',
+  'League of Legends',
+  'Rocket League',
+  'Fortnite',
+  'Apex Legends',
+  'PUBG: Battlegrounds',
+  'Overwatch 2',
+  'Rainbow Six Siege',
+  'Marvel Rivals',
+  'Trackmania',
+  'Minecraft',
+  'Chess',
+  'Age of Empires II',
+  'Age of Empires IV',
+];
+
+const NO_HOST_VIEW_GAMES = [
+  'COD Mobile',
+  'Mobile Legends: Bang Bang',
+  'Clash Royale',
+  'Clash of Clans',
+  'EA Sports FC Mobile',
+  'eFootball',
+  'Tekken 8',
+  'Street Fighter 6',
+  'EA Sports FC 26',
+  'Teamfight Tactics',
+];
+
+const GAME_OPTIONS = [...HOST_VIEW_GAMES, ...NO_HOST_VIEW_GAMES];
+
 const getPrizePool = (entryFee) => {
   const prizePoolTable = {
     5: 7,
@@ -162,17 +202,39 @@ export const HomeScreen = ({ onScreenChange }) => {
 
       <div className="section">
         <div className="section-label">Game</div>
-        <div className="grid2">
-          {['Free Fire', 'BGMI'].map((game) => (
-            <button
-              key={game}
-              type="button"
-              className={`sel-btn ${selectedGame === game ? 'active' : ''}`}
-              onClick={() => setSelectedGame(game)}
-            >
-              {game}
-            </button>
-          ))}
+
+        <div className="space-y-4">
+          <div>
+            <div className="mb-2 text-xs uppercase tracking-[0.18em] text-[#FFB066]">Host view games</div>
+            <div className="grid2">
+              {HOST_VIEW_GAMES.map((game) => (
+                <button
+                  key={game}
+                  type="button"
+                  className={`sel-btn ${selectedGame === game ? 'active' : ''}`}
+                  onClick={() => setSelectedGame(game)}
+                >
+                  {game}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-2 text-xs uppercase tracking-[0.18em] text-[#FFB066]">No host view games</div>
+            <div className="grid2">
+              {NO_HOST_VIEW_GAMES.map((game) => (
+                <button
+                  key={game}
+                  type="button"
+                  className={`sel-btn ${selectedGame === game ? 'active' : ''}`}
+                  onClick={() => setSelectedGame(game)}
+                >
+                  {game}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

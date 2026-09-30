@@ -22,7 +22,7 @@ const tournamentStageSchema = new mongoose.Schema({
 
 const tournamentSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, maxlength: 120 },
-  game: { type: String, enum: ['Free Fire', 'BGMI'], default: 'Free Fire' },
+  game: { type: String, enum: ['Free Fire', 'BGMI', 'PUBG Mobile', 'Brawl Stars', 'Honor of Kings', 'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends', 'Rocket League', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds', 'Overwatch 2', 'Rainbow Six Siege', 'Marvel Rivals', 'Trackmania', 'Minecraft', 'Chess', 'Age of Empires II', 'Age of Empires IV', 'COD Mobile', 'Mobile Legends: Bang Bang', 'Clash Royale', 'Clash of Clans', 'EA Sports FC Mobile', 'eFootball', 'Tekken 8', 'Street Fighter 6', 'EA Sports FC 26', 'Teamfight Tactics'], default: 'Free Fire' },
   format: { type: String, enum: ['single-match', 'custom', 'br-per-kill', 'br-custom', 'cs-custom', 'team-vs-team'], required: true },
   entryFee: { type: Number, required: true, min: 0 },
   maxTeams: { type: Number, required: true, min: 1 },

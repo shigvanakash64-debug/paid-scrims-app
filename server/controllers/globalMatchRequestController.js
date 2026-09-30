@@ -21,7 +21,7 @@ const serializeRequest = (request) => ({
 export const listGlobalMatchRequests = async (req, res) => {
   try {
     const cutoff = new Date(Date.now() - REQUEST_TTL_MS);
-    const query = isHostOrAdmin(req.user) ? { createdAt: { $gte: cutoff } } : { userId: req.userId, createdAt: { $gte: cutoff } };
+    const query = { createdAt: { $gte: cutoff } };
     const requests = await GlobalMatchRequest.find(query)
       .populate('userId', 'username')
       .sort({ createdAt: -1 })
