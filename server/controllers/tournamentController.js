@@ -813,6 +813,43 @@ export const joinTournament = async (req, res) => {
   }
 };
 
+export const buildTeamTournamentGroups = ({ stages = [], participants = [], currentUserId = null }) => {
+  const participantMap = new Map(participants.map((participant) => [String(participant._id), participant]));
+  const groups = [];
+
+  for (const stage of stages.filter((item) => item.key.startsWith('tvt-round-')).sort((left, right) => left.order - right.order)) {
+    for (const match of [...stage.matches].sort((left, right) => left.order - right.order)) {
+      const teamA = participantMap.get(String(match.teamA || ''));
+      const teamB = participantMap.get(String(match.teamB || ''));
+      if (!teamA || !teamB) continue;
+
+      const toGroupParticipant = (participant) => ({
+        _id: participant._id,
+        participantId: participant._id,
+        userId: participant.userId?._id || participant.userId,
+        displayName: participant.displayName || participant.userId?.username || 'Participant',
+        username: participant.userId?.username || participant.displayName || 'Participant',
+        teamName: participant.teamName || '',
+        teamMembers: participant.teamMembers || [],
+      });
+
+      groups.push({
+        groupNumber: groups.length + 1,
+        title: `${stage.name} · Match ${match.order}`,
+        status: match.status,
+        participants: [toGroupParticipant(teamA), toGroupParticipant(teamB)],
+      });
+    }
+  }
+
+  const userId = String(currentUserId || '');
+  const userMatches = groups.filter((group) => group.participants.some((participant) => String(participant.userId) === userId));
+  const currentMatch = userMatches.find((group) => ['active', 'result_pending', 'disputed'].includes(group.status));
+  const userGroup = currentMatch?.groupNumber ?? userMatches.at(-1)?.groupNumber ?? null;
+
+  return { groups, userGroup };
+};
+
 export const getTournamentGroups = async (req, res) => {
   try {
     const tournamentId = req.params.tournamentId;
@@ -826,6 +863,16 @@ export const getTournamentGroups = async (req, res) => {
 
     if (!participants.length) {
       return res.json({ success: true, groups: [], userGroup: null });
+    }
+
+    if (tournament.format === 'team-vs-team') {
+      const currentUserId = req.user?._id || req.user?.userId || req.userId || null;
+      const { groups, userGroup } = buildTeamTournamentGroups({
+        stages: tournament.stages,
+        participants,
+        currentUserId,
+      });
+      return res.json({ success: true, groups, userGroup, groupSize: 2 });
     }
 
     const persistedGroups = participants.every((participant) => Number(participant.groupNumber) > 0);
@@ -1141,9 +1188,14 @@ export const getPublicTournamentMatches = async (req, res) => {
   }
 };
 
-export const buildTournamentBracket = (participantIds = []) => {
+export const buildTournamentBracket = (participantIds = [], rng = Math.random) => {
   const bracketSize = 2 ** Math.ceil(Math.log2(participantIds.length));
   const normalizedParticipants = participantIds.map(String);
+  for (let index = normalizedParticipants.length - 1; index > 0; index -= 1) {
+    const randomValue = typeof rng === 'function' ? rng() : 0.5;
+    const swapIndex = Math.max(0, Math.min(index, Math.floor(randomValue * (index + 1))));
+    [normalizedParticipants[index], normalizedParticipants[swapIndex]] = [normalizedParticipants[swapIndex], normalizedParticipants[index]];
+  }
   const byeCount = bracketSize - normalizedParticipants.length;
   let participantIndex = 0;
   const roundCount = Math.log2(bracketSize);

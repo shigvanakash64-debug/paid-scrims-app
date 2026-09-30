@@ -137,6 +137,15 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
           <span className={`br-status-badge ${teamBracketStarted ? 'text-[#FFB066]' : 'text-green-400'}`}>{teamBracketStarted ? 'BRACKET IN PROGRESS' : 'OPEN FOR REGISTRATION'}</span>
         </div>
       </div>
+      {isJoined && teamBracketStarted && (
+        <button
+          type="button"
+          onClick={() => setActivePanel('tvt-results')}
+          className="w-full rounded-lg bg-[#FF6A00] px-4 py-3 text-left text-sm font-bold text-black hover:bg-[#FF8533]"
+        >
+          Open TVT Result Page
+        </button>
+      )}
       <div className="br-match-grid">
         <div className="br-match-stat"><span className="label">Game</span><span className="value">{tournament.game}</span></div>
         {usesTeamRoster && <div className="br-match-stat"><span className="label">Team Size</span><span className="value">{teamSize}</span></div>}
@@ -166,11 +175,6 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         {!isPerKillTournament && (
           <button type="button" className="btn btn-sm btn-secondary" onClick={() => setActivePanel((current) => (current === 'structure' ? null : 'structure'))}>
             Match Structure
-          </button>
-        )}
-        {isJoined && tournament?.format === 'team-vs-team' && (
-          <button type="button" className="btn btn-sm btn-primary" onClick={() => setActivePanel('tvt-results')}>
-            TVT Result
           </button>
         )}
         {isJoined && <button type="button" className="btn btn-sm btn-secondary" onClick={handleViewResults}>View Results</button>}
@@ -209,8 +213,14 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
       {activePanel === 'groups' && (
         <div className="border-t border-[#1F1F1F] pt-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-semibold text-white">Your Group</span>
-            <span className="text-xs text-[#FFB066]">{groupData.userGroup ? `Group ${groupData.userGroup}` : 'Not assigned'}</span>
+            <span className="text-sm font-semibold text-white">{tournament?.format === 'team-vs-team' ? 'Your Matchups' : 'Your Group'}</span>
+            <span className="text-xs text-[#FFB066]">
+              {groupData.userGroup
+                ? tournament?.format === 'team-vs-team'
+                  ? groupData.groups.find((group) => group.groupNumber === groupData.userGroup)?.title || `Match ${groupData.userGroup}`
+                  : `Group ${groupData.userGroup}`
+                : 'Not assigned'}
+            </span>
           </div>
           <div className="space-y-2">
             {groupData.groups.length === 0 ? (
@@ -219,7 +229,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
               groupData.groups.map((group) => (
                 <div key={`group-${group.groupNumber}`} className="rounded-lg border border-[#1F1F1F] bg-[#0D0D0D] p-3">
                   <button type="button" className="flex w-full items-center justify-between text-left text-sm font-medium text-white" onClick={() => setExpandedGroup((current) => current === group.groupNumber ? null : group.groupNumber)}>
-                    <span>Group {group.groupNumber}</span>
+                    <span>{group.title || `Group ${group.groupNumber}`}</span>
                     <span className="text-xs text-[#A1A1A1]">{group.participants.length} {usesTeamRoster ? 'teams' : 'players'}</span>
                   </button>
                   {expandedGroup === group.groupNumber && (

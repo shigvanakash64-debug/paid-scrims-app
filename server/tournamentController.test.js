@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { assignTournamentGroups, buildTournamentBracket, calculateFinancials, isCompletedTournamentExpired, normalizeResultEntry, normalizeTournamentRegistration, resolveTeamMatchClaims, validateTournamentInput } from './controllers/tournamentController.js';
+import { assignTournamentGroups, buildTeamTournamentGroups, buildTournamentBracket, calculateFinancials, isCompletedTournamentExpired, normalizeResultEntry, normalizeTournamentRegistration, resolveTeamMatchClaims, validateTournamentInput } from './controllers/tournamentController.js';
 
 test('buildTournamentBracket creates the expected knockout rounds and automatic byes', () => {
   const bracket = buildTournamentBracket(Array.from({ length: 16 }, (_, index) => `team-${index + 1}`));
@@ -15,6 +15,37 @@ test('buildTournamentBracket creates the expected knockout rounds and automatic 
   const fiveTeamBracket = buildTournamentBracket(['one', 'two', 'three', 'four', 'five']);
   assert.equal(fiveTeamBracket[0].matches.length, 4);
   assert.equal(fiveTeamBracket[0].matches.filter((match) => match.status === 'completed').length, 3);
+});
+
+test('buildTournamentBracket shuffles entrants once for random first-round pairings', () => {
+  const bracket = buildTournamentBracket(['team-1', 'team-2', 'team-3', 'team-4'], () => 0);
+  assert.deepEqual(bracket[0].matches.map((match) => match.participants), [
+    ['team-2', 'team-3'],
+    ['team-4', 'team-1'],
+  ]);
+});
+
+test('buildTeamTournamentGroups uses saved match pairings and keeps each group to two teams', () => {
+  const participants = [
+    { _id: 'team-a', userId: { _id: 'user-a', username: 'Player A' }, teamName: 'Alpha', teamMembers: ['A1', 'A2'] },
+    { _id: 'team-b', userId: { _id: 'user-b', username: 'Player B' }, teamName: 'Bravo', teamMembers: ['B1', 'B2'] },
+    { _id: 'team-c', userId: { _id: 'user-c', username: 'Player C' }, teamName: 'Charlie', teamMembers: ['C1', 'C2'] },
+  ];
+  const result = buildTeamTournamentGroups({
+    stages: [{
+      key: 'tvt-round-1',
+      name: 'Semifinal',
+      order: 1,
+      matches: [{ order: 1, status: 'active', teamA: 'team-a', teamB: 'team-b' }],
+    }],
+    participants,
+    currentUserId: 'user-b',
+  });
+
+  assert.equal(result.groups.length, 1);
+  assert.equal(result.groups[0].participants.length, 2);
+  assert.deepEqual(result.groups[0].participants.map((team) => team.teamName), ['Alpha', 'Bravo']);
+  assert.equal(result.userGroup, 1);
 });
 
 test('resolveTeamMatchClaims accepts agreement and flags conflicting winner claims', () => {

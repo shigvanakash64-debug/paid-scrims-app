@@ -32,7 +32,7 @@ export const LeaderboardScreen = ({ user, onScreenChange, onMatchSelect }) => {
 
   useEffect(() => {
     loadData();
-    const timer = setInterval(loadData, 30000);
+    const timer = setInterval(loadData, 50000);
     return () => clearInterval(timer);
   }, [leaderboardType]);
 
