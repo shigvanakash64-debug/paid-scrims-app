@@ -522,6 +522,7 @@ export const getMyTeamTournamentMatches = async (req, res) => {
 };
 
 export const submitTeamTournamentResult = async (req, res) => {
+  let operation = 'validating result submission';
   try {
     const tournament = await Tournament.findById(req.params.tournamentId);
     if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
@@ -581,14 +582,20 @@ export const submitTeamTournamentResult = async (req, res) => {
 
     let screenshotUrl = '';
     if (req.file) {
+      operation = 'uploading screenshot to Cloudinary';
       try {
         screenshotUrl = await uploadToCloudinary(req.file.buffer, req.file.originalname);
       } catch (uploadError) {
-        return res.status(500).json({ error: `Upload failed: ${uploadError.message}` });
+        console.error('Team tournament screenshot upload failed:', uploadError);
+        return res.status(502).json({ error: `Screenshot upload failed: ${uploadError.message}` });
+      }
+      if (!/^https?:\/\//i.test(screenshotUrl)) {
+        return res.status(503).json({ error: 'Screenshot upload requires valid Cloudinary credentials. Check the server Cloudinary environment variables.' });
       }
     }
 
     if (proofOnly) {
+      operation = 'saving screenshot proof';
       const existingClaim = gameResult.claims.find((claim) => String(claim.participantId) === participantId);
       existingClaim.screenshotUrl = screenshotUrl;
       existingClaim.screenshotHash = screenshotHash;
@@ -623,12 +630,20 @@ export const submitTeamTournamentResult = async (req, res) => {
       match.status = 'result_pending';
     }
 
+    operation = 'saving tournament result';
     await tournament.save();
+    operation = 'processing tournament payout';
     if (tournamentComplete) await payoutTeamTournamentWinner(tournament, resolution.winnerParticipantId);
     return res.json({ success: true, status: match.status, currentGame: match.currentGame, teamAWins: match.teamAWins, teamBWins: match.teamBWins, screenshotUrl });
   } catch (error) {
-    console.error('submitTeamTournamentResult error:', error);
-    return res.status(500).json({ error: 'Failed to submit Team vs Team result' });
+    console.error(`submitTeamTournamentResult error while ${operation}:`, error);
+    const message = String(error?.message || 'Unknown server error');
+    const safeMessage = [
+      process.env.CLOUDINARY_API_SECRET,
+      process.env.CLOUDINARY_API_KEY,
+      process.env.MONGODB_URI,
+    ].filter(Boolean).reduce((text, secret) => text.replaceAll(secret, '[redacted]'), message);
+    return res.status(500).json({ error: `Failed while ${operation}: ${safeMessage}` });
   }
 };
 
