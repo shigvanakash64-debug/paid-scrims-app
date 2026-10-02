@@ -1,10 +1,19 @@
 import cloudinary from "../config/cloudinary.js";
 
-const hasCloudinaryConfig = Boolean(
-  process.env.CLOUDINARY_CLOUD_NAME &&
-  process.env.CLOUDINARY_API_KEY &&
-  process.env.CLOUDINARY_API_SECRET
-);
+const configureCloudinary = () => {
+  const credentials = {
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  };
+  const isConfigured = Object.values(credentials).every(Boolean);
+
+  if (isConfigured) {
+    cloudinary.config(credentials);
+  }
+
+  return isConfigured;
+};
 
 const fallbackDataUrl = (buffer, filename) => {
   const extension = (filename?.split(".").pop() || "png").toLowerCase();
@@ -22,7 +31,7 @@ const fallbackDataUrl = (buffer, filename) => {
 };
 
 export const uploadToCloudinary = async (buffer, filename) => {
-  if (!hasCloudinaryConfig) {
+  if (!configureCloudinary()) {
     return fallbackDataUrl(buffer, filename);
   }
 
