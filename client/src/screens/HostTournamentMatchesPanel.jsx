@@ -479,6 +479,9 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                       {(match.gameResults || []).map((game) => (
                         <div key={game.gameNumber} className="mt-3 space-y-2 border-t border-[#252525] pt-2 text-xs text-[#D4D4D4]">
                           <p className="text-[#A1A1A1]">{tournament.teamTournamentMode === 'bo3' ? `Game ${game.gameNumber}` : 'Result claims'} · {game.status}</p>
+                          {match.status === 'disputed' && game.status === 'disputed' && (game.claims.length < 2 || game.claims.some((claim) => !claim.screenshotUrl)) && (
+                            <p className="text-[#FCD34D]">Waiting for screenshot proof from both teams before this result can be resolved.</p>
+                          )}
                           {game.claims.map((claim, index) => (
                             <div key={`${claim.userId?._id || claim.userId}-${index}`} className="space-y-2 rounded-lg border border-[#252525] bg-[#111111] p-3">
                               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -508,8 +511,8 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                           ))}
                           {match.status === 'disputed' && game.status === 'disputed' && (
                             <div className="flex flex-wrap gap-2 pt-2">
-                              <Button variant="secondary" size="sm" onClick={() => resolveTeamMatch(match, String(match.teamA?._id), game.gameNumber)}>Award {getTeamName(match.teamA)}</Button>
-                              <Button variant="secondary" size="sm" onClick={() => resolveTeamMatch(match, String(match.teamB?._id), game.gameNumber)}>Award {getTeamName(match.teamB)}</Button>
+                              <Button variant="secondary" size="sm" disabled={game.claims.length < 2 || game.claims.some((claim) => !claim.screenshotUrl)} onClick={() => resolveTeamMatch(match, String(match.teamA?._id), game.gameNumber)}>Award {getTeamName(match.teamA)}</Button>
+                              <Button variant="secondary" size="sm" disabled={game.claims.length < 2 || game.claims.some((claim) => !claim.screenshotUrl)} onClick={() => resolveTeamMatch(match, String(match.teamB?._id), game.gameNumber)}>Award {getTeamName(match.teamB)}</Button>
                             </div>
                           )}
                         </div>

@@ -529,11 +529,17 @@ export const submitTeamTournamentResult = async (req, res) => {
 
     const { stage, match } = findTournamentStageMatch(tournament, req.params.matchId) || {};
     if (!match || !stage?.key.startsWith('tvt-round-')) return res.status(404).json({ error: 'Team match not found' });
-    if (!['active', 'result_pending'].includes(match.status)) return res.status(409).json({ error: 'This team match is not accepting results' });
 
     const { outcome } = req.body || {};
-    if (!['win', 'lose'].includes(outcome)) return res.status(400).json({ error: 'Choose I WON or I LOST' });
-    if (outcome === 'win' && !req.file) return res.status(400).json({ error: 'A screenshot is required when you choose I WON' });
+    const proofOnly = req.body?.proofOnly === 'true';
+    if (proofOnly) {
+      if (match.status !== 'disputed') return res.status(409).json({ error: 'Screenshot proof can only be added to a disputed result' });
+      if (!req.file) return res.status(400).json({ error: 'Choose a screenshot to upload' });
+    } else {
+      if (!['active', 'result_pending'].includes(match.status)) return res.status(409).json({ error: 'This team match is not accepting results' });
+      if (!['win', 'lose'].includes(outcome)) return res.status(400).json({ error: 'Choose I WON or I LOST' });
+      if (outcome === 'win' && !req.file) return res.status(400).json({ error: 'A screenshot is required when you choose I WON' });
+    }
 
     const participant = await TournamentParticipant.findOne({ tournamentId: tournament._id, userId: req.userId, status: 'registered' });
     if (!participant) return res.status(403).json({ error: 'Only registered teams can submit results' });
@@ -545,7 +551,7 @@ export const submitTeamTournamentResult = async (req, res) => {
     }
     const opponentId = participantId === teamAId ? teamBId : teamAId;
     const gameNumber = tournament.teamTournamentMode === 'bo3' ? Number(match.currentGame || 1) : 1;
-    let screenshotUrl = '';
+    let gameResult = match.gameResults.find((game) => game.gameNumber === gameNumber);
     let screenshotHash = '';
 
     if (req.file) {
@@ -558,6 +564,23 @@ export const submitTeamTournamentResult = async (req, res) => {
         (teamMatch.gameResults || []).some((game) => (game.claims || []).some((claim) => claim.screenshotHash === screenshotHash)),
       ));
       if (existingHash) return res.status(400).json({ error: 'This screenshot has already been submitted in the tournament' });
+      if (proofOnly) {
+        const existingClaim = gameResult?.claims.find((claim) => String(claim.participantId) === participantId);
+        if (!existingClaim) return res.status(404).json({ error: 'Your result claim was not found' });
+        if (existingClaim.screenshotUrl) return res.status(409).json({ error: 'Screenshot proof has already been uploaded for your claim' });
+      }
+    }
+
+    if (proofOnly && !req.file) return res.status(400).json({ error: 'Choose a screenshot to upload' });
+    if (!proofOnly && gameResult?.status && ['disputed', 'completed'].includes(gameResult.status)) {
+      return res.status(409).json({ error: 'This game result has already been finalized or sent for review' });
+    }
+    if (!proofOnly && gameResult?.claims.some((claim) => String(claim.participantId) === participantId)) {
+      return res.status(409).json({ error: 'Your team has already submitted this game result' });
+    }
+
+    let screenshotUrl = '';
+    if (req.file) {
       try {
         screenshotUrl = await uploadToCloudinary(req.file.buffer, req.file.originalname);
       } catch (uploadError) {
@@ -565,18 +588,19 @@ export const submitTeamTournamentResult = async (req, res) => {
       }
     }
 
-    let gameResult = match.gameResults.find((game) => game.gameNumber === gameNumber);
+    if (proofOnly) {
+      const existingClaim = gameResult.claims.find((claim) => String(claim.participantId) === participantId);
+      existingClaim.screenshotUrl = screenshotUrl;
+      existingClaim.screenshotHash = screenshotHash;
+      existingClaim.submittedAt = new Date();
+      await tournament.save();
+      return res.json({ success: true, status: match.status, screenshotUrl, proofOnly: true });
+    }
+
     if (!gameResult) {
       match.gameResults.push({ gameNumber, status: 'pending', claims: [] });
       gameResult = match.gameResults[match.gameResults.length - 1];
     }
-    if (gameResult.status === 'disputed' || gameResult.status === 'completed') {
-      return res.status(409).json({ error: 'This game result has already been finalized or sent for review' });
-    }
-    if (gameResult.claims.some((claim) => String(claim.participantId) === participantId)) {
-      return res.status(409).json({ error: 'Your team has already submitted this game result' });
-    }
-
     gameResult.claims.push({
       participantId,
       userId: req.userId,
@@ -626,6 +650,9 @@ export const resolveTeamTournamentDispute = async (req, res) => {
     const gameNumber = tournament.teamTournamentMode === 'bo3' ? Number(req.body?.gameNumber || match.currentGame || 1) : 1;
     const gameResult = match.gameResults.find((game) => game.gameNumber === gameNumber && game.status === 'disputed');
     if (!gameResult) return res.status(404).json({ error: 'Disputed game result not found' });
+    if (gameResult.claims.length !== 2 || gameResult.claims.some((claim) => !claim.screenshotUrl)) {
+      return res.status(409).json({ error: 'Both teams must upload screenshot proof before this result can be resolved' });
+    }
 
     const tournamentComplete = completeTeamTournamentGame(tournament, match, gameResult, winnerParticipantId);
     await tournament.save();

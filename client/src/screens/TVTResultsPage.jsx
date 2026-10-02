@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
@@ -11,7 +11,7 @@ export const TVTResultsPage = ({ tournamentId, onClose }) => {
   const [submittingMatchId, setSubmittingMatchId] = useState(null);
   const [error, setError] = useState('');
 
-  const loadMatches = async () => {
+  const loadMatches = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/team-matches`, {
         headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
@@ -25,13 +25,13 @@ export const TVTResultsPage = ({ tournamentId, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tournamentId]);
 
   useEffect(() => {
     loadMatches();
     const interval = setInterval(loadMatches, 10000);
     return () => clearInterval(interval);
-  }, [tournamentId]);
+  }, [loadMatches]);
 
   const submitResult = async (match) => {
     const outcome = selections[match.id];
@@ -65,6 +65,42 @@ export const TVTResultsPage = ({ tournamentId, onClose }) => {
     }
   };
 
+  const uploadDisputedProof = async (match) => {
+    const screenshot = screenshots[match.id];
+    if (!screenshot) {
+      setError('Choose a screenshot before uploading proof.');
+      return;
+    }
+
+    try {
+      setSubmittingMatchId(match.id);
+      setError('');
+      const formData = new FormData();
+      formData.append('proofOnly', 'true');
+      formData.append('screenshot', screenshot);
+      const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/team-matches/${match.id}/result`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+        body: formData,
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to upload screenshot proof');
+      setScreenshots((current) => ({ ...current, [match.id]: null }));
+      await loadMatches();
+    } catch (uploadError) {
+      setError(uploadError.message);
+    } finally {
+      setSubmittingMatchId(null);
+    }
+  };
+
+  const selectOutcome = (matchId, outcome) => {
+    setSelections((current) => ({ ...current, [matchId]: outcome }));
+    if (outcome === 'lose') {
+      setScreenshots((current) => ({ ...current, [matchId]: null }));
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[120] overflow-y-auto bg-[#0B0B0B] p-4 text-white" role="dialog" aria-modal="true" aria-labelledby="tvt-result-heading">
       <div className="mx-auto max-w-2xl space-y-5 pb-8 pt-3">
@@ -89,8 +125,15 @@ export const TVTResultsPage = ({ tournamentId, onClose }) => {
               const opponent = isTeamA ? match.teamB : match.teamA;
               const currentGame = match.gameResults.find((game) => game.gameNumber === match.currentGame);
               const myClaim = currentGame?.claims.find((claim) => claim.participantId === match.viewerParticipantId);
+              const matchingClaims = currentGame?.claims.length === 2
+                && currentGame.claims.every((claim) => claim.outcome === currentGame.claims[0].outcome);
+              const needsProofUpload = match.status === 'disputed'
+                && matchingClaims
+                && myClaim
+                && !myClaim.screenshotUrl;
+              const uploadedProofCount = currentGame?.claims.filter((claim) => claim.screenshotUrl).length || 0;
               const statusText = match.status === 'disputed'
-                ? 'Waiting for host review'
+                ? needsProofUpload ? 'Upload screenshot proof' : 'Waiting for host review'
                 : match.status === 'completed'
                   ? 'Match complete'
                   : match.status === 'result_pending'
@@ -108,6 +151,11 @@ export const TVTResultsPage = ({ tournamentId, onClose }) => {
                     </div>
                     <span className={`rounded-full border px-3 py-1 text-xs ${match.status === 'disputed' ? 'border-[#F59E0B] text-[#F59E0B]' : match.status === 'completed' ? 'border-[#22C55E] text-[#22C55E]' : 'border-[#444444] text-[#C4C4C4]'}`}>{statusText}</span>
                   </div>
+                  {match.status === 'completed' && match.winnerParticipantId && (
+                    <p className="rounded-lg border border-[#22C55E]/30 bg-[#08200E] px-3 py-2 text-sm text-[#86EFAC]">
+                      Confirmed winner: {match.winnerParticipantId === ownTeam?.id ? ownTeam.name : opponent?.name}
+                    </p>
+                  )}
 
                   {match.gameResults.map((game) => (
                     <div key={game.gameNumber} className="space-y-2 rounded-lg border border-[#252525] p-3">
@@ -123,21 +171,47 @@ export const TVTResultsPage = ({ tournamentId, onClose }) => {
 
                   {canSubmit && (
                     <div className="space-y-3 border-t border-[#252525] pt-3">
+                      <p className="text-sm text-[#A1A1A1]">Choose your result. If you choose I WON, upload screenshot proof. Opposite choices confirm the result automatically.</p>
                       <div className="grid grid-cols-2 gap-2">
-                        <button type="button" onClick={() => setSelections((current) => ({ ...current, [match.id]: 'win' }))} className={`rounded-lg border px-4 py-3 font-semibold ${selections[match.id] === 'win' ? 'border-[#22C55E] bg-[#08200E] text-[#22C55E]' : 'border-[#333333] text-white'}`}>I WON</button>
-                        <button type="button" onClick={() => setSelections((current) => ({ ...current, [match.id]: 'lose' }))} className={`rounded-lg border px-4 py-3 font-semibold ${selections[match.id] === 'lose' ? 'border-[#EF4444] bg-[#200A0A] text-[#EF4444]' : 'border-[#333333] text-white'}`}>I LOST</button>
+                        <button type="button" onClick={() => selectOutcome(match.id, 'win')} className={`rounded-lg border px-4 py-3 font-semibold ${selections[match.id] === 'win' ? 'border-[#22C55E] bg-[#08200E] text-[#22C55E]' : 'border-[#333333] text-white'}`}>I WON</button>
+                        <button type="button" onClick={() => selectOutcome(match.id, 'lose')} className={`rounded-lg border px-4 py-3 font-semibold ${selections[match.id] === 'lose' ? 'border-[#EF4444] bg-[#200A0A] text-[#EF4444]' : 'border-[#333333] text-white'}`}>I LOST</button>
                       </div>
                       {selections[match.id] === 'win' && (
                         <label className="block text-sm text-[#D4D4D4]">Screenshot proof (required)
                           <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="mt-2 block w-full rounded-lg border border-[#333333] bg-[#0B0B0B] p-2 text-sm" onChange={(event) => setScreenshots((current) => ({ ...current, [match.id]: event.target.files?.[0] || null }))} />
                         </label>
                       )}
-                      <button type="button" onClick={() => submitResult(match)} disabled={!selections[match.id] || submittingMatchId === match.id} className="w-full rounded-lg bg-[#FF6A00] px-4 py-3 font-semibold text-black disabled:opacity-50">
-                        {submittingMatchId === match.id ? 'Submitting...' : 'Submit result'}
+                      <button type="button" onClick={() => submitResult(match)} disabled={!selections[match.id] || (selections[match.id] === 'win' && !screenshots[match.id]) || submittingMatchId === match.id} className="w-full rounded-lg bg-[#FF6A00] px-4 py-3 font-semibold text-black disabled:opacity-50">
+                        {submittingMatchId === match.id ? 'Submitting...' : 'Submit Result'}
                       </button>
                     </div>
                   )}
-                  {myClaim && match.status !== 'disputed' && <p className="text-sm text-[#A1A1A1]">Your result has been submitted. Waiting for the other team.</p>}
+                  {needsProofUpload && (
+                    <div className="space-y-3 rounded-lg border border-[#F59E0B]/30 bg-[#1A1408] p-3">
+                      <p className="text-sm text-[#FCD34D]">Both teams chose {myClaim.outcome === 'win' ? 'I WON' : 'I LOST'}. Upload screenshot proof so the host can review and decide the winner. Proof uploaded: {uploadedProofCount}/2.</p>
+                      <label className="block text-sm text-[#D4D4D4]">
+                        Screenshot proof (required)
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          className="mt-2 block w-full rounded-lg border border-[#333333] bg-[#0B0B0B] p-2 text-sm"
+                          onChange={(event) => setScreenshots((current) => ({ ...current, [match.id]: event.target.files?.[0] || null }))}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => uploadDisputedProof(match)}
+                        disabled={!screenshots[match.id] || submittingMatchId === match.id}
+                        className="w-full rounded-lg bg-[#FF6A00] px-4 py-3 font-semibold text-black disabled:opacity-50"
+                      >
+                        {submittingMatchId === match.id ? 'Uploading...' : 'Upload Screenshot Proof'}
+                      </button>
+                    </div>
+                  )}
+                  {myClaim && match.status === 'result_pending' && <p className="text-sm text-[#A1A1A1]">Your result has been submitted. Waiting for the other team.</p>}
+                  {match.status === 'disputed' && !needsProofUpload && matchingClaims && uploadedProofCount < 2 && (
+                    <p className="text-sm text-[#A1A1A1]">Waiting for the other team to upload screenshot proof ({uploadedProofCount}/2 uploaded).</p>
+                  )}
                 </article>
               );
             })}

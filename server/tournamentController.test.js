@@ -48,15 +48,20 @@ test('buildTeamTournamentGroups uses saved match pairings and keeps each group t
   assert.equal(result.userGroup, 1);
 });
 
-test('resolveTeamMatchClaims accepts agreement and flags conflicting winner claims', () => {
+test('resolveTeamMatchClaims confirms opposite reports and disputes matching reports', () => {
   assert.deepEqual(resolveTeamMatchClaims([
-    { claimedWinnerId: 'team-b' },
-    { claimedWinnerId: 'team-b' },
-  ]), { status: 'completed', winnerParticipantId: 'team-b' });
+    { participantId: 'team-a', outcome: 'win', claimedWinnerId: 'team-a' },
+    { participantId: 'team-b', outcome: 'lose', claimedWinnerId: 'team-a' },
+  ]), { status: 'completed', winnerParticipantId: 'team-a' });
 
   assert.deepEqual(resolveTeamMatchClaims([
-    { claimedWinnerId: 'team-a' },
-    { claimedWinnerId: 'team-b' },
+    { participantId: 'team-a', outcome: 'win', claimedWinnerId: 'team-a' },
+    { participantId: 'team-b', outcome: 'win', claimedWinnerId: 'team-b' },
+  ]), { status: 'disputed', winnerParticipantId: null });
+
+  assert.deepEqual(resolveTeamMatchClaims([
+    { participantId: 'team-a', outcome: 'lose', claimedWinnerId: 'team-b' },
+    { participantId: 'team-b', outcome: 'lose', claimedWinnerId: 'team-a' },
   ]), { status: 'disputed', winnerParticipantId: null });
 });
 
