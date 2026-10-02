@@ -4,6 +4,7 @@ import TournamentParticipant from '../models/TournamentParticipant.js';
 import User from '../models/User.js';
 import TournamentMatchResult from '../models/TournamentMatchResult.js';
 import { verifyToken } from '../utils/authUtils.js';
+import { uploadToCloudinary } from '../utils/uploadToCloudinary.js';
 
 export const COMPLETED_TOURNAMENT_EXPIRY_MS = 2 * 24 * 60 * 60 * 1000;
 
@@ -553,26 +554,13 @@ export const submitTeamTournamentResult = async (req, res) => {
     const opponentId = participantId === teamAId ? teamBId : teamAId;
     const gameNumber = tournament.teamTournamentMode === 'bo3' ? Number(match.currentGame || 1) : 1;
     let gameResult = match.gameResults.find((game) => game.gameNumber === gameNumber);
-    let screenshotHash = '';
 
-    if (req.file) {
-      const mimeType = ScreenshotValidator.detectMimeType(req.file.buffer);
-      if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mimeType)) {
-        return res.status(400).json({ error: 'Upload a valid image screenshot' });
-      }
-      screenshotHash = ScreenshotValidator.generateHash(req.file.buffer);
-      const existingHash = tournament.stages.some((item) => item.matches.some((teamMatch) =>
-        (teamMatch.gameResults || []).some((game) => (game.claims || []).some((claim) => claim.screenshotHash === screenshotHash)),
-      ));
-      if (existingHash) return res.status(400).json({ error: 'This screenshot has already been submitted in the tournament' });
-      if (proofOnly) {
-        const existingClaim = gameResult?.claims.find((claim) => String(claim.participantId) === participantId);
-        if (!existingClaim) return res.status(404).json({ error: 'Your result claim was not found' });
-        if (existingClaim.screenshotUrl) return res.status(409).json({ error: 'Screenshot proof has already been uploaded for your claim' });
-      }
+    if (proofOnly) {
+      const existingClaim = gameResult?.claims.find((claim) => String(claim.participantId) === participantId);
+      if (!existingClaim) return res.status(404).json({ error: 'Your result claim was not found' });
+      if (existingClaim.screenshotUrl) return res.status(409).json({ error: 'Screenshot proof has already been uploaded for your claim' });
     }
 
-    if (proofOnly && !req.file) return res.status(400).json({ error: 'Choose a screenshot to upload' });
     if (!proofOnly && gameResult?.status && ['disputed', 'completed'].includes(gameResult.status)) {
       return res.status(409).json({ error: 'This game result has already been finalized or sent for review' });
     }
@@ -598,7 +586,6 @@ export const submitTeamTournamentResult = async (req, res) => {
       operation = 'saving screenshot proof';
       const existingClaim = gameResult.claims.find((claim) => String(claim.participantId) === participantId);
       existingClaim.screenshotUrl = screenshotUrl;
-      existingClaim.screenshotHash = screenshotHash;
       existingClaim.submittedAt = new Date();
       await tournament.save();
       return res.json({ success: true, status: match.status, screenshotUrl, proofOnly: true });
@@ -614,7 +601,6 @@ export const submitTeamTournamentResult = async (req, res) => {
       outcome,
       claimedWinnerId: outcome === 'win' ? participantId : opponentId,
       screenshotUrl,
-      screenshotHash,
       submittedAt: new Date(),
     });
 
