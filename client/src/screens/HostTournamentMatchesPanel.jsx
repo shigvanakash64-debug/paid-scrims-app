@@ -1,5 +1,5 @@
-﻿import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Plus, Save, Trophy } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Plus, RefreshCw, Save, Trophy } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 
@@ -29,10 +29,11 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   const isTeamTournament = tournament?.format === 'team-vs-team';
   const hasTeamBracket = Boolean(tournament?.stages?.some((stage) => stage.key.startsWith('tvt-round-')));
   const [startingBracket, setStartingBracket] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  const loadTournament = async () => {
+  const loadTournament = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/manage`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
@@ -42,8 +43,18 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
       setTournament(data.tournament);
       setParticipants(data.participants || []);
       setResults(data.results || []);
+      setError('');
     } catch (loadError) {
       setError(loadError.message);
+    }
+  }, [tournamentId]);
+
+  const refreshTournament = async () => {
+    setRefreshing(true);
+    try {
+      await loadTournament();
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -51,7 +62,14 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
     if (tournamentId) {
       loadTournament();
     }
-  }, [tournamentId]);
+  }, [loadTournament, tournamentId]);
+
+  useEffect(() => {
+    if (!tournamentId || !isTeamTournament || !hasTeamBracket) return undefined;
+
+    const refreshInterval = window.setInterval(loadTournament, 10000);
+    return () => window.clearInterval(refreshInterval);
+  }, [hasTeamBracket, isTeamTournament, loadTournament, tournamentId]);
 
   const selectedStage = useMemo(
     () => tournament?.stages?.find((stage) => stage.key === selectedStageKey) || null,
@@ -409,8 +427,19 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold text-white">{tournament.name}</h1>
-            <p className="mt-2 text-sm text-[#A1A1A1]">Create and publish one match result at a time.</p>
+            <p className="mt-2 text-sm text-[#A1A1A1]">{isTeamTournament ? 'Review submitted results and screenshot proof for each matchup.' : 'Create and publish one match result at a time.'}</p>
           </div>
+          {isTeamTournament && hasTeamBracket && (
+            <button
+              type="button"
+              onClick={refreshTournament}
+              disabled={refreshing}
+              className="inline-flex items-center gap-2 rounded-lg border border-[#333333] px-3 py-2 text-sm text-[#D4D4D4] transition hover:border-[#FF6A00] hover:text-white disabled:cursor-wait disabled:opacity-60"
+            >
+              <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+              {refreshing ? 'Refreshing...' : 'Refresh submissions'}
+            </button>
+          )}
           {['custom', 'br-custom', 'cs-custom'].includes(tournament.format) && (
             <Button variant="secondary" size="sm" onClick={addStage}>
               <Plus size={16} /> Create Stage
@@ -451,9 +480,30 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
                         <div key={game.gameNumber} className="mt-3 space-y-2 border-t border-[#252525] pt-2 text-xs text-[#D4D4D4]">
                           <p className="text-[#A1A1A1]">{tournament.teamTournamentMode === 'bo3' ? `Game ${game.gameNumber}` : 'Result claims'} · {game.status}</p>
                           {game.claims.map((claim, index) => (
-                            <div key={`${claim.userId?._id || claim.userId}-${index}`} className="flex flex-wrap items-center justify-between gap-2">
-                              <span>{claim.userId?.username || 'Player'} reported {claim.outcome === 'win' ? 'I WON' : 'I LOST'}</span>
-                              {claim.screenshotUrl && <a href={claim.screenshotUrl} target="_blank" rel="noreferrer" className="text-[#FFB066] underline">View screenshot</a>}
+                            <div key={`${claim.userId?._id || claim.userId}-${index}`} className="space-y-2 rounded-lg border border-[#252525] bg-[#111111] p-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="font-medium text-white">{claim.userId?.username || 'Player'} reported {claim.outcome === 'win' ? 'I WON' : 'I LOST'}</span>
+                                {claim.submittedAt && <time className="text-[#737373]">{new Date(claim.submittedAt).toLocaleString()}</time>}
+                              </div>
+                              {claim.screenshotUrl ? (
+                                <a
+                                  href={claim.screenshotUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="group block max-w-md overflow-hidden rounded-lg border border-[#333333] bg-[#080808]"
+                                  aria-label={`Open screenshot proof submitted by ${claim.userId?.username || 'player'}`}
+                                >
+                                  <img
+                                    src={claim.screenshotUrl}
+                                    alt={`Result screenshot submitted by ${claim.userId?.username || 'player'}`}
+                                    loading="lazy"
+                                    className="h-48 w-full object-contain transition group-hover:opacity-80"
+                                  />
+                                  <span className="block border-t border-[#252525] px-3 py-2 text-[#FFB066]">Open full screenshot</span>
+                                </a>
+                              ) : (
+                                <p className="text-[#737373]">No screenshot attached to this claim.</p>
+                              )}
                             </div>
                           ))}
                           {match.status === 'disputed' && game.status === 'disputed' && (
