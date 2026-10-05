@@ -42,7 +42,7 @@ const sanitizeUser = (user) => {
   return {
     id: user._id.toString(),
     username: user.username,
-    title: user.title || '',
+    title: user.role === 'host' ? 'HOST' : user.title || '',
     bio: user.bio || '',
     phone: user.phone || null,
     phoneVerified: !!user.phoneVerified,
@@ -136,6 +136,7 @@ export const register = async (req, res) => {
       phoneOtpAttempts: 0,
       phoneOtpLastSentAt: null,
       role,
+      title: role === 'host' ? 'HOST' : '',
     });
     console.log("USER CREATED:", user._id, user.username);
 

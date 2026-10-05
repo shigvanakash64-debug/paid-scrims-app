@@ -809,7 +809,7 @@ function App() {
       case 'contacts':
         return <ContactsScreen />;
       case 'profile':
-        return <ProfileScreen user={user} onUserUpdate={handleUserUpdate} onProfileSave={handleProfileSave} />;
+        return <ProfileScreen user={user} onUserUpdate={handleUserUpdate} onProfileSave={handleProfileSave} onNavigate={handleScreenChange} />;
       case 'wallet':
         return <WalletScreen user={user} onUserUpdate={handleUserUpdate} />;
       case 'leaderboard':
@@ -901,4 +901,3 @@ function App() {
 }
 
 export default App;
-
