@@ -27,6 +27,7 @@ const ALL_GAMES = [...CUSTOM_GAMES, ...TEAM_VS_TEAM_GAMES.filter((game) => !CUST
 const isPerKillFormat = (value) => value === 'single-match' || value === 'br-per-kill';
 const isSingleStageFormat = (value) => isPerKillFormat(value);
 const isCustomFormat = (value) => value === 'custom' || value === 'br-custom' || value === 'cs-custom' || value === 'team-vs-team';
+const usesPerGroup = (value) => ['single-match', 'br-per-kill', 'custom', 'br-custom', 'cs-custom'].includes(value);
 const usesTeamSize = (value) => ['br-custom', 'cs-custom', 'team-vs-team'].includes(value);
 const getGameFormatWarning = (format, game) => {
   if (['custom', 'br-custom', 'cs-custom'].includes(format) && TEAM_VS_TEAM_GAMES.includes(game)) return `${game} supports Team vs Team tournaments, not Custom tournaments.`;
@@ -42,6 +43,7 @@ export const HostTournamentPanel = ({ onBack }) => {
     name: '',
     game: 'Free Fire',
     teamSize: 1,
+    perGroup: 12,
     teamTournamentMode: 'knockout',
     entryFee: '',
     maxTeams: '',
@@ -59,7 +61,14 @@ export const HostTournamentPanel = ({ onBack }) => {
 
   const updateForm = (event) => {
     const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: name === 'teamSize' ? Number(value) : value }));
+    setForm((current) => {
+      const nextValue = name === 'teamSize' ? Number(value) : name === 'perGroup' && value ? Number(value) : value;
+      const nextForm = { ...current, [name]: nextValue };
+      if (name === 'maxTeams' && value && Number.isFinite(Number(value))) {
+        nextForm.perGroup = Math.min(Number(current.perGroup) || 12, Number(value));
+      }
+      return nextForm;
+    });
   };
   const isPerKill = isPerKillFormat(format);
   const isSingleStage = isSingleStageFormat(format);
@@ -192,6 +201,12 @@ export const HostTournamentPanel = ({ onBack }) => {
                 <p className="font-semibold text-white">{created?.teamSize || 1}</p>
               </div>
             )}
+            {usesPerGroup(created?.format) && (
+              <div>
+                <span className="text-xs text-[#A1A1A1]">Teams per Group</span>
+                <p className="font-semibold text-white">{created?.perGroup || 12}</p>
+              </div>
+            )}
             {created?.format === 'team-vs-team' && (
               <div>
                 <span className="text-xs text-[#A1A1A1]">TVT Format</span>
@@ -285,6 +300,24 @@ export const HostTournamentPanel = ({ onBack }) => {
               Maximum Teams
               <input className="auth-input" type="number" name="maxTeams" value={form.maxTeams} onChange={updateForm} min="1" required placeholder="Enter maximum teams" />
             </label>
+
+            {usesPerGroup(format) && (
+              <label className="space-y-2 text-sm text-[#A1A1A1]">
+                Per Group
+                <input
+                  className="auth-input"
+                  type="number"
+                  name="perGroup"
+                  value={form.perGroup}
+                  onChange={updateForm}
+                  min="1"
+                  max={Math.min(Number(form.maxTeams) || 1000, 1000)}
+                  required
+                  placeholder="Teams in each group"
+                />
+                <span className="block text-xs text-[#737373]">Maximum players or teams in one group.</span>
+              </label>
+            )}
 
             {isPerKill ? (
               <label className="space-y-2 text-sm text-[#A1A1A1]">

@@ -22,7 +22,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
   const [activePanel, setActivePanel] = useState(null);
   const [results, setResults] = useState([]);
   const [selectedStageKey, setSelectedStageKey] = useState(null);
-  const [groupData, setGroupData] = useState({ groups: [], userGroup: tournament?.userGroup || null });
+  const [groupData, setGroupData] = useState({ groups: [], userGroup: tournament?.userGroup || null, groupSize: tournament?.perGroup || 12 });
   const [expandedGroup, setExpandedGroup] = useState(null);
   const [teamName, setTeamName] = useState('');
   const [teamMembers, setTeamMembers] = useState(() => Array.from({ length: 6 }, (_, index) => index === 0 ? user?.username || '' : ''));
@@ -99,7 +99,11 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
       window.alert(data.error || 'Unable to load your group');
       return;
     }
-    setGroupData({ groups: data.groups || [], userGroup: data.userGroup ?? tournament?.userGroup ?? null });
+    setGroupData({
+      groups: data.groups || [],
+      userGroup: data.userGroup ?? tournament?.userGroup ?? null,
+      groupSize: data.groupSize || tournament?.perGroup || 12,
+    });
     if (groupNumber !== null) setExpandedGroup(Number(groupNumber));
     setActivePanel((current) => (current === 'groups' ? null : 'groups'));
   };
@@ -226,7 +230,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
               {groupData.userGroup
                 ? tournament?.format === 'team-vs-team'
                   ? groupData.groups.find((group) => group.groupNumber === groupData.userGroup)?.title || `Match ${groupData.userGroup}`
-                  : `Group ${groupData.userGroup}`
+                  : `Group ${groupData.userGroup} · up to ${groupData.groupSize}`
                 : 'Not assigned'}
             </span>
           </div>

@@ -170,6 +170,31 @@ test('validateTournamentInput requires match schedule and room details', () => {
     estimatedDate: '2026-09-15',
   }), /supports Custom tournaments/i);
 
+  for (const format of ['br-per-kill', 'br-custom']) {
+    const validated = validateTournamentInput({
+      name: 'Configurable Groups Cup',
+      format,
+      game: 'Free Fire',
+      entryFee: 20,
+      maxTeams: 40,
+      perGroup: 25,
+      perKillReward: format === 'br-per-kill' ? 5 : 0,
+      estimatedDate: '2026-09-15',
+      estimatedTime: format === 'br-per-kill' ? '19:30' : '',
+    });
+    assert.equal(validated.numericPerGroup, 25);
+  }
+
+  assert.throws(() => validateTournamentInput({
+    name: 'Invalid Group Size Cup',
+    format: 'br-custom',
+    game: 'Free Fire',
+    entryFee: 20,
+    maxTeams: 10,
+    perGroup: 11,
+    estimatedDate: '2026-09-15',
+  }), /Per group must be a whole number/i);
+
   for (const format of ['br-custom', 'cs-custom', 'team-vs-team']) {
     const validated = validateTournamentInput({
       name: 'Team Cup',
@@ -330,4 +355,15 @@ test('assignTournamentGroups split entrants into max-12 groups with final remain
   assert.equal(assignments.get('p25'), 3);
   assert.equal(assignments.get('p40'), 4);
   assert.equal(new Set(assignments.values()).size, 4);
+});
+
+test('assignTournamentGroups uses the host-selected group size', () => {
+  const participants = Array.from({ length: 40 }, (_, index) => ({ _id: `p${index + 1}` }));
+  const assignments = assignTournamentGroups(participants, () => 0.5, 25);
+
+  assert.equal(assignments.get('p1'), 1);
+  assert.equal(assignments.get('p25'), 1);
+  assert.equal(assignments.get('p26'), 2);
+  assert.equal(assignments.get('p40'), 2);
+  assert.equal(new Set(assignments.values()).size, 2);
 });

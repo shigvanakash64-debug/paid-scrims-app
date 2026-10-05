@@ -48,6 +48,7 @@ const tournamentSchema = new mongoose.Schema({
   format: { type: String, enum: ['single-match', 'custom', 'br-per-kill', 'br-custom', 'cs-custom', 'team-vs-team'], required: true },
   entryFee: { type: Number, required: true, min: 0 },
   maxTeams: { type: Number, required: true, min: 1 },
+  perGroup: { type: Number, default: 12, min: 1, max: 1000 },
   teamSize: { type: Number, default: 1, min: 1, max: 6 },
   teamTournamentMode: { type: String, enum: ['knockout', 'bo3', ''], default: '' },
   successfulEntries: { type: Number, default: 0, min: 0 },

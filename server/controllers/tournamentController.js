@@ -51,6 +51,7 @@ export const calculateFinancials = (entryFee, successfulEntries) => {
 
 const PER_KILL_FORMATS = new Set(['single-match', 'br-per-kill']);
 const CUSTOM_FORMATS = new Set(['custom', 'br-custom', 'cs-custom', 'team-vs-team']);
+const PER_GROUP_FORMATS = new Set(['single-match', 'br-per-kill', 'custom', 'br-custom', 'cs-custom']);
 const SINGLE_STAGE_FORMATS = new Set(['single-match', 'br-per-kill']);
 const TEAM_SIZE_FORMATS = new Set(['br-custom', 'cs-custom', 'team-vs-team']);
 export const CUSTOM_TOURNAMENT_GAMES = new Set([
@@ -167,6 +168,7 @@ export const validateTournamentInput = ({
   game,
   entryFee,
   maxTeams,
+  perGroup,
   teamSize = 1,
   teamTournamentMode = 'knockout',
   successfulEntries = 0,
@@ -195,11 +197,17 @@ export const validateTournamentInput = ({
 
   const numericEntryFee = Number(entryFee);
   const numericMaxTeams = Number(maxTeams);
+  const numericPerGroup = PER_GROUP_FORMATS.has(format)
+    ? (perGroup === undefined || perGroup === '' ? Math.min(12, numericMaxTeams) : Number(perGroup))
+    : Math.min(12, numericMaxTeams);
   const numericSuccessfulEntries = isPerKillFormat(format) ? 0 : Number(successfulEntries);
   const numericPerKillReward = Number(perKillReward);
   const numericTeamSize = TEAM_SIZE_FORMATS.has(format) ? Number(teamSize) : 1;
   if (!Number.isFinite(numericEntryFee) || numericEntryFee < 0 || !Number.isInteger(numericMaxTeams) || numericMaxTeams < 1 || !Number.isInteger(numericSuccessfulEntries) || numericSuccessfulEntries < 0 || numericSuccessfulEntries > numericMaxTeams) {
     throw new Error('Invalid entry fee or maximum teams');
+  }
+  if (!Number.isInteger(numericPerGroup) || numericPerGroup < 1 || numericPerGroup > 1000 || (PER_GROUP_FORMATS.has(format) && numericPerGroup > numericMaxTeams)) {
+    throw new Error(`Per group must be a whole number between 1 and ${PER_GROUP_FORMATS.has(format) ? 'the maximum teams' : '1000'}`);
   }
   const requiresTime = requiresSingleStageSchedule(format);
   if (!estimatedDate || (requiresTime && !estimatedTime)) {
@@ -237,6 +245,7 @@ export const validateTournamentInput = ({
   return {
     numericEntryFee,
     numericMaxTeams,
+    numericPerGroup,
     numericTeamSize,
     teamTournamentMode: format === 'team-vs-team' ? teamTournamentMode : '',
     numericSuccessfulEntries,
@@ -251,7 +260,7 @@ export const validateTournamentInput = ({
 
 export const createTournament = async (req, res) => {
   try {
-    const { name, game = 'Free Fire', format, entryFee, maxTeams, teamSize = 1, teamTournamentMode = 'knockout', successfulEntries = 0, customStages = [], perKillReward = 0, estimatedDate, estimatedTime, roomId, roomPassword, hostMessage } = req.body;
+    const { name, game = 'Free Fire', format, entryFee, maxTeams, perGroup, teamSize = 1, teamTournamentMode = 'knockout', successfulEntries = 0, customStages = [], perKillReward = 0, estimatedDate, estimatedTime, roomId, roomPassword, hostMessage } = req.body;
 
     let normalizedValues;
     try {
@@ -261,6 +270,7 @@ export const createTournament = async (req, res) => {
         format,
         entryFee,
         maxTeams,
+        perGroup,
         teamSize,
         teamTournamentMode,
         successfulEntries,
@@ -285,6 +295,7 @@ export const createTournament = async (req, res) => {
       format,
       entryFee: normalizedValues.numericEntryFee,
       maxTeams: normalizedValues.numericMaxTeams,
+      perGroup: normalizedValues.numericPerGroup,
       teamSize: normalizedValues.numericTeamSize,
       teamTournamentMode: normalizedValues.teamTournamentMode || undefined,
       successfulEntries: normalizedValues.numericSuccessfulEntries,
@@ -708,7 +719,7 @@ export const listPublicTournaments = async (req, res) => {
       status: { $in: ['open', 'upcoming', 'active'] },
       createdAt: { $gte: new Date(Date.now() - COMPLETED_TOURNAMENT_EXPIRY_MS) },
     })
-      .select('name game format entryFee maxTeams teamSize teamTournamentMode successfulEntries prizePool perKillReward stages status createdBy createdAt estimatedDate estimatedTime hostMessage roomId roomPassword')
+      .select('name game format entryFee maxTeams perGroup teamSize teamTournamentMode successfulEntries prizePool perKillReward stages status createdBy createdAt estimatedDate estimatedTime hostMessage roomId roomPassword')
       .populate('createdBy', 'username')
       .sort({ createdAt: -1 })
       .lean();
@@ -805,7 +816,7 @@ export const joinTournament = async (req, res) => {
         ...registration,
       });
       const allParticipants = await TournamentParticipant.find({ tournamentId: tournament._id, status: 'registered' }).sort({ registeredAt: 1 }).lean();
-      const assignments = assignTournamentGroups(allParticipants, Math.random, 12);
+      const assignments = assignTournamentGroups(allParticipants, Math.random, tournament.perGroup || 12);
       const updates = allParticipants.map((entry) => ({
         updateOne: {
           filter: { _id: entry._id },
@@ -906,7 +917,7 @@ export const getTournamentGroups = async (req, res) => {
     const persistedGroups = participants.every((participant) => Number(participant.groupNumber) > 0);
     const assignments = persistedGroups
       ? new Map(participants.map((participant) => [String(participant._id), Number(participant.groupNumber)]))
-      : assignTournamentGroups(participants, Math.random, 12);
+      : assignTournamentGroups(participants, Math.random, tournament.perGroup || 12);
 
     if (!persistedGroups) {
       const updates = participants.map((participant) => ({
@@ -944,7 +955,7 @@ export const getTournamentGroups = async (req, res) => {
       ? groups.find((group) => group.participants.some((participant) => String(participant.userId) === String(currentUserId)))?.groupNumber ?? null
       : null;
 
-    return res.json({ success: true, groups, userGroup, groupSize: 12 });
+    return res.json({ success: true, groups, userGroup, groupSize: tournament.perGroup || 12 });
   } catch (error) {
     console.error('getTournamentGroups error:', error);
     return res.status(500).json({ error: 'Failed to load groups' });
