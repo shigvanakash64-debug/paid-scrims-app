@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import {
   CFConfig,
   CFEnvironment,
@@ -95,114 +96,31 @@ const normalizeString = (value, fallback = null) => {
   return typeof value === 'string' ? value : fallback;
 };
 
-const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, paymentMethod, userId }) => {
+export const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, paymentMethod, userId }) => {
   const depositRecord = await PaymentDeposit.findOne({ orderId });
-
-  console.log('[Cashfree] finalizeDeposit called', { orderId, paymentStatus, cfPaymentId, paymentMethod, userId });
 
   if (!depositRecord) {
     throw new Error('No deposit record found for the supplied Cashfree order');
   }
 
-  console.log('[Cashfree] Found PaymentDeposit record', {
-    orderId: depositRecord.orderId,
-    paymentSessionId: depositRecord.paymentSessionId,
-    amount: depositRecord.amount,
-    paymentStatus: depositRecord.paymentStatus,
-    userId: depositRecord.userId,
-  });
+  if (userId && depositRecord.userId && depositRecord.userId.toString() !== userId.toString()) {
+    throw new Error('Unauthorized: Deposit order ownership mismatch');
+  }
 
-  if (isSuccessfulPaymentStatus(paymentStatus)) {
-    if (depositRecord.paymentStatus === 'SUCCESS') {
-      console.log('[Cashfree] Deposit already credited, skipping wallet update');
-      const user = await User.findById(depositRecord.userId || userId);
-      if (!user) {
-        throw new Error('User not found while checking existing wallet credit');
-      }
+  const normalizedCfPaymentId = normalizeString(cfPaymentId, depositRecord.cfPaymentId || null);
+  const normalizedPaymentMethod = normalizeString(paymentMethod, depositRecord.paymentMethod || 'cashfree');
 
-      return {
-        success: true,
-        alreadyCredited: true,
-        status: 'success',
-        message: 'Deposit already credited to wallet.',
-        orderId,
-        amount: Number(depositRecord.amount || 0),
-        walletBalance: Number(user.wallet.balance || 0),
-        transactionId: depositRecord._id?.toString() || null,
-      };
-    }
-
-    const user = await User.findById(depositRecord.userId || userId);
+  if (depositRecord.paymentStatus === 'SUCCESS') {
+    const user = await User.findById(depositRecord.userId);
     if (!user) {
-      throw new Error('User not found while crediting wallet');
+      throw new Error('User not found for already credited deposit');
     }
-
-    console.log('[Cashfree] Updating user wallet', {
-      userId: user._id,
-      currentBalance: user.wallet.balance,
-      depositAmount: depositRecord.amount,
-    });
-
-    user.wallet.balance += Number(depositRecord.amount || 0);
-    user.wallet.transactions.push({
-      type: 'deposit',
-      amount: Number(depositRecord.amount || 0),
-      description: 'Wallet deposit via Cashfree',
-      timestamp: new Date(),
-    });
-
-    await user.save();
-
-    console.log('[Cashfree] Wallet updated successfully', {
-      userId: user._id,
-      newBalance: user.wallet.balance,
-    });
-
-    const normalizedCfPaymentId = normalizeString(cfPaymentId, depositRecord.cfPaymentId || null);
-    const normalizedPaymentMethod = normalizeString(paymentMethod, depositRecord.paymentMethod || 'cashfree');
-
-    depositRecord.paymentStatus = 'SUCCESS';
-    depositRecord.cfPaymentId = normalizedCfPaymentId;
-    depositRecord.paymentMethod = normalizedPaymentMethod;
-    depositRecord.verifiedAt = new Date();
-    await depositRecord.save();
-
-    console.log('[Cashfree] Deposit record updated', {
-      orderId: depositRecord.orderId,
-      paymentStatus: depositRecord.paymentStatus,
-      cfPaymentId: depositRecord.cfPaymentId,
-      paymentMethod: depositRecord.paymentMethod,
-    });
-
-    if (user.onesignalPlayerId && user.notificationPreferences.walletNotifications) {
-      await sendNotification(
-        [user.onesignalPlayerId],
-        '💰 Deposit successful',
-        `₹${depositRecord.amount} has been added to your wallet.`,
-        {
-          type: 'success',
-          priority: 9,
-          data: {
-            eventType: 'deposit_success',
-            amount: depositRecord.amount,
-            provider: 'cashfree',
-          },
-        }
-      );
-    }
-
-    user.notifications.push({
-      type: 'success',
-      message: `₹${depositRecord.amount} deposited successfully to your wallet via Cashfree.`,
-      relatedMatch: null,
-    });
-
-    await user.save();
 
     return {
       success: true,
+      alreadyCredited: true,
       status: 'success',
-      message: 'Deposit confirmed and wallet updated.',
+      message: 'Deposit already credited to wallet.',
       orderId,
       amount: Number(depositRecord.amount || 0),
       walletBalance: Number(user.wallet.balance || 0),
@@ -210,9 +128,132 @@ const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, paymentMet
     };
   }
 
+  if (isSuccessfulPaymentStatus(paymentStatus)) {
+    let session = null;
+    let useTransaction = false;
+
+    try {
+      if (mongoose.connection && mongoose.connection.readyState === 1 && typeof mongoose.startSession === 'function') {
+        session = await mongoose.startSession();
+        session.startTransaction();
+        useTransaction = true;
+      }
+    } catch (_e) {
+      useTransaction = false;
+      session = null;
+    }
+
+    try {
+      const queryOptions = useTransaction ? { session, new: false } : { new: false };
+      const previousDeposit = await PaymentDeposit.findOneAndUpdate(
+        {
+          orderId,
+          paymentStatus: { $ne: 'SUCCESS' },
+        },
+        {
+          $set: {
+            paymentStatus: 'SUCCESS',
+            cfPaymentId: normalizedCfPaymentId,
+            paymentMethod: normalizedPaymentMethod,
+            verifiedAt: new Date(),
+          },
+        },
+        queryOptions
+      );
+
+      if (!previousDeposit) {
+        if (useTransaction && session) {
+          await session.abortTransaction();
+          session.endSession();
+        }
+
+        const user = await User.findById(depositRecord.userId);
+        return {
+          success: true,
+          alreadyCredited: true,
+          status: 'success',
+          message: 'Deposit already credited to wallet.',
+          orderId,
+          amount: Number(depositRecord.amount || 0),
+          walletBalance: Number(user ? user.wallet.balance : 0),
+          transactionId: depositRecord._id?.toString() || null,
+        };
+      }
+
+      const userUpdateQuery = {
+        $inc: { 'wallet.balance': Number(depositRecord.amount || 0) },
+        $push: {
+          'wallet.transactions': {
+            type: 'deposit',
+            amount: Number(depositRecord.amount || 0),
+            description: `Wallet deposit via Cashfree (${orderId})`,
+            timestamp: new Date(),
+          },
+          notifications: {
+            type: 'success',
+            message: `₹${depositRecord.amount} deposited successfully to your wallet via Cashfree.`,
+            relatedMatch: null,
+          },
+        },
+      };
+
+      const updatedUser = await User.findByIdAndUpdate(
+        depositRecord.userId,
+        userUpdateQuery,
+        useTransaction ? { session, new: true } : { new: true }
+      );
+
+      if (!updatedUser) {
+        throw new Error('User not found while updating wallet balance');
+      }
+
+      if (useTransaction && session) {
+        await session.commitTransaction();
+        session.endSession();
+      }
+
+      if (updatedUser.onesignalPlayerId && updatedUser.notificationPreferences?.walletNotifications) {
+        sendNotification(
+          [updatedUser.onesignalPlayerId],
+          '💰 Deposit successful',
+          `₹${depositRecord.amount} has been added to your wallet.`,
+          {
+            type: 'success',
+            priority: 9,
+            data: {
+              eventType: 'deposit_success',
+              amount: depositRecord.amount,
+              provider: 'cashfree',
+            },
+          }
+        ).catch((err) => console.warn('[Cashfree] OneSignal notification error:', err.message));
+      }
+
+      return {
+        success: true,
+        status: 'success',
+        message: 'Deposit confirmed and wallet updated.',
+        orderId,
+        amount: Number(depositRecord.amount || 0),
+        walletBalance: Number(updatedUser.wallet.balance || 0),
+        transactionId: depositRecord._id?.toString() || null,
+      };
+    } catch (err) {
+      if (useTransaction && session) {
+        try {
+          await session.abortTransaction();
+          session.endSession();
+        } catch (_abortErr) {
+          // ignore
+        }
+      }
+      throw err;
+    }
+  }
+
   depositRecord.paymentStatus = paymentStatus;
-  depositRecord.cfPaymentId = cfPaymentId || depositRecord.cfPaymentId;
-  depositRecord.paymentMethod = paymentMethod || depositRecord.paymentMethod;
+  depositRecord.cfPaymentId = normalizedCfPaymentId;
+  depositRecord.paymentMethod = normalizedPaymentMethod;
   await depositRecord.save();
 
   return {
@@ -250,8 +291,6 @@ export const createCashfreeOrder = async ({ amount, userId, userName, userEmail,
     channel: 'wallet',
   };
 
-  // Optionally include a return URL so Cashfree redirects back to our frontend page
-  // The return URL must carry the order_id so the frontend can verify the payment.
   const configuredReturn = process.env.CASHFREE_RETURN_URL;
   if (configuredReturn) {
     try {
@@ -267,7 +306,6 @@ export const createCashfreeOrder = async ({ amount, userId, userName, userEmail,
       orderRequest.order_meta = orderRequest.order_meta || {};
       orderRequest.order_meta.return_url = returnUrl;
     } catch (e) {
-      // ignore if SDK object shape differs
       console.warn('[Cashfree] Could not set return URL on order request', e.message || e);
     }
   }
@@ -310,10 +348,6 @@ export const verifyCashfreePayment = async ({ orderId, userId }) => {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const result = await paymentGateway.getOrder(config, orderId);
-    console.log('[Cashfree] getOrder result', {
-      orderId,
-      rawResult: result ? { keys: Object.keys(result) } : null,
-    });
 
     const order = result?.cfOrder || result?.order || result;
     let paymentEntities = result?.cfPaymentsEntities || order?.payments || [];
@@ -321,29 +355,11 @@ export const verifyCashfreePayment = async ({ orderId, userId }) => {
     if (!Array.isArray(paymentEntities) && order?.payments && typeof order.payments === 'object') {
       const paymentsResult = await paymentGateway.getPaymentsForOrder(config, orderId);
       paymentEntities = paymentsResult?.cfPaymentsEntities || [];
-      console.log('[Cashfree] getPaymentsForOrder result', {
-        orderId,
-        paymentsCount: Array.isArray(paymentEntities) ? paymentEntities.length : 0,
-      });
     }
 
     const paymentStatus = getStatusFromPayload(result, paymentEntities);
     const cfPaymentId = getCfPaymentId(paymentEntities, order);
     const paymentMethod = getPaymentMethod(paymentEntities, order);
-
-    console.log('========== CASHFREE DEBUG ==========' );
-    console.log(JSON.stringify(result, null, 2));
-    console.log('Parsed Status:', paymentStatus);
-    console.log('====================================');
-
-    console.log('[Cashfree] verifyCashfreePayment parsed', {
-      orderId,
-      paymentStatus,
-      cfPaymentId,
-      paymentMethod,
-      paymentEntitiesCount: Array.isArray(paymentEntities) ? paymentEntities.length : 0,
-      attempt,
-    });
 
     if (isSuccessfulPaymentStatus(paymentStatus)) {
       return finalizeDeposit({
@@ -364,12 +380,6 @@ export const verifyCashfreePayment = async ({ orderId, userId }) => {
         userId,
       });
     }
-
-    console.log('[Cashfree] Payment still pending, retrying verification', {
-      orderId,
-      attempt,
-      paymentStatus,
-    });
 
     await wait(1500);
   }

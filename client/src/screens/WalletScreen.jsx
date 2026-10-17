@@ -259,6 +259,15 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         throw new Error('Failed to create Cashfree payment session');
       }
 
+      if (window.ClutchZoneNative && typeof window.ClutchZoneNative.startCashfreePayment === 'function') {
+        const started = window.ClutchZoneNative.startCashfreePayment(paymentSessionId, orderId, data?.environment || 'PRODUCTION');
+        if (started) {
+          setCashfreeLoading(false);
+          setMessage('Opening UPI Intent checkout...');
+          return;
+        }
+      }
+
       const cashfreeFactory = typeof window.Cashfree === 'function'
         ? window.Cashfree
         : typeof window.cashfree === 'function'
