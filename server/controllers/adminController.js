@@ -11,7 +11,7 @@ import BRMatch from "../models/BRMatch.js";
 import Tournament from "../models/Tournament.js";
 import Referral from "../models/Referral.js";
 import Ticket from "../models/Ticket.js";
-import { processPayout } from "../utils/payout.js";
+import { PLATFORM_FEE_RATE, processPayout } from "../utils/payout.js";
 import { markFirstDeposit, updateReferralStatus, creditReferralReward, getRewardDashboard } from "../utils/rewardService.js";
 import {
   approveWithdrawalRequest,
@@ -306,12 +306,6 @@ export const getUserProfile = async (req, res) => {
  */
 export const getDashboardStats = async (req, res) => {
   try {
-    const calculateCommission = (entryFee) => {
-      if (entryFee <= 30) return entryFee / 3;
-      if (entryFee <= 50) return entryFee * 0.4;
-      return entryFee * 0.3;
-    };
-
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const retentionCutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
@@ -341,23 +335,35 @@ export const getDashboardStats = async (req, res) => {
       })
     ]);
 
-    const completedMatches = await Match.find({
-      status: 'completed',
-      updatedAt: { $gte: retentionCutoff },
-    }).select('entry');
-    const systemBalance = completedMatches.reduce((sum, match) => sum + calculateCommission(match.entry), 0);
-    const rewardAnalytics = await getRewardDashboard();
-
-    const todayMatches = await Match.find({
-      status: 'completed',
-      $or: [
-        { completedAt: { $gte: todayStart } },
-        { updatedAt: { $gte: todayStart } },
-        { createdAt: { $gte: todayStart } },
+    const legacyPlatformFeeExpression = {
+      $round: [{
+        $multiply: [
+          { $ifNull: ['$entry', 0] },
+          { $max: [1, { $size: { $ifNull: ['$players', []] } }] },
+          PLATFORM_FEE_RATE,
+        ],
+      }, 2],
+    };
+    const platformFeeExpression = {
+      $cond: [
+        { $gt: [{ $ifNull: ['$platformFee', 0] }, 0] },
+        '$platformFee',
+        legacyPlatformFeeExpression,
       ],
-    }).select('entry completedAt updatedAt createdAt');
-
-    const todayRevenue = todayMatches.reduce((sum, match) => sum + calculateCommission(match.entry), 0);
+    };
+    const [allTimeFees, todaysFees] = await Promise.all([
+      Match.aggregate([
+        { $match: { status: 'completed' } },
+        { $group: { _id: null, total: { $sum: platformFeeExpression } } },
+      ]),
+      Match.aggregate([
+        { $match: { status: 'completed', completedAt: { $gte: todayStart } } },
+        { $group: { _id: null, total: { $sum: platformFeeExpression } } },
+      ]),
+    ]);
+    const systemBalance = allTimeFees[0]?.total || 0;
+    const rewardAnalytics = await getRewardDashboard();
+    const todayRevenue = todaysFees[0]?.total || 0;
 
     res.status(200).json({
       success: true,

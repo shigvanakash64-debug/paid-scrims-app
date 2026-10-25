@@ -102,6 +102,11 @@ const matchSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    platformFee: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     entry: {
       type: Number,
       required: true, // Entry fee per player

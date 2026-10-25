@@ -1,14 +1,12 @@
 import Match from "../models/Match.js";
 
-/**
- * Calculate platform commission based on entry fee tiers
- * @param {number} entryFee - The entry fee amount
- * @returns {number} - The commission amount
- */
-const calculateCommission = (entryFee) => {
-  if (entryFee <= 30) return entryFee * (1 / 3);
-  if (entryFee <= 50) return entryFee * 0.4;
-  return entryFee * 0.3;
+export const PLATFORM_FEE_RATE = 0.1;
+
+export const calculateMatchPlatformFee = (entryFee, playerCount) => {
+  const normalizedEntryFee = Math.max(0, Number(entryFee) || 0);
+  const normalizedPlayerCount = Math.max(1, Number(playerCount) || 1);
+  const totalEntryFees = normalizedEntryFee * normalizedPlayerCount;
+  return Math.round(totalEntryFees * PLATFORM_FEE_RATE * 100) / 100;
 };
 
 const getOfficialPrizePool = (entryFee) => {
@@ -34,7 +32,7 @@ const getOfficialPrizePool = (entryFee) => {
  * Process payout for match winner
  * - Prevents duplicate payouts with atomic update using isPaid flag
  * - Assumes User model has wallet property
- * - Calculates platform fee based on tiered commission structure
+ * - Records the platform fee as 10% of total entry fees
  * @param {string} matchId - Match ID
  * @param {string} winnerId - Winner user ID
  * @param {object} userModel - Mongoose User model
@@ -70,8 +68,6 @@ export const processPayout = async (matchId, winnerId, userModel) => {
 
     const officialPrizePool = getOfficialPrizePool(match.entry);
     const effectivePrizePool = officialPrizePool || Number(match.prizePool || 0) || 0;
-    const totalCollection = Number(match.entry || 0) * Math.max(1, match.players?.length || 1);
-
     if (match.prizePool !== effectivePrizePool) {
       await Match.findByIdAndUpdate(matchId, {
         $set: { prizePool: effectivePrizePool },
@@ -80,7 +76,7 @@ export const processPayout = async (matchId, winnerId, userModel) => {
 
     const winnerAmount = effectivePrizePool;
     const totalPool = effectivePrizePool;
-    const platformFee = Math.max(0, totalCollection - totalPool);
+    const platformFee = calculateMatchPlatformFee(match.entry, match.players?.length);
 
     console.log(`[PAYOUT] Processing payout for match ${matchId}. Winner: ${winnerId}, Amount: ${winnerAmount}`);
 
@@ -94,6 +90,7 @@ export const processPayout = async (matchId, winnerId, userModel) => {
           "result.winner": winnerId,
           "result.decidedAt": new Date(),
           completedAt: new Date(),
+          platformFee,
           status: "completed",
         },
       },

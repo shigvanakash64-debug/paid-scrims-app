@@ -17,6 +17,7 @@ export const AdminDashboard = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchDashboardData = async () => {
       try {
         const token = localStorage.getItem('clutchzone_token');
@@ -29,17 +30,23 @@ export const AdminDashboard = ({ onNavigate }) => {
           })
         ]);
 
+        if (!isMounted) return;
         setStats(statsResponse.data.stats);
         setLogs(logsResponse.data.logs);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
         // Keep default values on error
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchDashboardData();
+    const refreshTimer = window.setInterval(fetchDashboardData, 30000);
+    return () => {
+      isMounted = false;
+      window.clearInterval(refreshTimer);
+    };
   }, []);
 
   return (
@@ -71,13 +78,13 @@ export const AdminDashboard = ({ onNavigate }) => {
           color="#EF4444"
         />
         <StatCard
-          label="System Balance"
+          label="Platform Fees"
           value={`CZ${Number(stats.systemBalance || 0).toLocaleString()}`}
           icon="💰"
           color="#22C55E"
         />
         <StatCard
-          label="Today Revenue"
+          label="Today Platform Fees"
           value={`CZ${Number(stats.todayRevenue || 0).toLocaleString()}`}
           icon="📈"
           color="#FF6A00"
