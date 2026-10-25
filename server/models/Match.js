@@ -33,6 +33,7 @@ const matchSchema = new mongoose.Schema(
       type: String,
       enum: [
         'Free Fire',
+        'Mini Militia',
         'BGMI',
         'PUBG Mobile',
         'Brawl Stars',

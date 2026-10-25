@@ -20,7 +20,7 @@ const entryOptions = [
   { label: 'CZ 201 - 500', min: 201, max: 500 },
   { label: 'CZ 501 - 1000', min: 501, max: 1000 },
 ];
-const HOST_VIEW_GAMES = ['Free Fire', 'BGMI', 'PUBG Mobile', 'Brawl Stars', 'Honor of Kings', 'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends', 'Rocket League', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds', 'Overwatch 2', 'Rainbow Six Siege', 'Marvel Rivals', 'Trackmania', 'Minecraft', 'Chess', 'Age of Empires II', 'Age of Empires IV'];
+const HOST_VIEW_GAMES = ['Free Fire', 'Mini Militia', 'BGMI', 'PUBG Mobile', 'Brawl Stars', 'Honor of Kings', 'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends', 'Rocket League', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds', 'Overwatch 2', 'Rainbow Six Siege', 'Marvel Rivals', 'Trackmania', 'Minecraft', 'Chess', 'Age of Empires II', 'Age of Empires IV'];
 const NO_HOST_VIEW_GAMES = ['COD Mobile', 'Mobile Legends: Bang Bang', 'Clash Royale', 'Clash of Clans', 'EA Sports FC Mobile', 'eFootball', 'Tekken 8', 'Street Fighter 6', 'EA Sports FC 26', 'Teamfight Tactics'];
 const GAME_OPTIONS = [...HOST_VIEW_GAMES, ...NO_HOST_VIEW_GAMES];
 const isNoHostViewGame = (game) => NO_HOST_VIEW_GAMES.includes(game);
@@ -598,4 +598,3 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     </div>
   );
 };
-

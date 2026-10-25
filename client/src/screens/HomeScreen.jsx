@@ -86,6 +86,7 @@ const entryFees = [5, 10, 20, 30, 50, 100, 200, 500, 1000];
 
 const HOST_VIEW_GAMES = [
   'Free Fire',
+  'Mini Militia',
   'BGMI',
   'PUBG Mobile',
   'Brawl Stars',
@@ -335,4 +336,3 @@ export const HomeScreen = ({ onScreenChange }) => {
     </div>
   );
 };
-
