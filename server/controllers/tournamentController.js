@@ -55,7 +55,7 @@ const PER_GROUP_FORMATS = new Set(['single-match', 'br-per-kill', 'custom', 'br-
 const SINGLE_STAGE_FORMATS = new Set(['single-match', 'br-per-kill']);
 const TEAM_SIZE_FORMATS = new Set(['br-custom', 'cs-custom', 'team-vs-team']);
 export const CUSTOM_TOURNAMENT_GAMES = new Set([
-  'Free Fire', 'BGMI', 'PUBG Mobile', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds',
+  'Free Fire', 'Mini Militia', 'BGMI', 'PUBG Mobile', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds',
   'Call of Duty: Warzone', 'Minecraft', 'Trackmania', 'Teamfight Tactics',
 ]);
 export const TEAM_VS_TEAM_GAMES = new Set([

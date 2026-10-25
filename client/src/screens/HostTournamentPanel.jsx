@@ -21,7 +21,7 @@ const FORMAT_OPTIONS = [
   { value: 'team-vs-team', title: 'Team vs Team Tournament', description: 'Automatic head-to-head tournament', detail: 'Automatic Knockout or BO3 bracket' },
 ];
 
-const CUSTOM_GAMES = ['Free Fire', 'BGMI', 'PUBG Mobile', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds', 'Call of Duty: Warzone', 'Minecraft', 'Trackmania', 'Teamfight Tactics'];
+const CUSTOM_GAMES = ['Free Fire', 'Mini Militia', 'BGMI', 'PUBG Mobile', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds', 'Call of Duty: Warzone', 'Minecraft', 'Trackmania', 'Teamfight Tactics'];
 const TEAM_VS_TEAM_GAMES = ['Clash Royale', 'EA Sports FC Mobile', 'eFootball', 'Tekken 8', 'Street Fighter 6', 'EA Sports FC 26', 'Chess', 'COD Mobile', 'Mobile Legends: Bang Bang', 'Honor of Kings', 'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends', 'Rainbow Six Siege', 'Overwatch 2', 'Marvel Rivals', 'Rocket League', 'Brawl Stars', 'Clash of Clans', 'Age of Empires II', 'Age of Empires IV'];
 const ALL_GAMES = [...CUSTOM_GAMES, ...TEAM_VS_TEAM_GAMES.filter((game) => !CUSTOM_GAMES.includes(game))];
 const isPerKillFormat = (value) => value === 'single-match' || value === 'br-per-kill';

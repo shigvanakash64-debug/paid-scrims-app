@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { assignTournamentGroups, buildTeamTournamentGroups, buildTournamentBracket, calculateFinancials, isCompletedTournamentExpired, normalizeResultEntry, normalizeTournamentRegistration, resolveTeamMatchClaims, validateTournamentInput } from './controllers/tournamentController.js';
+import { ALL_TOURNAMENT_GAMES, assignTournamentGroups, buildTeamTournamentGroups, buildTournamentBracket, calculateFinancials, isCompletedTournamentExpired, normalizeResultEntry, normalizeTournamentRegistration, resolveTeamMatchClaims, validateTournamentInput } from './controllers/tournamentController.js';
+
+test('Mini Militia is enabled for host custom tournaments', () => {
+  assert.equal(ALL_TOURNAMENT_GAMES.has('Mini Militia'), true);
+});
 
 test('buildTournamentBracket creates the expected knockout rounds and automatic byes', () => {
   const bracket = buildTournamentBracket(Array.from({ length: 16 }, (_, index) => `team-${index + 1}`));
