@@ -44,8 +44,8 @@ export const calculateFinancials = (entryFee, successfulEntries) => {
     totalCollection,
     prizePool,
     retainedAmount,
-    clutchZoneFee: retainedAmount * 0.1,
-    hostShare: retainedAmount * 0.2,
+    clutchZoneFee: totalCollection * 0.1,
+    hostShare: totalCollection * 0.2,
   };
 };
 

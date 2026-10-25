@@ -282,14 +282,15 @@ test('normalizeTournamentRegistration validates and trims the full team roster',
   }), /Each team member name/i);
 });
 
-test('calculateFinancials keeps 70% prize pool and splits the 30% profit as 20% host and 10% platform', () => {
+test('calculateFinancials allocates 70% to prizes, 20% to the host, and 10% to the platform', () => {
   const result = calculateFinancials(100, 10);
 
   assert.equal(result.totalCollection, 1000);
   assert.equal(result.prizePool, 700);
   assert.equal(result.retainedAmount, 300);
-  assert.equal(result.hostShare, 60);
-  assert.equal(result.clutchZoneFee, 30);
+  assert.equal(result.hostShare, 200);
+  assert.equal(result.clutchZoneFee, 100);
+  assert.equal(result.prizePool + result.hostShare + result.clutchZoneFee, result.totalCollection);
 });
 
 test('completed tournaments expire after 2 days', () => {
