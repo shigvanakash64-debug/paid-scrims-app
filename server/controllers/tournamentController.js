@@ -37,15 +37,17 @@ export const cleanupExpiredCompletedTournaments = async () => {
 };
 
 export const calculateFinancials = (entryFee, successfulEntries) => {
-  const totalCollection = entryFee * successfulEntries;
-  const prizePool = totalCollection * 0.7;
-  const retainedAmount = totalCollection * 0.3;
+  const roundCurrency = (amount) => Math.round((amount + Number.EPSILON) * 100) / 100;
+  const totalCollection = roundCurrency(Number(entryFee || 0) * Number(successfulEntries || 0));
+  const prizePool = roundCurrency(totalCollection * 0.7);
+  const retainedAmount = roundCurrency(totalCollection - prizePool);
+  const hostShare = roundCurrency(retainedAmount * (2 / 3));
   return {
     totalCollection,
     prizePool,
     retainedAmount,
-    clutchZoneFee: totalCollection * 0.1,
-    hostShare: totalCollection * 0.2,
+    hostShare,
+    clutchZoneFee: roundCurrency(retainedAmount - hostShare),
   };
 };
 
@@ -457,7 +459,7 @@ const payoutTeamTournamentWinner = async (tournament, winnerParticipantId) => {
   const financials = calculateFinancials(tournament.entryFee, tournament.successfulEntries);
   const payoutClaim = await Tournament.findOneAndUpdate(
     { _id: tournament._id, payoutsDistributed: { $ne: true } },
-    { $set: { payoutsDistributed: true, payoutsDistributedAt: new Date(), status: 'completed' } },
+    { $set: { ...financials, payoutsDistributed: true, payoutsDistributedAt: new Date(), status: 'completed' } },
     { new: true },
   );
   if (!payoutClaim) return;
@@ -1088,7 +1090,7 @@ const distributeGrandFinalePayout = async (tournament, result) => {
   const financials = calculateFinancials(tournament.entryFee, tournament.successfulEntries);
   const claimed = await Tournament.findOneAndUpdate(
     { _id: tournament._id, payoutsDistributed: { $ne: true } },
-    { $set: { payoutsDistributed: true, payoutsDistributedAt: new Date(), status: 'completed' } },
+    { $set: { ...financials, payoutsDistributed: true, payoutsDistributedAt: new Date(), status: 'completed' } },
     { new: true },
   );
   if (!claimed) return;

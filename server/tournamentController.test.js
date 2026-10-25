@@ -290,7 +290,18 @@ test('calculateFinancials allocates 70% to prizes, 20% to the host, and 10% to t
   assert.equal(result.retainedAmount, 300);
   assert.equal(result.hostShare, 200);
   assert.equal(result.clutchZoneFee, 100);
-  assert.equal(result.prizePool + result.hostShare + result.clutchZoneFee, result.totalCollection);
+  assert.equal(Number((result.prizePool + result.hostShare + result.clutchZoneFee).toFixed(2)), result.totalCollection);
+});
+
+test('calculateFinancials splits a two-rupee collection into 1.40 prize, 0.40 host, and 0.20 platform', () => {
+  const result = calculateFinancials(1, 2);
+
+  assert.equal(result.totalCollection, 2);
+  assert.equal(result.prizePool, 1.4);
+  assert.equal(result.retainedAmount, 0.6);
+  assert.equal(result.hostShare, 0.4);
+  assert.equal(result.clutchZoneFee, 0.2);
+  assert.equal(Number((result.prizePool + result.hostShare + result.clutchZoneFee).toFixed(2)), result.totalCollection);
 });
 
 test('completed tournaments expire after 2 days', () => {
