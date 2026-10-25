@@ -10,19 +10,31 @@ export const WithdrawalsPanel = () => {
   const [filterStatus, setFilterStatus] = useState('pending');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
+  const [summary, setSummary] = useState({
+    pending: { count: 0, amount: 0 },
+    approved: { count: 0, amount: 0 },
+    rejected: { count: 0, amount: 0 },
+  });
 
   useEffect(() => {
     fetchWithdrawals();
-  }, [filterStatus]);
+  }, [filterStatus, page]);
 
   const fetchWithdrawals = async () => {
     try {
       setLoading(true);
+      setError('');
       const token = localStorage.getItem('clutchzone_token');
-      const response = await axios.get(`${API_BASE}/admin/withdrawals?status=${filterStatus}`, {
+      const response = await axios.get(`${API_BASE}/admin/withdrawals?status=${filterStatus}&page=${page}&limit=20`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setWithdrawals(response.data.withdrawals);
+      const list = response.data.withdrawals || [];
+      setWithdrawals(list);
+      setPagination(response.data.pagination || { page: 1, pages: 1, total: list.length });
+      setSummary(response.data.summary || summary);
+      if (list.length === 0 && page > 1) setPage(page - 1);
     } catch (error) {
       setError('Failed to fetch withdrawals');
       console.error('Failed to fetch withdrawals:', error);
@@ -39,7 +51,7 @@ export const WithdrawalsPanel = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Refresh the list
-      fetchWithdrawals();
+      await fetchWithdrawals();
     } catch (error) {
       alert('Failed to approve withdrawal');
       console.error('Failed to approve withdrawal:', error);
@@ -57,7 +69,7 @@ export const WithdrawalsPanel = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         // Refresh the list
-        fetchWithdrawals();
+        await fetchWithdrawals();
       } catch (error) {
         alert('Failed to reject withdrawal');
         console.error('Failed to reject withdrawal:', error);
@@ -99,8 +111,7 @@ export const WithdrawalsPanel = () => {
       <div>
         <h1 className="text-3xl font-bold text-white">Withdrawals</h1>
         <p className="text-sm text-[#A1A1A1] mt-2">
-          {withdrawals.filter((w) => w.status === 'pending').length} pending •{' '}
-          {withdrawals.filter((w) => w.status === 'approved').length} approved
+          {summary.pending.count} pending • {summary.approved.count} approved
         </p>
         <p className="text-xs text-[#F59E0B] mt-1">Minimum withdrawal is CZ100.</p>
       </div>
@@ -110,7 +121,10 @@ export const WithdrawalsPanel = () => {
         {['pending', 'approved', 'rejected', 'all'].map((status) => (
           <button
             key={status}
-            onClick={() => setFilterStatus(status)}
+            onClick={() => {
+              setFilterStatus(status);
+              setPage(1);
+            }}
             className={`px-4 py-2 rounded-lg font-semibold text-sm whitespace-nowrap transition ${
               filterStatus === status
                 ? 'bg-[#FF6A00] text-black'
@@ -147,35 +161,51 @@ export const WithdrawalsPanel = () => {
           <p className="text-sm text-[#A1A1A1]">All clear!</p>
         </div>
       )}
+      {pagination.pages > 1 && (
+        <div className="flex items-center justify-between rounded-lg border border-[#1F1F1F] bg-[#111111] px-4 py-3">
+          <span className="text-sm text-[#A1A1A1]">
+            Page {pagination.page} of {pagination.pages} · {pagination.total} requests
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((currentPage) => Math.max(currentPage - 1, 1))}
+              disabled={page <= 1 || loading}
+              className="rounded-lg border border-[#1F1F1F] px-3 py-2 text-sm text-[#A1A1A1] disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setPage((currentPage) => Math.min(currentPage + 1, pagination.pages))}
+              disabled={page >= pagination.pages || loading}
+              className="rounded-lg border border-[#1F1F1F] px-3 py-2 text-sm text-[#A1A1A1] disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
           <p className="text-xs text-[#A1A1A1]">PENDING AMOUNT</p>
           <p className="text-2xl font-bold text-[#F59E0B] mt-2">
-            CZ{withdrawals
-              .filter((w) => w.status === 'pending')
-              .reduce((sum, w) => sum + w.amount, 0)}
+            CZ{summary.pending.amount.toLocaleString()}
           </p>
         </div>
         <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
           <p className="text-xs text-[#A1A1A1]">APPROVED TOTAL</p>
           <p className="text-2xl font-bold text-[#22C55E] mt-2">
-            CZ{withdrawals
-              .filter((w) => w.status === 'approved')
-              .reduce((sum, w) => sum + w.amount, 0)}
+            CZ{summary.approved.amount.toLocaleString()}
           </p>
         </div>
         <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
           <p className="text-xs text-[#A1A1A1]">REJECTED TOTAL</p>
           <p className="text-2xl font-bold text-[#EF4444] mt-2">
-            CZ{withdrawals
-              .filter((w) => w.status === 'rejected')
-              .reduce((sum, w) => sum + w.amount, 0)}
+            CZ{summary.rejected.amount.toLocaleString()}
           </p>
         </div>
       </div>
     </div>
   );
 };
-

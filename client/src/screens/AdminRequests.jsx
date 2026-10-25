@@ -34,6 +34,8 @@ export const AdminRequests = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedMatchId, setSelectedMatchId] = useState(null);
   const [selectedMatch, setSelectedMatch] = useState(null);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
+  const [page, setPage] = useState(1);
   const [selectedTab, setSelectedTab] = useState('overview');
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -46,7 +48,7 @@ export const AdminRequests = () => {
 
   useEffect(() => {
     fetchMatches();
-  }, []);
+  }, [selectedStatus, page]);
 
   useEffect(() => {
     if (selectedMatchId) {
@@ -59,13 +61,24 @@ export const AdminRequests = () => {
     setError('');
 
     try {
-      const response = await axios.get(`${API_BASE}/admin/matches?limit=100`, {
+      const response = await axios.get(`${API_BASE}/admin/matches?status=${selectedStatus}&page=${page}&limit=100`, {
         headers,
       });
       const list = response.data.matches || [];
       setMatches(list);
-      if (!selectedMatchId && list.length > 0) {
-        setSelectedMatchId(list[0]._id || list[0].id);
+      setPagination(response.data.pagination || { page: 1, pages: 1, total: list.length });
+      if (list.length === 0 && page > 1) {
+        setPage(page - 1);
+        return;
+      }
+      const selectedMatchIsInPage = list.some((match) => (match._id || match.id) === selectedMatchId);
+      if (!selectedMatchIsInPage) {
+        if (list.length > 0) {
+          setSelectedMatchId(list[0]._id || list[0].id);
+        } else {
+          setSelectedMatchId(null);
+          setSelectedMatch(null);
+        }
       }
     } catch (err) {
       console.error('fetchMatches error', err);
@@ -210,10 +223,7 @@ export const AdminRequests = () => {
     }
   };
 
-  const filteredMatches = useMemo(() => {
-    if (selectedStatus === 'all') return matches;
-    return matches.filter((match) => match.status === selectedStatus);
-  }, [matches, selectedStatus]);
+  const filteredMatches = matches;
 
   const playerNames = useMemo(() => {
     const players = selectedMatch?.players || [];
@@ -328,7 +338,12 @@ export const AdminRequests = () => {
         {STATUS_FILTERS.map((status) => (
           <button
             key={status}
-            onClick={() => setSelectedStatus(status)}
+            onClick={() => {
+              setSelectedStatus(status);
+              setPage(1);
+              setSelectedMatchId(null);
+              setSelectedMatch(null);
+            }}
             className={`px-3 py-2 rounded-full text-xs font-semibold transition ${
               selectedStatus === status
                 ? 'bg-[#FF6A00] text-black'
@@ -353,7 +368,7 @@ export const AdminRequests = () => {
               <div>
                 <p className="text-sm font-semibold text-white">Match Requests</p>
                 <p className="text-xs text-[#A1A1A1] mt-1">
-                  {loading ? 'Loading requests…' : `${filteredMatches.length} matching items`}
+                  {loading ? 'Loading requests…' : `${pagination.total} matching items`}
                 </p>
               </div>
               <button
@@ -400,6 +415,27 @@ export const AdminRequests = () => {
               ))
             )}
           </div>
+          {pagination.pages > 1 && (
+            <div className="flex items-center justify-between rounded-lg border border-[#1F1F1F] bg-[#111111] px-4 py-3">
+              <span className="text-sm text-[#A1A1A1]">Page {pagination.page} of {pagination.pages}</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((currentPage) => Math.max(currentPage - 1, 1))}
+                  disabled={page <= 1 || loading}
+                  className="rounded-lg border border-[#1F1F1F] px-3 py-2 text-sm text-[#A1A1A1] disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((currentPage) => Math.min(currentPage + 1, pagination.pages))}
+                  disabled={page >= pagination.pages || loading}
+                  className="rounded-lg border border-[#1F1F1F] px-3 py-2 text-sm text-[#A1A1A1] disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -692,4 +728,3 @@ export const AdminRequests = () => {
     </div>
   );
 };
-

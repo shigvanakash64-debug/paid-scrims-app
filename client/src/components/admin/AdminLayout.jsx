@@ -21,7 +21,7 @@ const SCREENS = {
   MATCHES: 'matches',
 };
 
-export const AdminLayout = ({ mode = 'admin' }) => {
+export const AdminLayout = ({ mode = 'admin', onLogout }) => {
   const [currentScreen, setCurrentScreen] = useState(SCREENS.DASHBOARD);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedTournamentId, setSelectedTournamentId] = useState(null);
@@ -60,6 +60,7 @@ export const AdminLayout = ({ mode = 'admin' }) => {
           onScreenChange={setCurrentScreen}
           isMobile={false}
           mode={mode}
+          onLogout={onLogout}
         />
       </div>
 
@@ -85,6 +86,7 @@ export const AdminLayout = ({ mode = 'admin' }) => {
           }}
           isMobile={true}
           mode={mode}
+          onLogout={onLogout}
         />
       </div>
 

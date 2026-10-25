@@ -383,7 +383,10 @@ export const getDashboardStats = async (req, res) => {
  */
 export const getAllMatches = async (req, res) => {
   try {
-    const { status = null, limit = 50, page = 1 } = req.query;
+    const { status = null } = req.query;
+    const parsedLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 50;
+    const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
     const retentionCutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
     const staleStatuses = ['completed', 'cancelled', 'disputed'];
@@ -415,7 +418,7 @@ export const getAllMatches = async (req, res) => {
       .populate('players', 'username trustScore')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(limit);
 
     const total = await Match.countDocuments(filter);
 
@@ -424,9 +427,9 @@ export const getAllMatches = async (req, res) => {
       matches,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(total / limit)
+        page,
+        limit,
+        pages: Math.max(Math.ceil(total / limit), 1)
       }
     });
   } catch (error) {
@@ -812,29 +815,30 @@ export const cancelMatch = async (req, res) => {
  */
 export const getAllDisputes = async (req, res) => {
   try {
-    const { status = 'open', limit = 50, page = 1 } = req.query;
+    const parsedLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 50;
+    const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
+    const filter = { status: 'disputed' };
 
-    const filter = status && status !== 'all' ? { status } : {};
-
-    const disputes = await Match.find({ status: 'disputed' })
+    const disputes = await Match.find(filter)
       .populate('players', 'username trustScore')
       .populate('paymentScreenshots.user', 'username')
       .populate('result.screenshots.user', 'username')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(limit);
 
-    const total = await Match.countDocuments({ status: 'disputed' });
+    const total = await Match.countDocuments(filter);
 
     res.status(200).json({
       success: true,
       disputes,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(total / limit)
+        page,
+        limit,
+        pages: Math.max(Math.ceil(total / limit), 1)
       }
     });
   } catch (error) {
@@ -947,13 +951,16 @@ export const adjustUserWallet = async (req, res) => {
  */
 export const getAllUsers = async (req, res) => {
   try {
-    const { search = '', limit = 50, page = 1 } = req.query;
-    const parsedLimit = Number.parseInt(limit, 10);
-    const usersPerPage = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 50;
-    const pageNumber = Math.max(Number.parseInt(page, 10) || 1, 1);
+    const { search = '', status = 'all' } = req.query;
+    const parsedLimit = Number.parseInt(req.query.limit, 10);
+    const usersPerPage = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 50;
+    const pageNumber = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
     const skip = (pageNumber - 1) * usersPerPage;
 
-    const filter = search ? { username: { $regex: search, $options: 'i' } } : {};
+    const filter = {};
+    if (search) filter.username = { $regex: search, $options: 'i' };
+    if (status === 'Active') filter.isBanned = { $ne: true };
+    if (status === 'Banned') filter.isBanned = true;
 
     const users = await User.aggregate([
       { $match: filter },
@@ -1002,11 +1009,26 @@ export const getAllUsers = async (req, res) => {
       }
     ]);
 
-    const total = await User.countDocuments(filter);
+    const [total, matchingUsersStatusCounts] = await Promise.all([
+      User.countDocuments(filter),
+      User.aggregate([
+        { $match: search ? { username: { $regex: search, $options: 'i' } } : {} },
+        {
+          $group: {
+            _id: { $eq: ['$isBanned', true] },
+            count: { $sum: 1 }
+          }
+        }
+      ])
+    ]);
 
     res.status(200).json({
       success: true,
       users,
+      statusCounts: matchingUsersStatusCounts.reduce((counts, row) => {
+        counts[row._id ? 'banned' : 'active'] = row.count;
+        return counts;
+      }, { active: 0, banned: 0 }),
       pagination: {
         total,
         page: pageNumber,
@@ -1074,8 +1096,11 @@ export const deleteUser = async (req, res) => {
  */
 export const getAllWithdrawals = async (req, res) => {
   try {
-    const { status = 'pending', page = 1, limit = 20 } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const { status = 'pending' } = req.query;
+    const parsedLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 20;
+    const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
+    const skip = (page - 1) * limit;
     const statusFilter = status === 'all'
       ? { $in: ['pending', 'approved', 'rejected'] }
       : status;
@@ -1115,11 +1140,11 @@ export const getAllWithdrawals = async (req, res) => {
         $skip: skip
       },
       {
-        $limit: parseInt(limit)
+        $limit: limit
       }
     ]);
 
-    const total = await User.aggregate([
+    const [total, statusSummary] = await Promise.all([User.aggregate([
       {
         $match: {
           'wallet.pendingWithdrawals.status': statusFilter
@@ -1136,16 +1161,29 @@ export const getAllWithdrawals = async (req, res) => {
       {
         $count: 'total'
       }
-    ]);
+    ]), User.aggregate([
+      { $unwind: '$wallet.pendingWithdrawals' },
+      {
+        $group: {
+          _id: '$wallet.pendingWithdrawals.status',
+          count: { $sum: 1 },
+          amount: { $sum: '$wallet.pendingWithdrawals.amount' }
+        }
+      }
+    ])]);
 
     res.status(200).json({
       success: true,
       withdrawals,
+      summary: statusSummary.reduce((summary, row) => {
+        summary[row._id] = { count: row.count, amount: row.amount };
+        return summary;
+      }, { pending: { count: 0, amount: 0 }, approved: { count: 0, amount: 0 }, rejected: { count: 0, amount: 0 } }),
       pagination: {
         total: total[0]?.total || 0,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil((total[0]?.total || 0) / limit)
+        page,
+        limit,
+        pages: Math.max(Math.ceil((total[0]?.total || 0) / limit), 1)
       }
     });
   } catch (error) {

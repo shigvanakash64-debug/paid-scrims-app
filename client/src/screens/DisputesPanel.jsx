@@ -9,20 +9,25 @@ export const DisputesPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
 
   useEffect(() => {
     fetchDisputes();
-  }, []);
+  }, [page]);
 
   const fetchDisputes = async () => {
     try {
       setLoading(true);
       setError('');
       const token = localStorage.getItem('clutchzone_token');
-      const response = await axios.get(`${API_BASE}/admin/disputes?status=disputed`, {
+      const response = await axios.get(`${API_BASE}/admin/disputes?page=${page}&limit=20`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setDisputes(response.data.disputes || []);
+      const list = response.data.disputes || [];
+      setDisputes(list);
+      setPagination(response.data.pagination || { page: 1, pages: 1, total: 0 });
+      if (list.length === 0 && page > 1) setPage(page - 1);
     } catch (err) {
       console.error('fetchDisputes error', err);
       setError('Unable to load disputes');
@@ -38,7 +43,7 @@ export const DisputesPanel = () => {
       await axios.post(`${API_BASE}/admin/matches/${matchId}/resolve-dispute`, { winner }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchDisputes();
+      await fetchDisputes();
     } catch (err) {
       console.error('resolveDispute error', err);
       alert('Failed to resolve dispute');
@@ -103,25 +108,48 @@ export const DisputesPanel = () => {
       <div>
         <h1 className="text-3xl font-bold text-white">Disputes</h1>
         <p className="text-sm text-[#A1A1A1] mt-2">
-          {visibleDisputes.length} active dispute{visibleDisputes.length !== 1 ? 's' : ''}
+          {pagination.total} active dispute{pagination.total !== 1 ? 's' : ''}
         </p>
       </div>
 
       {visibleDisputes.length > 0 ? (
-        <div className="space-y-4">
-          {visibleDisputes.map((dispute) => (
-            <DisputeCard
-              key={dispute.id}
-              matchId={dispute.matchId}
-              playerA={dispute.playerA}
-              playerB={dispute.playerB}
-              screenshotA={dispute.screenshotA}
-              screenshotB={dispute.screenshotB}
-              onResolve={(winner) => handleResolve(dispute.matchId, winner)}
-              isLoading={isLoading}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-4">
+            {visibleDisputes.map((dispute) => (
+              <DisputeCard
+                key={dispute.id}
+                matchId={dispute.matchId}
+                playerA={dispute.playerA}
+                playerB={dispute.playerB}
+                screenshotA={dispute.screenshotA}
+                screenshotB={dispute.screenshotB}
+                onResolve={(winner) => handleResolve(dispute.matchId, winner)}
+                isLoading={isLoading}
+              />
+            ))}
+          </div>
+          {pagination.pages > 1 && (
+            <div className="flex items-center justify-between rounded-lg border border-[#1F1F1F] bg-[#111111] px-4 py-3">
+              <span className="text-sm text-[#A1A1A1]">Page {pagination.page} of {pagination.pages}</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((currentPage) => Math.max(currentPage - 1, 1))}
+                  disabled={page <= 1 || loading}
+                  className="rounded-lg border border-[#1F1F1F] px-3 py-2 text-sm text-[#A1A1A1] disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((currentPage) => Math.min(currentPage + 1, pagination.pages))}
+                  disabled={page >= pagination.pages || loading}
+                  className="rounded-lg border border-[#1F1F1F] px-3 py-2 text-sm text-[#A1A1A1] disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-12 text-center space-y-3">
           <p className="text-2xl">✓</p>
@@ -132,4 +160,3 @@ export const DisputesPanel = () => {
     </div>
   );
 };
-

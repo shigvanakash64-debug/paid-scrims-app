@@ -35,7 +35,7 @@ export const AdminHostsPanel = () => {
           <div key={host._id} className="rounded-lg border border-[#1F1F1F] bg-[#111111] p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div><h2 className="font-semibold text-white">{host.username}</h2><p className="text-sm text-[#A1A1A1]">{host.title || 'Host account'}</p></div>
-              <span className="text-sm text-[#FFB066]">{host.tournaments.length} tournaments</span>
+              <span className="text-sm text-[#FFB066]">{host.tournaments.length + (host.parentTournaments?.length || 0)} tournaments</span>
             </div>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-left text-sm">

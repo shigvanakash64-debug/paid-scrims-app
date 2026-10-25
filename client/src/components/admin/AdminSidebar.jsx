@@ -1,4 +1,4 @@
-export const AdminSidebar = ({ currentScreen, onScreenChange, isMobile, mode = 'admin' }) => {
+export const AdminSidebar = ({ currentScreen, onScreenChange, isMobile, mode = 'admin', onLogout }) => {
   const menuItems = mode === 'host'
     ? [
       { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -8,7 +8,6 @@ export const AdminSidebar = ({ currentScreen, onScreenChange, isMobile, mode = '
       { id: 'dashboard', label: 'Dashboard', icon: '📊' },
       { id: 'matches', label: 'Matches', icon: '🎮' },
       { id: 'hosts', label: 'Hosts', icon: '🧑‍💼' },
-      // Deposits removed: manual deposit approval flow deprecated
       { id: 'disputes', label: 'Disputes', icon: '⚠️' },
       { id: 'withdrawals', label: 'Redemptions', icon: '💸' },
       { id: 'users', label: 'Users', icon: '👤' },
@@ -45,7 +44,10 @@ export const AdminSidebar = ({ currentScreen, onScreenChange, isMobile, mode = '
       <div className="p-4 border-t border-[#1F1F1F] text-xs text-[#A1A1A1]">
         <div className="space-y-2">
           <div>Status: <span className="text-[#22C55E]">Online</span></div>
-          <button className="w-full px-4 py-2 rounded-lg border border-[#1F1F1F] hover:border-[#FF6A00] text-[#FF6A00] text-xs font-medium transition">
+          <button
+            onClick={onLogout}
+            className="w-full px-4 py-2 rounded-lg border border-[#1F1F1F] hover:border-[#FF6A00] text-[#FF6A00] text-xs font-medium transition"
+          >
             Logout
           </button>
         </div>

@@ -85,13 +85,7 @@ export const AdminDashboard = ({ onNavigate }) => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <button
-          onClick={() => onNavigate?.('deposits')}
-          className="bg-[#FF6A00] text-black px-6 py-4 rounded-lg font-semibold hover:opacity-90 transition"
-        >
-          💳 Review Deposit Requests
-        </button>
+      <div className="grid grid-cols-1 gap-4">
         <button
           onClick={() => onNavigate?.('disputes')}
           className="border border-[#EF4444] text-[#EF4444] px-6 py-4 rounded-lg font-semibold hover:bg-[#3d1c1c] transition"
@@ -125,4 +119,3 @@ export const AdminDashboard = ({ onNavigate }) => {
     </div>
   );
 };
-

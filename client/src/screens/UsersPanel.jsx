@@ -18,6 +18,7 @@ export const UsersPanel = () => {
   const [error, setError] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
+  const [statusCounts, setStatusCounts] = useState({ active: 0, banned: 0 });
   const [pendingDeleteUser, setPendingDeleteUser] = useState(null);
   const [deletingUserId, setDeletingUserId] = useState(null);
   const [toast, setToast] = useState(null);
@@ -33,7 +34,7 @@ export const UsersPanel = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [debouncedSearch, page]);
+  }, [debouncedSearch, filterStatus, page]);
 
   useEffect(() => {
     if (!toast) return;
@@ -46,11 +47,17 @@ export const UsersPanel = () => {
       setLoading(true);
       setError('');
       const token = localStorage.getItem('clutchzone_token');
-      const response = await axios.get(`${API_BASE}/admin/users?search=${encodeURIComponent(debouncedSearch)}&page=${page}&limit=50`, {
+      const response = await axios.get(`${API_BASE}/admin/users?search=${encodeURIComponent(debouncedSearch)}&status=${filterStatus}&page=${page}&limit=50`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setUsers(response.data.users || []);
-      setPagination(response.data.pagination || { page: 1, pages: 1, total: 0 });
+      const userList = response.data.users || [];
+      const nextPagination = response.data.pagination || { page: 1, pages: 1, total: 0 };
+      setUsers(userList);
+      setPagination(nextPagination);
+      setStatusCounts(response.data.statusCounts || { active: 0, banned: 0 });
+      if (userList.length === 0 && page > nextPagination.pages) {
+        setPage(nextPagination.pages);
+      }
     } catch (err) {
       console.error('fetchUsers error', err);
       setError('Unable to load users');
@@ -289,7 +296,7 @@ export const UsersPanel = () => {
       <div>
         <h1 className="text-3xl font-bold text-white">Users</h1>
         <p className="text-sm text-[#A1A1A1] mt-2">
-          {pagination.total || visibleUsers.length} total users • {visibleUsers.filter((u) => u.status === 'Active').length} active
+          {pagination.total} {filterStatus === 'all' ? 'total' : filterStatus.toLowerCase()} users • {statusCounts.active} active
         </p>
       </div>
 
@@ -327,9 +334,7 @@ export const UsersPanel = () => {
       {visibleUsers.length > 0 ? (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {visibleUsers
-              .filter((user) => filterStatus === 'all' || user.status === filterStatus)
-              .map((user) => (
+            {visibleUsers.map((user) => (
                 <UserCard
                   key={user.id}
                   username={user.username}
@@ -353,7 +358,7 @@ export const UsersPanel = () => {
                   isDeleting={deletingUserId === user.id}
                   isDeleteDisabled={Boolean(currentUser && ((currentUser._id || currentUser.id)?.toString() === user.id?.toString()))}
                 />
-              ))}
+            ))}
           </div>
 
           {pagination.pages > 1 && (
@@ -430,4 +435,3 @@ export const UsersPanel = () => {
     </div>
   );
 };
-

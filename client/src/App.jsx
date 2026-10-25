@@ -772,7 +772,7 @@ function App() {
       }
       return (
         <Suspense fallback={<div className="loading-screen">Loading Admin Dashboard...</div>}>
-          <AdminLayout />
+          <AdminLayout onLogout={handleLogout} />
         </Suspense>
       );
     }
