@@ -62,6 +62,7 @@ const tournamentSchema = new mongoose.Schema({
   payoutsDistributedAt: { type: Date, default: null },
   estimatedDate: { type: Date, default: null },
   estimatedTime: { type: String, default: '', trim: true },
+  registrationDeadline: { type: Date, default: null },
   hostMessage: { type: String, default: '', trim: true, maxlength: 300 },
   roomId: { type: String, default: '', trim: true },
   roomPassword: { type: String, default: '', trim: true },

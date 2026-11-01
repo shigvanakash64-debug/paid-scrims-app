@@ -50,6 +50,7 @@ export const HostTournamentPanel = ({ onBack }) => {
     perKillReward: '',
     estimatedDate: '',
     estimatedTime: '',
+    registrationDeadline: '',
     hostMessage: '',
     roomId: '',
     roomPassword: '',
@@ -87,6 +88,11 @@ export const HostTournamentPanel = ({ onBack }) => {
       return;
     }
 
+    if (!form.registrationDeadline || new Date(form.registrationDeadline) <= new Date()) {
+      setError('Please choose a future last registration date and time.');
+      return;
+    }
+
     if (!form.hostMessage?.trim()) {
       setError('Please add a short message for players before creating the tournament.');
       return;
@@ -119,7 +125,13 @@ export const HostTournamentPanel = ({ onBack }) => {
       const response = await fetch(`${API_BASE}/tournaments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
-        body: JSON.stringify({ ...form, teamSize: Number(form.teamSize), format, customStages: canConfigureStages ? customStages : [] }),
+        body: JSON.stringify({
+          ...form,
+          registrationDeadline: new Date(form.registrationDeadline).toISOString(),
+          teamSize: Number(form.teamSize),
+          format,
+          customStages: canConfigureStages ? customStages : [],
+        }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to create tournament');
@@ -224,6 +236,12 @@ export const HostTournamentPanel = ({ onBack }) => {
               <p className="font-semibold text-white">
                 {created?.estimatedDate ? new Date(created.estimatedDate).toLocaleDateString() : 'Not scheduled'}
                 {isSingleStageFormat(created?.format) && created?.estimatedTime && ` • ${formatTime12Hour(created.estimatedTime)}`}
+              </p>
+            </div>
+            <div className="mt-3">
+              <span className="text-xs text-[#A1A1A1]">Last Registration</span>
+              <p className="font-semibold text-white">
+                {created?.registrationDeadline ? new Date(created.registrationDeadline).toLocaleString() : 'Not set'}
               </p>
             </div>
           </div>
@@ -336,6 +354,20 @@ export const HostTournamentPanel = ({ onBack }) => {
             <label className="space-y-2 text-sm text-[#A1A1A1]">
               Estimated Match Date
               <input className="auth-input" type="date" name="estimatedDate" value={form.estimatedDate} onChange={updateForm} required />
+            </label>
+
+            <label className="space-y-2 text-sm text-[#A1A1A1]">
+              Last Registration Date &amp; Time
+              <input
+                className="auth-input"
+                type="datetime-local"
+                name="registrationDeadline"
+                value={form.registrationDeadline}
+                min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                onChange={updateForm}
+                required
+              />
+              <span className="block text-xs text-[#737373]">The tournament will remain visible in Matches until this time.</span>
             </label>
 
             {isSingleStage && (

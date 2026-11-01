@@ -157,7 +157,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         <div className="br-match-stat"><span className="label">Paid Entries</span><span className="value">{tournament.successfulEntries}/{tournament.maxTeams}</span></div>
         <div className="br-match-stat"><span className="label">{tournament.format === 'single-match' ? 'Per Kill' : 'Prize Pool'}</span><span className="value">₹{Number(tournament.format === 'single-match' ? tournament.perKillReward || 0 : tournament.prizePool || 0).toLocaleString()}</span></div>
       </div>
-      {(tournament.estimatedDate || tournament.hostMessage) && (
+      {(tournament.estimatedDate || tournament.registrationDeadline || tournament.hostMessage) && (
         <div className="mt-4 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] p-3 text-xs text-[#A1A1A1]">
           {tournament.estimatedDate && (
             <div className="mb-2">
@@ -166,6 +166,12 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
               {tournament.estimatedTime && (
                 <span className="ml-2 text-[#FFB066]">{formatTime12Hour(tournament.estimatedTime)}</span>
               )}
+            </div>
+          )}
+          {tournament.registrationDeadline && (
+            <div className="mb-2">
+              <span className="text-[#A1A1A1]">Last Registration:</span>
+              <b className="text-white"> {new Date(tournament.registrationDeadline).toLocaleString()}</b>
             </div>
           )}
           {tournament.hostMessage && <div><span className="text-[#A1A1A1]">Host Message:</span> <b className="text-white">{tournament.hostMessage}</b></div>}

@@ -137,10 +137,16 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const [myMatches, setMyMatches] = useState([]);
   const [registeredTournaments, setRegisteredTournaments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [visibilityTime, setVisibilityTime] = useState(Date.now());
   const [error, setError] = useState('');
   const [joiningMatch, setJoiningMatch] = useState(null);
   const [joinerGameName, setJoinerGameName] = useState('');
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('clutchzone_open_my_matches') === 'true' ? 'my-matches' : 'live-opponents');
+
+  useEffect(() => {
+    const intervalId = setInterval(() => setVisibilityTime(Date.now()), 30000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   const renderTabContent = () => {
     if (activeTab === 'my-matches') {
@@ -497,6 +503,12 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   }, [matches, activeMatch, game, selectedEntryRange]);
 
   const visibleTournaments = useMemo(() => publicTournaments.filter((tournament) => {
+    const registrationDeadline = tournament.registrationDeadline
+      ? new Date(tournament.registrationDeadline).getTime()
+      : tournament.createdAt
+        ? new Date(tournament.createdAt).getTime() + 2 * 24 * 60 * 60 * 1000
+        : 0;
+    if (registrationDeadline <= visibilityTime) return false;
     if (game !== 'All' && tournament.game !== game) return false;
     if (mode !== 'All' && getTournamentMode(tournament.format) !== mode) return false;
     if (selectedEntryRange?.min !== null && selectedEntryRange?.min !== undefined) {
@@ -504,7 +516,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
       if (entryFee < selectedEntryRange.min || entryFee > selectedEntryRange.max) return false;
     }
     return true;
-  }), [publicTournaments, game, mode, selectedEntryRange]);
+  }), [publicTournaments, game, mode, selectedEntryRange, visibilityTime]);
   const visibleLiveMatches = mode === 'All' ? liveMatches : [];
 
   return (

@@ -8,6 +8,18 @@ import { uploadToCloudinary } from '../utils/uploadToCloudinary.js';
 
 export const COMPLETED_TOURNAMENT_EXPIRY_MS = 2 * 24 * 60 * 60 * 1000;
 
+export const buildTournamentRegistrationWindowQuery = (now = Date.now()) => {
+  const currentTime = new Date(now);
+  const legacyCutoff = new Date(currentTime.getTime() - COMPLETED_TOURNAMENT_EXPIRY_MS);
+  return {
+    $or: [
+      { registrationDeadline: { $gt: currentTime } },
+      { registrationDeadline: { $exists: false }, createdAt: { $gte: legacyCutoff } },
+      { registrationDeadline: null, createdAt: { $gte: legacyCutoff } },
+    ],
+  };
+};
+
 export const isCompletedTournamentExpired = (tournament) => {
   if (!tournament || tournament.status !== 'completed') return false;
   const lastUpdated = tournament.updatedAt || tournament.payoutsDistributedAt || tournament.createdAt;
@@ -177,9 +189,11 @@ export const validateTournamentInput = ({
   perKillReward = 0,
   estimatedDate,
   estimatedTime,
+  registrationDeadline,
   roomId,
   roomPassword,
   hostMessage,
+  now = Date.now(),
 }) => {
   if (!name || !format || entryFee === undefined || maxTeams === undefined) {
     throw new Error('Tournament name, format, entry fee and maximum teams are required');
@@ -221,6 +235,17 @@ export const validateTournamentInput = ({
     throw new Error(requiresTime ? 'Estimated match date and time are invalid' : 'Estimated match date is invalid');
   }
 
+  if (!registrationDeadline) {
+    throw new Error('Last registration date and time are required');
+  }
+  const parsedRegistrationDeadline = new Date(registrationDeadline);
+  if (Number.isNaN(parsedRegistrationDeadline.getTime())) {
+    throw new Error('Last registration date and time are invalid');
+  }
+  if (parsedRegistrationDeadline.getTime() <= now) {
+    throw new Error('Last registration date and time must be in the future');
+  }
+
   if (hostMessage !== undefined && typeof hostMessage !== 'string') {
     throw new Error('Tournament message must be text');
   }
@@ -253,6 +278,7 @@ export const validateTournamentInput = ({
     numericSuccessfulEntries,
     numericPerKillReward,
     estimatedDate: parsedDate,
+    registrationDeadline: parsedRegistrationDeadline,
     roomId: roomId ? String(roomId).trim() : '',
     roomPassword: roomPassword ? String(roomPassword).trim() : '',
     estimatedTime: String(estimatedTime).trim(),
@@ -262,7 +288,7 @@ export const validateTournamentInput = ({
 
 export const createTournament = async (req, res) => {
   try {
-    const { name, game = 'Free Fire', format, entryFee, maxTeams, perGroup, teamSize = 1, teamTournamentMode = 'knockout', successfulEntries = 0, customStages = [], perKillReward = 0, estimatedDate, estimatedTime, roomId, roomPassword, hostMessage } = req.body;
+    const { name, game = 'Free Fire', format, entryFee, maxTeams, perGroup, teamSize = 1, teamTournamentMode = 'knockout', successfulEntries = 0, customStages = [], perKillReward = 0, estimatedDate, estimatedTime, registrationDeadline, roomId, roomPassword, hostMessage } = req.body;
 
     let normalizedValues;
     try {
@@ -279,6 +305,7 @@ export const createTournament = async (req, res) => {
         perKillReward,
         estimatedDate,
         estimatedTime,
+        registrationDeadline,
         roomId,
         roomPassword,
         hostMessage,
@@ -304,6 +331,7 @@ export const createTournament = async (req, res) => {
       perKillReward: isPerKillFormat(format) ? normalizedValues.numericPerKillReward : 0,
       estimatedDate: normalizedValues.estimatedDate,
       estimatedTime: normalizedValues.estimatedTime,
+      registrationDeadline: normalizedValues.registrationDeadline,
       roomId: normalizedValues.roomId,
       roomPassword: normalizedValues.roomPassword,
       hostMessage: normalizedValues.hostMessage,
@@ -705,6 +733,7 @@ export const deleteTournament = async (req, res) => {
 export const listPublicTournaments = async (req, res) => {
   try {
     await cleanupExpiredCompletedTournaments();
+    const now = new Date();
     let currentUserId = null;
     const authHeader = req.headers.authorization || '';
     if (authHeader.startsWith('Bearer ')) {
@@ -717,23 +746,25 @@ export const listPublicTournaments = async (req, res) => {
       }
     }
 
-    const tournaments = await Tournament.find({
-      status: { $in: ['open', 'upcoming', 'active'] },
-      createdAt: { $gte: new Date(Date.now() - COMPLETED_TOURNAMENT_EXPIRY_MS) },
-    })
-      .select('name game format entryFee maxTeams perGroup teamSize teamTournamentMode successfulEntries prizePool perKillReward stages status createdBy createdAt estimatedDate estimatedTime hostMessage roomId roomPassword')
-      .populate('createdBy', 'username')
-      .sort({ createdAt: -1 })
-      .lean();
-
     const registrations = currentUserId
       ? await TournamentParticipant.find({ userId: currentUserId, status: 'registered' })
           .select('tournamentId groupNumber')
           .lean()
       : [];
-
     const registeredTournamentIds = new Set(registrations.map((item) => String(item.tournamentId)));
     const userGroupMap = new Map(registrations.filter((item) => Number(item.groupNumber) > 0).map((item) => [String(item.tournamentId), Number(item.groupNumber)]));
+
+    const tournaments = await Tournament.find({
+      status: { $in: ['open', 'upcoming', 'active'] },
+      $or: [
+        ...buildTournamentRegistrationWindowQuery(now).$or,
+        ...(registeredTournamentIds.size ? [{ _id: { $in: [...registeredTournamentIds] } }] : []),
+      ],
+    })
+      .select('name game format entryFee maxTeams perGroup teamSize teamTournamentMode successfulEntries prizePool perKillReward stages status createdBy createdAt estimatedDate estimatedTime registrationDeadline hostMessage roomId roomPassword')
+      .populate('createdBy', 'username')
+      .sort({ createdAt: -1 })
+      .lean();
 
     return res.json({
       success: true,
@@ -760,8 +791,14 @@ export const listPublicTournaments = async (req, res) => {
 export const joinTournament = async (req, res) => {
   try {
     const { tournamentId } = req.params;
-    const tournamentForRegistration = await Tournament.findById(tournamentId).select('format teamSize status').lean();
+    const now = new Date();
+    const tournamentForRegistration = await Tournament.findById(tournamentId).select('format teamSize status registrationDeadline createdAt').lean();
     if (!tournamentForRegistration) return res.status(404).json({ error: 'Tournament not found' });
+    const registrationDeadline = tournamentForRegistration.registrationDeadline
+      || (tournamentForRegistration.createdAt ? new Date(new Date(tournamentForRegistration.createdAt).getTime() + COMPLETED_TOURNAMENT_EXPIRY_MS) : null);
+    if (registrationDeadline && registrationDeadline <= now) {
+      return res.status(400).json({ error: 'Registration for this tournament has closed' });
+    }
 
     let registration;
     try {
@@ -781,7 +818,12 @@ export const joinTournament = async (req, res) => {
 
     const acceptedStatuses = tournamentForRegistration.format === 'team-vs-team' ? ['open', 'upcoming'] : ['open', 'upcoming', 'active'];
     const tournament = await Tournament.findOneAndUpdate(
-      { _id: tournamentId, status: { $in: acceptedStatuses }, $expr: { $lt: ['$successfulEntries', '$maxTeams'] } },
+      {
+        _id: tournamentId,
+        status: { $in: acceptedStatuses },
+        ...buildTournamentRegistrationWindowQuery(now),
+        $expr: { $lt: ['$successfulEntries', '$maxTeams'] },
+      },
       { $inc: { successfulEntries: 1 } },
       { new: true },
     );
