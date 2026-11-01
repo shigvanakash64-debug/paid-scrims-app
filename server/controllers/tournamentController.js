@@ -225,14 +225,17 @@ export const validateTournamentInput = ({
   if (!Number.isInteger(numericPerGroup) || numericPerGroup < 1 || numericPerGroup > 1000 || (PER_GROUP_FORMATS.has(format) && numericPerGroup > numericMaxTeams)) {
     throw new Error(`Per group must be a whole number between 1 and ${PER_GROUP_FORMATS.has(format) ? 'the maximum teams' : '1000'}`);
   }
-  const requiresTime = requiresSingleStageSchedule(format);
-  if (!estimatedDate || (requiresTime && !estimatedTime)) {
-    throw new Error(requiresTime ? 'Estimated match date/time fields (estimatedDate and estimatedTime) are required' : 'Estimated match date is required');
+  if (!estimatedDate || !estimatedTime) {
+    throw new Error('Estimated match date and time are required');
   }
 
-  const parsedDate = requiresTime ? new Date(`${estimatedDate}T${estimatedTime}`) : new Date(`${estimatedDate}T00:00:00`);
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(estimatedTime)) {
+    throw new Error('Estimated match time is invalid');
+  }
+
+  const parsedDate = new Date(`${estimatedDate}T${estimatedTime}`);
   if (Number.isNaN(parsedDate.getTime())) {
-    throw new Error(requiresTime ? 'Estimated match date and time are invalid' : 'Estimated match date is invalid');
+    throw new Error('Estimated match date and time are invalid');
   }
 
   if (!registrationDeadline) {

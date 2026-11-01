@@ -79,7 +79,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
     entryFee: 20,
     maxTeams: 10,
     estimatedDate: '',
-    estimatedTime: '',
+    estimatedTime: '19:30',
     registrationDeadline: futureRegistrationDeadline,
     roomId: '',
     roomPassword: '',
@@ -92,11 +92,32 @@ test('validateTournamentInput requires match schedule and room details', () => {
     entryFee: 20,
     maxTeams: 10,
     estimatedDate: '2026-09-15',
-    estimatedTime: '',
+    estimatedTime: '19:30',
     registrationDeadline: futureRegistrationDeadline,
     roomId: 'ABCD12',
     roomPassword: '123456',
   }));
+
+  assert.throws(() => validateTournamentInput({
+    name: 'Missing Time Cup',
+    format: 'custom',
+    game: 'Free Fire',
+    entryFee: 20,
+    maxTeams: 10,
+    estimatedDate: '2026-09-15',
+    registrationDeadline: futureRegistrationDeadline,
+  }), /Estimated match date and time are required/i);
+
+  assert.throws(() => validateTournamentInput({
+    name: 'Invalid Time Cup',
+    format: 'team-vs-team',
+    game: 'Valorant',
+    entryFee: 20,
+    maxTeams: 10,
+    estimatedDate: '2026-09-15',
+    estimatedTime: '25:90',
+    registrationDeadline: futureRegistrationDeadline,
+  }), /Estimated match time is invalid/i);
 
   assert.doesNotThrow(() => validateTournamentInput({
     name: 'Test Cup',
@@ -131,6 +152,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
     entryFee: 20,
     maxTeams: 10,
     estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
     registrationDeadline: futureRegistrationDeadline,
   }));
 
@@ -142,6 +164,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
     maxTeams: 10,
     teamTournamentMode: 'bo3',
     estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
     registrationDeadline: futureRegistrationDeadline,
   }));
 
@@ -152,6 +175,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
     entryFee: 20,
     maxTeams: 10,
     estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
     registrationDeadline: futureRegistrationDeadline,
     hostMessage: `${'a'.repeat(297)} !?`,
   }));
@@ -162,6 +186,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
     entryFee: 20,
     maxTeams: 10,
     estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
     registrationDeadline: futureRegistrationDeadline,
     hostMessage: 'a'.repeat(301),
   }), /cannot exceed 300/i);
@@ -173,6 +198,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
     entryFee: 20,
     maxTeams: 10,
     estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
     registrationDeadline: futureRegistrationDeadline,
   }), /supports Team vs Team tournaments/i);
 
@@ -193,6 +219,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
     entryFee: 20,
     maxTeams: 10,
     estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
   }), /Last registration date and time are required/i);
 
   assert.throws(() => validateTournamentInput({
@@ -202,6 +229,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
     entryFee: 20,
     maxTeams: 10,
     estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
     registrationDeadline: '2026-09-15T12:00:00.000Z',
   }), /must be in the future/i);
 
@@ -212,6 +240,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
     entryFee: 20,
     maxTeams: 10,
     estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
     registrationDeadline: futureRegistrationDeadline,
   }).registrationDeadline;
   assert.equal(validatedDeadline.toISOString(), futureRegistrationDeadline);
@@ -231,7 +260,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
       perGroup: 25,
       perKillReward: format === 'br-per-kill' ? 5 : 0,
       estimatedDate: '2026-09-15',
-      estimatedTime: format === 'br-per-kill' ? '19:30' : '',
+      estimatedTime: '19:30',
       registrationDeadline: futureRegistrationDeadline,
     });
     assert.equal(validated.numericPerGroup, 25);
@@ -245,6 +274,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
     maxTeams: 10,
     perGroup: 11,
     estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
     registrationDeadline: futureRegistrationDeadline,
   }), /Per group must be a whole number/i);
 
@@ -257,6 +287,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
       maxTeams: 10,
       teamSize: 4,
       estimatedDate: '2026-09-15',
+      estimatedTime: '19:30',
       registrationDeadline: futureRegistrationDeadline,
     });
     assert.equal(validated.numericTeamSize, 4);
@@ -270,6 +301,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
     maxTeams: 10,
     teamSize: 7,
     estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
     registrationDeadline: futureRegistrationDeadline,
   }), /Team size must be/i);
 

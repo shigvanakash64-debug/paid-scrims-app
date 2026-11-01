@@ -25,7 +25,6 @@ const CUSTOM_GAMES = ['Free Fire', 'Mini Militia', 'BGMI', 'PUBG Mobile', 'Fortn
 const TEAM_VS_TEAM_GAMES = ['Clash Royale', 'EA Sports FC Mobile', 'eFootball', 'Tekken 8', 'Street Fighter 6', 'EA Sports FC 26', 'Chess', 'COD Mobile', 'Mobile Legends: Bang Bang', 'Honor of Kings', 'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends', 'Rainbow Six Siege', 'Overwatch 2', 'Marvel Rivals', 'Rocket League', 'Brawl Stars', 'Clash of Clans', 'Age of Empires II', 'Age of Empires IV'];
 const ALL_GAMES = [...CUSTOM_GAMES, ...TEAM_VS_TEAM_GAMES.filter((game) => !CUSTOM_GAMES.includes(game))];
 const isPerKillFormat = (value) => value === 'single-match' || value === 'br-per-kill';
-const isSingleStageFormat = (value) => isPerKillFormat(value);
 const isCustomFormat = (value) => value === 'custom' || value === 'br-custom' || value === 'cs-custom' || value === 'team-vs-team';
 const usesPerGroup = (value) => ['single-match', 'br-per-kill', 'custom', 'br-custom', 'cs-custom'].includes(value);
 const usesTeamSize = (value) => ['br-custom', 'cs-custom', 'team-vs-team'].includes(value);
@@ -72,7 +71,6 @@ export const HostTournamentPanel = ({ onBack }) => {
     });
   };
   const isPerKill = isPerKillFormat(format);
-  const isSingleStage = isSingleStageFormat(format);
   const isCustom = isCustomFormat(format);
   const canConfigureStages = isCustom && format !== 'team-vs-team';
   const gameFormatWarning = getGameFormatWarning(format, form.game);
@@ -83,8 +81,8 @@ export const HostTournamentPanel = ({ onBack }) => {
     event.preventDefault();
     setError('');
 
-    if (!form.estimatedDate || (isSingleStage && !form.estimatedTime)) {
-      setError(isSingleStage ? 'Please add the estimated match date and time before creating the tournament.' : 'Please add the estimated match date before creating the tournament.');
+    if (!form.estimatedDate || !form.estimatedTime) {
+      setError('Please add the estimated match date and time before creating the tournament.');
       return;
     }
 
@@ -232,10 +230,10 @@ export const HostTournamentPanel = ({ onBack }) => {
           </div>
           <div className="mt-4">
             <div>
-              <span className="text-xs text-[#A1A1A1]">{isSingleStageFormat(created?.format) ? 'Estimated Date & Time' : 'Estimated Date'}</span>
+              <span className="text-xs text-[#A1A1A1]">Estimated Date & Time</span>
               <p className="font-semibold text-white">
                 {created?.estimatedDate ? new Date(created.estimatedDate).toLocaleDateString() : 'Not scheduled'}
-                {isSingleStageFormat(created?.format) && created?.estimatedTime && ` • ${formatTime12Hour(created.estimatedTime)}`}
+                {created?.estimatedTime && ` • ${formatTime12Hour(created.estimatedTime)}`}
               </p>
             </div>
             <div className="mt-3">
@@ -370,12 +368,10 @@ export const HostTournamentPanel = ({ onBack }) => {
               <span className="block text-xs text-[#737373]">The tournament will remain visible in Matches until this time.</span>
             </label>
 
-            {isSingleStage && (
-              <label className="space-y-2 text-sm text-[#A1A1A1]">
-                Estimated Match Time
-                <input className="auth-input" type="time" name="estimatedTime" value={form.estimatedTime} onChange={updateForm} required />
-              </label>
-            )}
+            <label className="space-y-2 text-sm text-[#A1A1A1]">
+              Estimated Match Time
+              <input className="auth-input" type="time" name="estimatedTime" value={form.estimatedTime} onChange={updateForm} required />
+            </label>
 
             <label className="space-y-2 text-sm text-[#A1A1A1] md:col-span-2">
               <span className="flex items-center justify-between gap-3">
