@@ -4,6 +4,7 @@ export const BottomNav = ({ currentScreen, onScreenChange, user, isVisible = tru
     { id: 'pairing', label: 'Pairing', icon: '🔗' },
     { id: 'global-chat', label: 'Global Chat', icon: '💬' },
     { id: 'wallet', label: 'Wallet', icon: '💰' },
+    { id: 'ads', label: 'Ads', icon: '▶' },
     { id: 'leaderboard', label: 'Ranks', icon: '🏆' },
   ];
 

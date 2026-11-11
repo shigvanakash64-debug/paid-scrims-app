@@ -4,6 +4,7 @@ import { PairingScreen } from './screens/PairingScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { WalletScreen } from './screens/WalletScreen';
+import { AdsScreen } from './screens/AdsScreen';
 import { PaymentStatusScreen } from './screens/PaymentStatusScreen';
 import { InboxScreen } from './screens/InboxScreen';
 import { GlobalChatScreen } from './screens/GlobalChatScreen';
@@ -36,7 +37,7 @@ const HomeScreen = lazy(() => import('./screens/HomeScreen').then(m => ({ defaul
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 const ENTRY_CHOICE_KEY = 'clutchzone_entry_choice';
-const VALID_SCREENS = ['entry', 'home', 'pairing', 'profile', 'wallet', 'leaderboard', 'settings', 'admin', 'host', 'inbox', 'global-chat', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
+const VALID_SCREENS = ['entry', 'home', 'pairing', 'profile', 'wallet', 'ads', 'leaderboard', 'settings', 'admin', 'host', 'inbox', 'global-chat', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
 
 const getStoredEntryChoice = () => {
   if (typeof window === 'undefined') return null;
@@ -812,6 +813,8 @@ function App() {
         return <ProfileScreen user={user} onUserUpdate={handleUserUpdate} onProfileSave={handleProfileSave} onNavigate={handleScreenChange} />;
       case 'wallet':
         return <WalletScreen user={user} onUserUpdate={handleUserUpdate} />;
+      case 'ads':
+        return <AdsScreen />;
       case 'leaderboard':
         return <LeaderboardScreen user={user} onScreenChange={handleScreenChange} onMatchSelect={setMatch} />;
       case 'payment-status':
