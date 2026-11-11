@@ -110,6 +110,13 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .auth-input{background:var(--bg);border:1px solid var(--border);color:#fff;padding:12px 12px;font-family:'Barlow',sans-serif;font-size:14px;border-radius:6px}
 .auth-input::placeholder{color:var(--dim)}
 .auth-actions{display:grid;gap:10px;margin-top:8px}
+.register-progress{display:grid;gap:10px;padding:12px;border:1px solid rgba(255,106,0,.3);border-radius:8px;background:rgba(255,106,0,.06)}
+.register-progress__label{display:flex;align-items:center;gap:9px;color:#FFB066;font-size:13px;line-height:1.4}
+.register-progress__spinner{width:16px;height:16px;flex:none;border:2px solid rgba(255,176,102,.3);border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite}
+.register-progress__track{height:4px;overflow:hidden;border-radius:4px;background:rgba(255,255,255,.1)}
+.register-progress__bar{display:block;width:40%;height:100%;border-radius:inherit;background:var(--orange);animation:register-progress-slide 1.4s ease-in-out infinite}
+@keyframes register-progress-slide{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
+@media (prefers-reduced-motion:reduce){.register-progress__spinner,.register-progress__bar{animation:none}.register-progress__bar{width:100%}}
 .profile-form{padding:16px;margin:0 16px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px}
 .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
 .form-label{font-family:'Rajdhani',sans-serif;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}

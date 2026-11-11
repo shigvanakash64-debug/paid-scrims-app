@@ -10,19 +10,25 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (loading) return;
     setError('');
     setLoading(true);
 
-    const result = await onRegister({
-      username: username.trim(),
-      password,
-      referralCode: referralCode.trim(),
-      role,
-    });
+    try {
+      const result = await onRegister({
+        username: username.trim(),
+        password,
+        referralCode: referralCode.trim(),
+        role,
+      });
 
-    setLoading(false);
-    if (result?.success === false) {
-      setError(result.message || 'Registration failed');
+      if (result?.success === false) {
+        setError(result.message || 'Registration failed');
+      }
+    } catch (registrationError) {
+      setError(registrationError.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -31,7 +37,7 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
       <div className="auth-card">
         <div className="auth-title">Register</div>
         <div className="auth-sub">Create your Clutch Zone account</div>
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="auth-form" aria-busy={loading}>
           <label className="auth-field">
             <span className="auth-label">In Game Name</span>
             <input
@@ -73,11 +79,28 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
             />
           </label>
           {error && <div className="text-[#FCA5A5] text-sm mt-2">{error}</div>}
+          {loading && (
+            <div className="register-progress" role="status" aria-live="polite">
+              <div className="register-progress__label">
+                <span className="register-progress__spinner" aria-hidden="true" />
+                <span>Creating your account... This may take a moment.</span>
+              </div>
+              <div
+                className="register-progress__track"
+                role="progressbar"
+                aria-label="Creating your account"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <span className="register-progress__bar" />
+              </div>
+            </div>
+          )}
           <div className="auth-actions">
             <button className="btn-primary" type="submit" disabled={loading}>
-              {loading ? 'Please wait...' : 'REGISTER'}
+              {loading ? 'CREATING ACCOUNT...' : 'REGISTER'}
             </button>
-            <button className="btn-outline" type="button" onClick={onNavigateLogin}>
+            <button className="btn-outline" type="button" onClick={onNavigateLogin} disabled={loading}>
               SIGN IN
             </button>
           </div>
