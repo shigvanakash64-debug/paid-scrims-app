@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AlertCircle, Loader } from 'lucide-react';
 import { Button } from './Button';
 import { Card } from './Card';
+import { rupeesToCz } from '../utils/currency';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -36,7 +37,8 @@ export const BRJoinFlow = ({
   if (!isOpen) return null;
 
   // Validate wallet balance
-  const hasBalance = walletBalance >= match.entryFee;
+  const entryFeeCz = rupeesToCz(match.entryFee);
+  const hasBalance = walletBalance >= entryFeeCz;
 
   // Step 1: Initiate join (deduct entry fee)
   const handleJoin = async () => {
@@ -44,7 +46,7 @@ export const BRJoinFlow = ({
     setSuccess('');
 
     if (!hasBalance) {
-      setError(`Insufficient balance. Required: ₹${match.entryFee}, Available: ₹${walletBalance}`);
+      setError(`Insufficient balance. Required: CZ ${entryFeeCz}, Available: CZ ${walletBalance}`);
       return;
     }
 
@@ -145,7 +147,7 @@ export const BRJoinFlow = ({
                   </div>
                   <div className="info-row">
                     <span className="label">Entry Fee:</span>
-                    <span className="value price">₹{match.entryFee}</span>
+                    <span className="value price">₹{match.entryFee} (CZ {entryFeeCz})</span>
                   </div>
                   <div className="divider"></div>
                   <div className="info-row">
@@ -192,7 +194,7 @@ export const BRJoinFlow = ({
                       Processing...
                     </>
                   ) : (
-                    `Pay ₹${match.entryFee}`
+                    `Pay CZ ${entryFeeCz} (₹${match.entryFee})`
                   )}
                 </Button>
               </div>

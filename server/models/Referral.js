@@ -46,12 +46,12 @@ const referralSchema = new mongoose.Schema({
   },
   rewardAmount: {
     type: Number,
-    default: 5,
+    default: 50,
     min: 0,
   },
   rewardThreshold: {
     type: Number,
-    default: 30,
+    default: 300,
     min: 0,
   },
   rewardedAt: Date,

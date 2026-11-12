@@ -87,7 +87,7 @@ export const UsersPanel = () => {
   };
 
   const handleAdjustBalance = async (userId) => {
-    const amount = prompt('Enter amount to add/subtract (negative for subtract):');
+    const amount = prompt('Enter CZ amount to add/subtract (negative for subtract):');
     if (amount === null) return;
     const parsedAmount = parseFloat(amount);
     if (Number.isNaN(parsedAmount)) {

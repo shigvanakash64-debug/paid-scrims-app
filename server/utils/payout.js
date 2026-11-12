@@ -11,15 +11,15 @@ export const calculateMatchPlatformFee = (entryFee, playerCount) => {
 
 const getOfficialPrizePool = (entryFee) => {
   const prizePoolTable = {
-    5: 7,
-    10: 15,
-    20: 35,
-    30: 50,
-    50: 80,
-    100: 170,
-    200: 360,
-    500: 900,
-    1000: 1800,
+    50: 70,
+    100: 150,
+    200: 350,
+    300: 500,
+    500: 800,
+    1000: 1700,
+    2000: 3600,
+    5000: 9000,
+    10000: 18000,
   };
 
   return prizePoolTable[entryFee] || Object.entries(prizePoolTable)

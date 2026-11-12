@@ -5,6 +5,7 @@ import BRJoinFlow from './BRJoinFlow';
 import BRDetailView from './BRDetailView';
 import TournamentCard from './TournamentCard';
 import { Button } from './Button';
+import { rupeesToCz } from '../utils/currency';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const BR_TOURNAMENT_FORMATS = new Set(['single-match', 'custom', 'br-per-kill', 'br-custom', 'team-vs-team']);
@@ -43,7 +44,7 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {}, gameFilt
         : tournament.format === 'team-vs-team' ? 'Team vs Team' : null;
     if (modeFilter !== 'All' && tournamentMode !== modeFilter) return false;
     if (entryRange?.min !== null && entryRange?.min !== undefined) {
-      const entryFee = Number(tournament.entryFee);
+      const entryFee = rupeesToCz(Number(tournament.entryFee));
       if (entryFee < entryRange.min || entryFee > entryRange.max) return false;
     }
     return true;
@@ -52,7 +53,8 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {}, gameFilt
     if (gameFilter !== 'All' && gameFilter !== 'Free Fire') return false;
     if (modeFilter !== 'All' && modeFilter !== 'Per Kill') return false;
     if (entryRange?.min !== null && entryRange?.min !== undefined) {
-      if (match.entryFee < entryRange.min || match.entryFee > entryRange.max) return false;
+      const entryFeeCz = rupeesToCz(match.entryFee);
+      if (entryFeeCz < entryRange.min || entryFeeCz > entryRange.max) return false;
     }
     return true;
   });
@@ -114,9 +116,10 @@ export const BRMatchSection = ({ user = null, onMatchSelect = () => {}, gameFilt
     }
 
     const walletBalance = user.wallet?.balance || 0;
-    if (walletBalance < match.entryFee) {
+    const entryFeeCz = rupeesToCz(match.entryFee);
+    if (walletBalance < entryFeeCz) {
       setError(
-        `Insufficient wallet balance. Required: ₹${match.entryFee}, Available: ₹${walletBalance}`
+        `Insufficient wallet balance. Required: CZ ${entryFeeCz}, Available: CZ ${walletBalance}`
       );
       return;
     }

@@ -345,7 +345,7 @@ export const WithdrawalCard = ({
       </div>
       <div className="text-right">
         <p className="text-xs text-[#A1A1A1]">AMOUNT</p>
-        <p className="text-2xl font-bold text-[#FF6A00]">CZ{amount}</p>
+        <p className="text-2xl font-bold text-[#FF6A00]">₹{amount}</p>
       </div>
     </div>
 

@@ -113,7 +113,7 @@ export const WithdrawalsPanel = () => {
         <p className="text-sm text-[#A1A1A1] mt-2">
           {summary.pending.count} pending • {summary.approved.count} approved
         </p>
-        <p className="text-xs text-[#F59E0B] mt-1">Minimum withdrawal is CZ100.</p>
+        <p className="text-xs text-[#F59E0B] mt-1">Minimum withdrawal is CZ 1000 (₹100).</p>
       </div>
 
       {/* Filter */}
@@ -190,13 +190,13 @@ export const WithdrawalsPanel = () => {
         <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
           <p className="text-xs text-[#A1A1A1]">PENDING AMOUNT</p>
           <p className="text-2xl font-bold text-[#F59E0B] mt-2">
-            CZ{summary.pending.amount.toLocaleString()}
+            ₹{summary.pending.amount.toLocaleString()}
           </p>
         </div>
         <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">
           <p className="text-xs text-[#A1A1A1]">APPROVED TOTAL</p>
           <p className="text-2xl font-bold text-[#22C55E] mt-2">
-            CZ{summary.approved.amount.toLocaleString()}
+            ₹{summary.approved.amount.toLocaleString()}
           </p>
         </div>
         <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4">

@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "migrate:cz-v1": "node scripts/migrate-currency-to-cz-v1.mjs"
   },
   "engines": {
     "node": "18.x"

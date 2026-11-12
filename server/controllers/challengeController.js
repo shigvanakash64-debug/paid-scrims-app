@@ -3,10 +3,10 @@ import Match from '../models/Match.js';
 import User from '../models/User.js';
 import { getNextPaymentUpi, serializeMatch } from './matchController.js';
 
-const entryFees = [5, 10, 20, 30, 50, 100, 200, 500, 1000];
+const entryFees = [50, 100, 200, 300, 500, 1000, 2000, 5000, 10000];
 const modes = ['1v1', '2v2', '3v3', '4v4'];
 const types = ['Headshot', 'Normal Headshot', 'Bodyshot', 'Only One Tap', 'Only Punch', 'Only Desert', 'Only Melee Weapon', 'Only Knife Throw', 'Only SMG Headshot', 'Only AR Headshot', 'Only AWM Bodyshot', 'Only Grenade', 'Rank Clash Squad'];
-const prizePools = { 5: 7, 10: 15, 20: 35, 30: 50, 50: 80, 100: 170, 200: 360, 500: 900, 1000: 1800 };
+const prizePools = { 50: 70, 100: 150, 200: 350, 300: 500, 500: 800, 1000: 1700, 2000: 3600, 5000: 9000, 10000: 18000 };
 const activeMatchStatuses = ['waiting', 'payment_pending', 'verified', 'ongoing', 'result_pending', 'in-progress'];
 
 const expireChallenges = async () => {

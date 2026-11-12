@@ -5,8 +5,6 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 const modes = ['1v1', '2v2', '3v3', '4v4'];
 const killTypes = ['Normal Headshot', 'Headshot', 'Bodyshot', 'Only One Tap', 'Only Punch', 'Only Desert', 'Only Melee Weapon', 'Only Knife Throw', 'Only SMG Headshot', 'Only AR Headshot', 'Only AWM Bodyshot', 'Only Grenade', 'Rank Clash Squad'];
-const entryFees = [5, 10, 20, 30, 50, 100, 200, 500, 1000];
-
 const authConfig = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` } });
 
 export const LeaderboardScreen = ({ user, onScreenChange, onMatchSelect }) => {

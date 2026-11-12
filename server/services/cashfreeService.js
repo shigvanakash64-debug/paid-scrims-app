@@ -11,6 +11,7 @@ import {
 import PaymentDeposit from '../models/PaymentDeposit.js';
 import User from '../models/User.js';
 import { sendNotification } from './notificationService.js';
+import { rupeesToCz } from '../utils/currency.js';
 
 const API_VERSION = process.env.CASHFREE_API_VERSION || '2022-09-01';
 const paymentGateway = new CFPaymentGateway();
@@ -123,12 +124,14 @@ export const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, pay
       message: 'Deposit already credited to wallet.',
       orderId,
       amount: Number(depositRecord.amount || 0),
+      creditedAmount: rupeesToCz(depositRecord.amount),
       walletBalance: Number(user.wallet.balance || 0),
       transactionId: depositRecord._id?.toString() || null,
     };
   }
 
   if (isSuccessfulPaymentStatus(paymentStatus)) {
+    const creditedAmount = rupeesToCz(depositRecord.amount);
     let session = null;
     let useTransaction = false;
 
@@ -175,23 +178,24 @@ export const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, pay
           message: 'Deposit already credited to wallet.',
           orderId,
           amount: Number(depositRecord.amount || 0),
+          creditedAmount: rupeesToCz(depositRecord.amount),
           walletBalance: Number(user ? user.wallet.balance : 0),
           transactionId: depositRecord._id?.toString() || null,
         };
       }
 
       const userUpdateQuery = {
-        $inc: { 'wallet.balance': Number(depositRecord.amount || 0) },
+        $inc: { 'wallet.balance': creditedAmount },
         $push: {
           'wallet.transactions': {
             type: 'deposit',
-            amount: Number(depositRecord.amount || 0),
+            amount: creditedAmount,
             description: `Wallet deposit via Cashfree (${orderId})`,
             timestamp: new Date(),
           },
           notifications: {
             type: 'success',
-            message: `₹${depositRecord.amount} deposited successfully to your wallet via Cashfree.`,
+            message: `₹${depositRecord.amount} deposited successfully. CZ ${creditedAmount} was added to your wallet.`,
             relatedMatch: null,
           },
         },
@@ -216,13 +220,13 @@ export const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, pay
         sendNotification(
           [updatedUser.onesignalPlayerId],
           '💰 Deposit successful',
-          `₹${depositRecord.amount} has been added to your wallet.`,
+          `₹${depositRecord.amount} deposited. CZ ${creditedAmount} has been added to your wallet.`,
           {
             type: 'success',
             priority: 9,
             data: {
               eventType: 'deposit_success',
-              amount: depositRecord.amount,
+              amount: creditedAmount,
               provider: 'cashfree',
             },
           }
@@ -235,6 +239,7 @@ export const finalizeDeposit = async ({ orderId, paymentStatus, cfPaymentId, pay
         message: 'Deposit confirmed and wallet updated.',
         orderId,
         amount: Number(depositRecord.amount || 0),
+        creditedAmount,
         walletBalance: Number(updatedUser.wallet.balance || 0),
         transactionId: depositRecord._id?.toString() || null,
       };

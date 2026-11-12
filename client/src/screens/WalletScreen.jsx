@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { czToRupees, rupeesToCz } from '../utils/currency';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -9,7 +10,7 @@ const AmountChip = ({ amount, selected, onClick }) => (
     onClick={() => onClick(String(amount))}
     className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${selected ? 'border-[#FF6A00] bg-[#FF6A00] text-black' : 'border-[#2A2A2A] bg-[#0B0B0B] text-white hover:border-[#FF6A00]'}`}
   >
-    CZ {amount}
+    ₹{amount}
   </button>
 );
 
@@ -17,7 +18,7 @@ const CheckoutSummaryCard = ({ amount }) => (
   <div className="rounded-3xl border border-[#2A2A2A] bg-[#0B0B0B] p-5 shadow-[0_18px_35px_rgba(0,0,0,0.25)]">
     <div className="flex items-center justify-between text-sm text-[#A1A1A1] mb-4">
       <span>Deposit Amount</span>
-      <span className="font-semibold text-white">CZ {amount || 0}</span>
+      <span className="font-semibold text-white">₹{amount || 0}</span>
     </div>
     <div className="flex items-center justify-between text-sm text-[#A1A1A1] mb-4">
       <span>Platform Charges</span>
@@ -27,6 +28,7 @@ const CheckoutSummaryCard = ({ amount }) => (
       <span>Total Payable</span>
       <span>₹{amount || 0}</span>
     </div>
+    <div className="mt-3 text-xs text-[#A1A1A1]">Wallet credit: CZ {rupeesToCz(amount || 0)}</div>
   </div>
 );
 
@@ -65,7 +67,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     matchRequirementMet: false,
     successfulDepositAmount: 0,
     qualifyingPaidMatchCount: 0,
-    message: 'Deposit ₹20 and play a ₹20+ entry match before redeeming.',
+    message: 'Deposit CZ 200 (₹20) and play a CZ 200+ entry match before redeeming.',
   });
   const [expandedSections, setExpandedSections] = useState({
     deposits: false,
@@ -90,7 +92,9 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       const depositTotal = walletTransactions
         .filter((item) => item.type === 'deposit' && Number(item.amount) > 0)
         .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-      const qualifyingPayMatches = walletTransactions.filter((item) => item.type === 'fee' && Number(item.amount) < 0).length;
+      const qualifyingPayMatches = walletTransactions.filter(
+        (item) => item.type === 'fee' && Number(item.amount) <= -rupeesToCz(20)
+      ).length;
 
       setBalance(userData.wallet?.balance || 0);
       setBonusBalance(userData.wallet?.bonusBalance || 0);
@@ -100,12 +104,12 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       setDeposits(depositTransactions);
       setRedeemals(withdrawalResponse.data.withdrawals || []);
       setEligibility({
-        canWithdraw: depositTotal >= 20 && qualifyingPayMatches >= 1,
-        depositRequirementMet: depositTotal >= 20,
+        canWithdraw: depositTotal >= rupeesToCz(20) && qualifyingPayMatches >= 1,
+        depositRequirementMet: depositTotal >= rupeesToCz(20),
         matchRequirementMet: qualifyingPayMatches >= 1,
         successfulDepositAmount: depositTotal,
         qualifyingPaidMatchCount: qualifyingPayMatches,
-        message: depositTotal >= 20 && qualifyingPayMatches >= 1 ? 'Eligible to redeem' : 'Deposit ₹20 and play a ₹20+ entry match before redeeming.',
+        message: depositTotal >= rupeesToCz(20) && qualifyingPayMatches >= 1 ? 'Eligible to redeem' : 'Deposit CZ 200 (₹20) and play a CZ 200+ entry match before redeeming.',
       });
       onUserUpdate(userData);
     } catch (error) {
@@ -142,8 +146,8 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       return;
     }
 
-    if (!withdrawalAmount || amount < 100) {
-      setMessage('Minimum redemption amount is CZ100');
+    if (!withdrawalAmount || amount < rupeesToCz(100)) {
+      setMessage('Minimum redemption is CZ 1000 (₹100)');
       return;
     }
 
@@ -156,7 +160,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
     try {
       const token = localStorage.getItem('clutchzone_token');
       await axios.post(`${API_BASE}/wallet/withdraw`, {
-        amount,
+        amount: czToRupees(amount),
         wallet: 'main',
         upi: normalizedUpi,
       }, {
@@ -228,11 +232,11 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
       return;
     }
     if (amount < 5) {
-      setMessage('Minimum deposit amount is CZ5');
+      setMessage('Minimum deposit amount is ₹5');
       return;
     }
     if (amount > 10000) {
-      setMessage('Maximum deposit amount is CZ10000');
+      setMessage('Maximum deposit amount is ₹10000');
       return;
     }
     if (!cashfreeLoaded) {
@@ -326,7 +330,8 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         <div className="wallet-balance-card-top text-center">
           <div className="text-sm uppercase tracking-[0.22em] text-[#A1A1A1] mb-2">Wallet Balance</div>
           <div className="text-5xl font-bold text-[#FF6A00] mb-3">CZ - {balance.toLocaleString()}</div>
-          <div className="text-sm text-[#A1A1A1]">1 CZ = ₹1</div>
+          <div className="text-sm text-[#A1A1A1]">1 CZ = ₹0.10 · 10 CZ = ₹1.00</div>
+          <div className="mt-1 text-xs text-[#737373]">Available value: ₹{czToRupees(balance).toLocaleString()}</div>
         </div>
       </div>
 
@@ -368,11 +373,11 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
           <div className="mt-3 space-y-2 text-sm text-white">
             <div className="flex items-center justify-between">
               <span>Deposit requirement</span>
-              <span>{eligibility.successfulDepositAmount || 0} / 20</span>
+              <span>CZ {eligibility.successfulDepositAmount || 0} / CZ {rupeesToCz(20)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Match requirement</span>
-              <span>{eligibility.qualifyingPaidMatchCount || 0} / 1 qualifying match</span>
+              <span>{eligibility.qualifyingPaidMatchCount || 0} / 1 match (CZ {rupeesToCz(20)}+)</span>
             </div>
           </div>
           <div className="mt-3 text-xs text-[#A1A1A1]">{eligibility.message}</div>
@@ -397,13 +402,13 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="block text-sm text-[#A1A1A1]">Custom Amount</label>
-                <span className="text-xs text-[#A1A1A1]">CZ 5 - CZ 10000</span>
+                <span className="text-xs text-[#A1A1A1]">₹5 - ₹10000</span>
               </div>
               <input
                 type="number"
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
-                placeholder="Enter deposit amount"
+                placeholder="Enter amount in rupees"
                 min="5"
                 max="10000"
                 className="w-full rounded-[16px] border border-[#2A2A2A] bg-[#0B0B0B] px-5 py-4 text-lg font-semibold text-white outline-none transition focus:border-[#FF6A00]"
@@ -443,17 +448,18 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               <div className="grid gap-2 md:grid-cols-2">
                 <div className="rounded-2xl border border-[#FF6A00] bg-[#1a0c00] px-4 py-3 text-left text-sm font-semibold text-white">
                   Main Wallet
-                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">CZ - {balance.toLocaleString()}</div>
+                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">CZ - {balance.toLocaleString()} (₹{czToRupees(balance).toLocaleString()})</div>
                 </div>
                 <div className="rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-left text-sm font-semibold text-[#A1A1A1]">
                   All Time Referral Money
-                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">CZ - {referralEarningsBalance.toLocaleString()}</div>
+                  <div className="mt-1 text-xs font-normal text-[#A1A1A1]">CZ - {referralEarningsBalance.toLocaleString()} (₹{czToRupees(referralEarningsBalance).toLocaleString()})</div>
                   <div className="mt-1 text-xs font-normal text-[#737373]">View only</div>
                 </div>
               </div>
             </div>
             <div>
               <label className="block text-sm text-[#A1A1A1] mb-2">UPI ID</label>
+              <div className="mb-2 text-xs text-[#A1A1A1]">Minimum CZ 1000 (₹100). Amount is entered in CZ and paid out in rupees.</div>
               <input
                 type="text"
                 value={upiId}
@@ -463,27 +469,27 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               />
             </div>
             <div>
-              <label className="block text-sm text-[#A1A1A1] mb-2">Amount</label>
+              <label className="block text-sm text-[#A1A1A1] mb-2">Amount (CZ)</label>
               <input
                 type="number"
                 value={withdrawalAmount}
                 onChange={(e) => setRedeemalAmount(e.target.value)}
                 placeholder="Enter amount"
                 className="w-full rounded-2xl border border-[#2A2A2A] bg-[#0B0B0B] px-4 py-3 text-white outline-none focus:border-[#FF6A00]"
-                min="100"
+                min={rupeesToCz(100)}
                 max={balance}
               />
             </div>
 
             <button
               onClick={handleRedeemalRequest}
-              disabled={loading || !upiId.trim() || !withdrawalAmount || parseFloat(withdrawalAmount) < 100 || parseFloat(withdrawalAmount) > balance}
+              disabled={loading || !upiId.trim() || !withdrawalAmount || parseFloat(withdrawalAmount) < rupeesToCz(100) || parseFloat(withdrawalAmount) > balance}
               className="w-full rounded-3xl bg-[#FF6A00] px-6 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-black transition disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? 'Submitting...' : 'Request Redemption'}
             </button>
 
-            <div className="mt-2 text-xs text-[#A1A1A1]">Note: Minimum redemption is CZ100 from the Main Wallet. All Time Referral Money is view-only. Redemptions require admin approval and may take 24-48 hours.</div>
+            <div className="mt-2 text-xs text-[#A1A1A1]">Minimum redemption is CZ 1000 (₹100). All Time Referral Money is view-only. Redemptions require admin approval and may take 24-48 hours.</div>
           </div>
         )}
       </div>
@@ -531,7 +537,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               <div key={withdrawal._id} className="rounded-2xl border border-[#1F1F1F] bg-[#0B0B0B] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-white font-semibold">CZ - {Number(withdrawal.amount).toLocaleString()}</div>
+                    <div className="text-white font-semibold">CZ - {rupeesToCz(withdrawal.amount).toLocaleString()} (₹{Number(withdrawal.amount).toLocaleString()})</div>
                     <div className="text-xs text-[#A1A1A1]">UPI: {withdrawal.upi || '—'}</div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${withdrawal.status === 'approved' ? 'bg-[#022c0b] text-[#22C55E]' : withdrawal.status === 'rejected' ? 'bg-[#3d1c1c] text-[#EF4444]' : 'bg-[#2A2A2A] text-[#F59E0B]'}`}>{withdrawal.status}</span>

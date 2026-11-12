@@ -12,6 +12,7 @@ import {
 } from "../services/notificationService.js";
 import { creditCashback, creditWelcomeBonus, creditReferralReward, markCompletedPaidMatch, updateReferralStatus } from "../utils/rewardService.js";
 import { refundPaidUsers } from "../utils/refund.js";
+import { rupeesToCz } from "../utils/currency.js";
 
 const PAYMENT_UPIS = [
   '8261047808@fam',
@@ -595,15 +596,15 @@ export const createMatch = async (req, res) => {
 
     // Prize pool is fixed per entry amount using the official tier table.
     const prizePoolTable = {
-      5: 7,
-      10: 15,
-      20: 35,
-      30: 50,
-      50: 80,
-      100: 170,
-      200: 360,
-      500: 900,
-      1000: 1800,
+      50: 70,
+      100: 150,
+      200: 350,
+      300: 500,
+      500: 800,
+      1000: 1700,
+      2000: 3600,
+      5000: 9000,
+      10000: 18000,
     };
 
     let prizePool = prizePoolTable[parsedEntry] ?? null;
@@ -804,7 +805,7 @@ export const payMatchWithWallet = async (req, res) => {
     match.paidUsers.push(userId);
     match.adminMessages.push({
       sender: 'system',
-      text: `${user.username} has paid ₹${match.entry} from wallet.`,
+      text: `${user.username} has paid CZ ${match.entry} (₹${(match.entry / 10).toFixed(2)}) from wallet.`,
     });
 
     const allPlayersPaid = match.players.length > 0 && match.paidUsers.length === match.players.length;
@@ -1355,7 +1356,7 @@ const { amount, upi } = req.body;
       return res.status(404).json({ error: "User not found" });
     }
 
-    if (user.wallet.balance < parsedAmount) {
+    if (user.wallet.balance < rupeesToCz(parsedAmount)) {
       return res.status(400).json({ error: "Insufficient balance" });
     }
 

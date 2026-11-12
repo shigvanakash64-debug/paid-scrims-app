@@ -4,21 +4,22 @@ import TournamentCard from '../components/TournamentCard';
 import { useMatch } from '../contexts/MatchContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useUser } from '../contexts/UserContext';
+import { rupeesToCz } from '../utils/currency';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 const modeOptions = ['All', 'Per Kill', 'Custom', 'Team vs Team'];
 const entryOptions = [
   { label: 'All', min: null, max: null },
-  { label: 'CZ 0 - 5', min: 0, max: 5 },
-  { label: 'CZ 6 - 10', min: 6, max: 10 },
-  { label: 'CZ 11 - 20', min: 11, max: 20 },
-  { label: 'CZ 21 - 30', min: 21, max: 30 },
-  { label: 'CZ 31 - 50', min: 31, max: 50 },
+  { label: 'CZ 0 - 50', min: 0, max: 50 },
   { label: 'CZ 51 - 100', min: 51, max: 100 },
   { label: 'CZ 101 - 200', min: 101, max: 200 },
-  { label: 'CZ 201 - 500', min: 201, max: 500 },
+  { label: 'CZ 201 - 300', min: 201, max: 300 },
+  { label: 'CZ 301 - 500', min: 301, max: 500 },
   { label: 'CZ 501 - 1000', min: 501, max: 1000 },
+  { label: 'CZ 1001 - 2000', min: 1001, max: 2000 },
+  { label: 'CZ 2001 - 5000', min: 2001, max: 5000 },
+  { label: 'CZ 5001 - 10000', min: 5001, max: 10000 },
 ];
 const HOST_VIEW_GAMES = ['Free Fire', 'Mini Militia', 'BGMI', 'PUBG Mobile', 'Brawl Stars', 'Honor of Kings', 'Pokémon Unite', 'Valorant', 'Counter-Strike 2', 'Dota 2', 'League of Legends', 'Rocket League', 'Fortnite', 'Apex Legends', 'PUBG: Battlegrounds', 'Overwatch 2', 'Rainbow Six Siege', 'Marvel Rivals', 'Trackmania', 'Minecraft', 'Chess', 'Age of Empires II', 'Age of Empires IV'];
 const NO_HOST_VIEW_GAMES = ['COD Mobile', 'Mobile Legends: Bang Bang', 'Clash Royale', 'Clash of Clans', 'EA Sports FC Mobile', 'eFootball', 'Tekken 8', 'Street Fighter 6', 'EA Sports FC 26', 'Teamfight Tactics'];
@@ -512,7 +513,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     if (game !== 'All' && tournament.game !== game) return false;
     if (mode !== 'All' && getTournamentMode(tournament.format) !== mode) return false;
     if (selectedEntryRange?.min !== null && selectedEntryRange?.min !== undefined) {
-      const entryFee = Number(tournament.entryFee);
+      const entryFee = rupeesToCz(Number(tournament.entryFee));
       if (entryFee < selectedEntryRange.min || entryFee > selectedEntryRange.max) return false;
     }
     return true;

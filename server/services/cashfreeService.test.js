@@ -55,11 +55,13 @@ describe('cashfreeService finalizeDeposit idempotency tests', () => {
 
     assert.equal(result.success, true);
     assert.equal(result.amount, 100);
-    assert.equal(result.walletBalance, 100);
+    assert.equal(result.creditedAmount, 1000);
+    assert.equal(result.walletBalance, 1000);
 
     const updatedUser = await User.findById(testUser._id);
-    assert.equal(updatedUser.wallet.balance, 100);
+    assert.equal(updatedUser.wallet.balance, 1000);
     assert.equal(updatedUser.wallet.transactions.length, 1);
+    assert.equal(updatedUser.wallet.transactions[0].amount, 1000);
   });
 
   it('handles duplicate calls idempotently without double-crediting balance', async () => {
@@ -72,7 +74,7 @@ describe('cashfreeService finalizeDeposit idempotency tests', () => {
     });
 
     assert.equal(firstCall.success, true);
-    assert.equal(firstCall.walletBalance, 100);
+    assert.equal(firstCall.walletBalance, 1000);
 
     const secondCall = await finalizeDeposit({
       orderId: testDeposit.orderId,
@@ -86,7 +88,7 @@ describe('cashfreeService finalizeDeposit idempotency tests', () => {
     assert.equal(secondCall.alreadyCredited, true);
 
     const updatedUser = await User.findById(testUser._id);
-    assert.equal(updatedUser.wallet.balance, 100);
+    assert.equal(updatedUser.wallet.balance, 1000);
     assert.equal(updatedUser.wallet.transactions.length, 1);
   });
 

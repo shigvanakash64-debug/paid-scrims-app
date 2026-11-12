@@ -82,7 +82,7 @@ const skillOptions = [
   { label: 'Skill Off', sub: 'Disabled' }
 ];
 
-const entryFees = [5, 10, 20, 30, 50, 100, 200, 500, 1000];
+const entryFees = [50, 100, 200, 300, 500, 1000, 2000, 5000, 10000];
 
 const HOST_VIEW_GAMES = [
   'Free Fire',
@@ -127,15 +127,15 @@ const GAME_OPTIONS = [...HOST_VIEW_GAMES, ...NO_HOST_VIEW_GAMES];
 
 const getPrizePool = (entryFee) => {
   const prizePoolTable = {
-    5: 7,
-    10: 15,
-    20: 35,
-    30: 50,
-    50: 80,
-    100: 170,
-    200: 360,
-    500: 900,
-    1000: 1800,
+    50: 70,
+    100: 150,
+    200: 350,
+    300: 500,
+    500: 800,
+    1000: 1700,
+    2000: 3600,
+    5000: 9000,
+    10000: 18000,
   };
 
   return prizePoolTable[entryFee] ?? Object.entries(prizePoolTable)
@@ -150,7 +150,7 @@ export const HomeScreen = ({ onScreenChange }) => {
   const [selectedMode, setSelectedMode] = useState('1v1');
   const [selectedType, setSelectedType] = useState('Normal Headshot');
   const [selectedSkill, setSelectedSkill] = useState('Skill On');
-  const [selectedFee, setSelectedFee] = useState(50);
+  const [selectedFee, setSelectedFee] = useState(500);
   const [isSendingRequest, setIsSendingRequest] = useState(false);
 
   const prizePool = getPrizePool(selectedFee);

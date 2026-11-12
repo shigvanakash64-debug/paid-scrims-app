@@ -3,6 +3,7 @@ import PaymentDeposit from '../models/PaymentDeposit.js';
 import { sendNotification } from '../services/notificationService.js';
 import { createCashfreeOrder, verifyCashfreePayment } from '../services/cashfreeService.js';
 import { getWithdrawalEligibilityForUser } from '../utils/rewardService.js';
+import { rupeesToCz } from '../utils/currency.js';
 
 const normalizeAmount = (value) => Number(value || 0);
 
@@ -30,7 +31,7 @@ export const requestWithdrawal = async (req, res) => {
       return res.status(403).json({
         success: false,
         code: 'WITHDRAWAL_REQUIREMENTS_NOT_MET',
-        message: 'Deposit ₹20 and play a ₹20+ entry match before redeeming.',
+        message: 'Deposit ₹20 and play a CZ 200+ (₹20+) entry match before redeeming.',
         eligibility,
       });
     }
@@ -42,7 +43,7 @@ export const requestWithdrawal = async (req, res) => {
     const selectedWallet = 'main';
     const availableBalance = Number(user.wallet?.balance || 0);
 
-    if (availableBalance < parsedAmount) {
+    if (availableBalance < rupeesToCz(parsedAmount)) {
       return res.status(400).json({ error: 'Insufficient balance for withdrawal' });
     }
 

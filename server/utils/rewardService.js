@@ -37,16 +37,16 @@ export const getRewardFeatureState = () => ({
   referralEnabled: false,
   cashbackEnabled: false,
   signupBonusEnabled: true,
-  signupBonusAmount: 10,
+  signupBonusAmount: 100,
   minimumDepositForWithdrawal: 20,
-  minimumMatchEntryForWithdrawal: 20,
+  minimumMatchEntryForWithdrawal: 200,
 });
 
 export const computeWithdrawalEligibility = ({
   successfulDepositAmount = 0,
   qualifyingPaidMatchCount = 0,
   minimumDepositForWithdrawal = 20,
-  minimumMatchEntryForWithdrawal = 20,
+  minimumMatchEntryForWithdrawal = 200,
 }) => {
   const depositRequirementMet = Number(successfulDepositAmount || 0) >= Number(minimumDepositForWithdrawal || 20);
   const matchRequirementMet = Number(qualifyingPaidMatchCount || 0) >= 1;
@@ -57,15 +57,15 @@ export const computeWithdrawalEligibility = ({
     depositRequirementMet,
     matchRequirementMet,
     minimumDepositForWithdrawal: Number(minimumDepositForWithdrawal || 20),
-    minimumMatchEntryForWithdrawal: Number(minimumMatchEntryForWithdrawal || 20),
-    message: canWithdraw ? 'Eligible to redeem' : 'Deposit ₹20 and play a ₹20+ entry match before redeeming.',
+    minimumMatchEntryForWithdrawal: Number(minimumMatchEntryForWithdrawal || 200),
+    message: canWithdraw ? 'Eligible to redeem' : 'Deposit ₹20 and play a CZ 200+ (₹20+) entry match before redeeming.',
   };
 };
 
 export const getWithdrawalEligibilityForUser = async (userId) => {
   const settings = await getSettings();
   const minimumDepositForWithdrawal = Number(settings.minimumDepositForWithdrawal || 20);
-  const minimumMatchEntryForWithdrawal = Number(settings.minimumMatchEntryForWithdrawal || 20);
+  const minimumMatchEntryForWithdrawal = Number(settings.minimumMatchEntryForWithdrawal || 200);
 
   const depositAggregate = await PaymentDeposit.aggregate([
     {
@@ -224,7 +224,7 @@ export const creditSignupBonus = async ({ userId, matchId = null }) => {
   if (!user) return { success: false, message: 'User not found' };
   if (user.wallet?.signupBonusClaimed) return { success: false, message: 'Signup bonus already claimed' };
 
-  const bonusAmount = Number(settings.signupBonusAmount || 10);
+  const bonusAmount = Number(settings.signupBonusAmount || 100);
   if (bonusAmount <= 0) return { success: false, message: 'Signup bonus amount is zero' };
 
   user.wallet.balance = Number((user.wallet.balance || 0) + bonusAmount);
@@ -282,8 +282,8 @@ export const creditReferralReward = async ({ referredUserId, matchId }) => {
     { $group: { _id: null, total: { $sum: '$entry' } } },
   ]);
   const totalSpend = Number(qualifyingSpend[0]?.total || 0);
-  const threshold = Number(referral.rewardThreshold || 30);
-  const commissionAmount = Number(referral.rewardAmount || 5);
+  const threshold = Number(referral.rewardThreshold || 300);
+  const commissionAmount = Number(referral.rewardAmount || 50);
 
   await Referral.updateOne(
     { _id: referral._id },

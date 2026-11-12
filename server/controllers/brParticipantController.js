@@ -1,6 +1,7 @@
 import BRMatch from '../models/BRMatch.js';
 import BRParticipant from '../models/BRParticipant.js';
 import User from '../models/User.js';
+import { rupeesToCz } from '../utils/currency.js';
 
 /**
  * Step 1: Initiate join (check wallet, deduct entry fee, create participant placeholder)
@@ -45,21 +46,22 @@ export const initiateBRJoin = async (req, res) => {
 
     const walletBalance = user.wallet?.balance || 0;
 
-    if (walletBalance < match.entryFee) {
+    const entryFeeCz = rupeesToCz(match.entryFee);
+    if (walletBalance < entryFeeCz) {
       return res.status(400).json({
         error: 'Insufficient wallet balance',
-        required: match.entryFee,
+        required: entryFeeCz,
         available: walletBalance,
       });
     }
 
     // ATOMIC: Deduct entry fee from wallet
-    user.wallet.balance -= match.entryFee;
+    user.wallet.balance -= entryFeeCz;
 
     // Record transaction (matching existing CS system pattern)
     user.wallet.transactions.push({
       type: 'fee',
-      amount: -match.entryFee,
+      amount: -entryFeeCz,
       description: `BR Match entry fee: ${match.matchName}`,
       timestamp: new Date(),
       matchId: matchId, // Reference to BR Match

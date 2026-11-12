@@ -21,12 +21,12 @@ const rewardSettingsSchema = new mongoose.Schema({
   },
   welcomeBonusAmount: {
     type: Number,
-    default: 5,
+    default: 50,
     min: 0,
   },
   signupBonusAmount: {
     type: Number,
-    default: 10,
+    default: 100,
     min: 0,
   },
   minimumDepositAmount: {
@@ -41,7 +41,7 @@ const rewardSettingsSchema = new mongoose.Schema({
   },
   minimumMatchEntryForWithdrawal: {
     type: Number,
-    default: 20,
+    default: 200,
     min: 0,
   },
   referralEnabled: {

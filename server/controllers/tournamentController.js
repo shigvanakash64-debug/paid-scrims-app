@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Tournament from '../models/Tournament.js';
 import TournamentParticipant from '../models/TournamentParticipant.js';
+import { rupeesToCz } from '../utils/currency.js';
 import User from '../models/User.js';
 import TournamentMatchResult from '../models/TournamentMatchResult.js';
 import { verifyToken } from '../utils/authUtils.js';
@@ -488,6 +489,9 @@ const payoutTeamTournamentWinner = async (tournament, winnerParticipantId) => {
   const admin = await User.findOne({ role: 'admin' });
   if (!admin) throw new Error('Admin wallet account not found');
   const financials = calculateFinancials(tournament.entryFee, tournament.successfulEntries);
+  const prizePoolCz = rupeesToCz(financials.prizePool);
+  const hostShareCz = rupeesToCz(financials.hostShare);
+  const platformFeeCz = rupeesToCz(financials.clutchZoneFee);
   const payoutClaim = await Tournament.findOneAndUpdate(
     { _id: tournament._id, payoutsDistributed: { $ne: true } },
     { $set: { ...financials, payoutsDistributed: true, payoutsDistributedAt: new Date(), status: 'completed' } },
@@ -496,19 +500,19 @@ const payoutTeamTournamentWinner = async (tournament, winnerParticipantId) => {
   if (!payoutClaim) return;
 
   await User.findByIdAndUpdate(participant.userId, {
-    $inc: { 'wallet.balance': financials.prizePool },
-    $push: { 'wallet.transactions': { type: 'match_win', amount: financials.prizePool, description: `Team tournament winner: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
+    $inc: { 'wallet.balance': prizePoolCz },
+    $push: { 'wallet.transactions': { type: 'match_win', amount: prizePoolCz, description: `Team tournament winner: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
   });
-  if (financials.hostShare > 0) {
+  if (hostShareCz > 0) {
     await User.findByIdAndUpdate(tournament.createdBy, {
-      $inc: { 'wallet.balance': financials.hostShare },
-      $push: { 'wallet.transactions': { type: 'admin_adjustment', amount: financials.hostShare, description: `Host share: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
+      $inc: { 'wallet.balance': hostShareCz },
+      $push: { 'wallet.transactions': { type: 'admin_adjustment', amount: hostShareCz, description: `Host share: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
     });
   }
-  if (financials.clutchZoneFee > 0) {
+  if (platformFeeCz > 0) {
     await User.findByIdAndUpdate(admin._id, {
-      $inc: { 'wallet.balance': financials.clutchZoneFee },
-      $push: { 'wallet.transactions': { type: 'admin_adjustment', amount: financials.clutchZoneFee, description: `Platform share: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
+      $inc: { 'wallet.balance': platformFeeCz },
+      $push: { 'wallet.transactions': { type: 'admin_adjustment', amount: platformFeeCz, description: `Platform share: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
     });
   }
 };
@@ -834,14 +838,15 @@ export const joinTournament = async (req, res) => {
       return res.status(400).json({ error: 'Tournament is full or no longer accepting entries' });
     }
 
+    const entryFeeCz = rupeesToCz(tournament.entryFee);
     const user = await User.findOneAndUpdate(
-      { _id: req.userId, 'wallet.balance': { $gte: tournament.entryFee } },
+      { _id: req.userId, 'wallet.balance': { $gte: entryFeeCz } },
       {
-        $inc: { 'wallet.balance': -tournament.entryFee },
+        $inc: { 'wallet.balance': -entryFeeCz },
         $push: {
           'wallet.transactions': {
             type: 'fee',
-            amount: -tournament.entryFee,
+            amount: -entryFeeCz,
             description: `Tournament entry fee: ${tournament.name}`,
             timestamp: new Date(),
           },
@@ -886,8 +891,8 @@ export const joinTournament = async (req, res) => {
     } catch (error) {
       await Tournament.findByIdAndUpdate(tournament._id, { $inc: { successfulEntries: -1 } });
       await User.findByIdAndUpdate(req.userId, {
-        $inc: { 'wallet.balance': tournament.entryFee },
-        $pull: { 'wallet.transactions': { description: `Tournament entry fee: ${tournament.name}`, amount: -tournament.entryFee } },
+        $inc: { 'wallet.balance': entryFeeCz },
+        $pull: { 'wallet.transactions': { description: `Tournament entry fee: ${tournament.name}`, amount: -entryFeeCz } },
       });
       if (error.code === 11000) return res.status(409).json({ error: 'You are already registered for this tournament' });
       throw error;
@@ -1149,7 +1154,7 @@ const distributeGrandFinalePayout = async (tournament, result) => {
     const entry = activeEntries[index];
     const participant = await TournamentParticipant.findById(entry.participantId);
     if (!participant) continue;
-    const payout = financials.prizePool * (prizeShares[index] / totalShare);
+    const payout = rupeesToCz(financials.prizePool * (prizeShares[index] / totalShare));
     await User.findByIdAndUpdate(participant.userId, {
       $inc: { 'wallet.balance': payout },
       $push: { 'wallet.transactions': { type: 'match_win', amount: payout, description: `Tournament ${index + 1}${index === 0 ? 'st' : index === 1 ? 'nd' : 'rd'} place: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
@@ -1157,16 +1162,18 @@ const distributeGrandFinalePayout = async (tournament, result) => {
   }
 
   const host = await User.findById(tournament.createdBy);
-  if (host && financials.hostShare > 0) {
+  const hostShareCz = rupeesToCz(financials.hostShare);
+  const platformFeeCz = rupeesToCz(financials.clutchZoneFee);
+  if (host && hostShareCz > 0) {
     await User.findByIdAndUpdate(host._id, {
-      $inc: { 'wallet.balance': financials.hostShare },
-      $push: { 'wallet.transactions': { type: 'admin_adjustment', amount: financials.hostShare, description: `Host share: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
+      $inc: { 'wallet.balance': hostShareCz },
+      $push: { 'wallet.transactions': { type: 'admin_adjustment', amount: hostShareCz, description: `Host share: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
     });
   }
-  if (financials.clutchZoneFee > 0) {
+  if (platformFeeCz > 0) {
     await User.findByIdAndUpdate(admin._id, {
-      $inc: { 'wallet.balance': financials.clutchZoneFee },
-      $push: { 'wallet.transactions': { type: 'admin_adjustment', amount: financials.clutchZoneFee, description: `Platform share: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
+      $inc: { 'wallet.balance': platformFeeCz },
+      $push: { 'wallet.transactions': { type: 'admin_adjustment', amount: platformFeeCz, description: `Platform share: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
     });
   }
 };
@@ -1180,13 +1187,13 @@ const distributePerKillPayout = async (tournament, result) => {
   if (!claimed) return;
 
   for (const entry of result.entries || []) {
-    const money = Number(entry.money || 0);
-    if (!money) continue;
+    const moneyCz = rupeesToCz(entry.money || 0);
+    if (!moneyCz) continue;
     const participant = await TournamentParticipant.findById(entry.participantId);
     if (!participant) continue;
     await User.findByIdAndUpdate(participant.userId, {
-      $inc: { 'wallet.balance': money },
-      $push: { 'wallet.transactions': { type: 'match_win', amount: money, description: `Per-kill payout: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
+      $inc: { 'wallet.balance': moneyCz },
+      $push: { 'wallet.transactions': { type: 'match_win', amount: moneyCz, description: `Per-kill payout: ${tournament.name}`, timestamp: new Date(), tournamentId: tournament._id } },
     });
   }
 };

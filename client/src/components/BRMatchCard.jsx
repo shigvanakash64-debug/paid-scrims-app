@@ -1,6 +1,7 @@
 import { Users, Clock, Zap } from 'lucide-react';
 import { Card } from './Card';
 import { Button } from './Button';
+import { rupeesToCz } from '../utils/currency';
 
 /**
  * BRMatchCard - Displays a single BR match listing
@@ -57,7 +58,7 @@ export const BRMatchCard = ({
         <div className="br-match-left">
           <div className="br-match-stat">
             <span className="label">Entry Fee</span>
-            <span className="value">₹{match.entryFee}</span>
+            <span className="value">₹{match.entryFee} · CZ {rupeesToCz(match.entryFee)}</span>
           </div>
 
           <div className="br-match-stat">
@@ -77,7 +78,7 @@ export const BRMatchCard = ({
 
           <div className="br-match-stat">
             <span className="label">Per Kill</span>
-            <span className="value">₹{match.perKillReward}</span>
+            <span className="value">₹{match.perKillReward} · CZ {rupeesToCz(match.perKillReward)}</span>
           </div>
         </div>
 

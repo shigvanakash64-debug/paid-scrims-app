@@ -339,7 +339,7 @@ userSchema.virtual('trustCategory').get(function() {
 // Method to check if user can join high-entry matches
 userSchema.methods.canJoinHighEntryMatch = function(entryFee) {
   if (this.isBanned) return false;
-  if (this.trustScore < 30 && entryFee > 100) return false;
+  if (this.trustScore < 30 && entryFee > 1000) return false;
   return true;
 };
 

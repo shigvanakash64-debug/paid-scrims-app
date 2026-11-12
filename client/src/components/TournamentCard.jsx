@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Card } from './Card';
 import TVTResultsPage from '../screens/TVTResultsPage';
+import { rupeesToCz } from '../utils/currency';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -153,7 +154,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
       <div className="br-match-grid">
         <div className="br-match-stat"><span className="label">Game</span><span className="value">{tournament.game}</span></div>
         {usesTeamRoster && <div className="br-match-stat"><span className="label">Team Size</span><span className="value">{teamSize}</span></div>}
-        <div className="br-match-stat"><span className="label">Entry Fee</span><span className="value">₹{tournament.entryFee}</span></div>
+        <div className="br-match-stat"><span className="label">Entry Fee</span><span className="value">₹{tournament.entryFee} · CZ {rupeesToCz(tournament.entryFee)}</span></div>
         <div className="br-match-stat"><span className="label">Paid Entries</span><span className="value">{tournament.successfulEntries}/{tournament.maxTeams}</span></div>
         <div className="br-match-stat"><span className="label">{tournament.format === 'single-match' ? 'Per Kill' : 'Prize Pool'}</span><span className="value">₹{Number(tournament.format === 'single-match' ? tournament.perKillReward || 0 : tournament.prizePool || 0).toLocaleString()}</span></div>
       </div>

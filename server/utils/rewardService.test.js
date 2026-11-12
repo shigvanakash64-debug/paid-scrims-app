@@ -39,7 +39,7 @@ test('reward defaults disable referral and cashback while enabling the ₹10 sig
   assert.equal(features.referralEnabled, false);
   assert.equal(features.cashbackEnabled, false);
   assert.equal(features.signupBonusEnabled, true);
-  assert.equal(features.signupBonusAmount, 10);
+  assert.equal(features.signupBonusAmount, 100);
   assert.equal(features.minimumDepositForWithdrawal, 20);
-  assert.equal(features.minimumMatchEntryForWithdrawal, 20);
+  assert.equal(features.minimumMatchEntryForWithdrawal, 200);
 });

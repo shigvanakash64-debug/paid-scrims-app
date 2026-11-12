@@ -3,6 +3,7 @@ import PaymentDeposit from '../models/PaymentDeposit.js';
 import Match from '../models/Match.js';
 import { sendNotification } from './notificationService.js';
 import { verifyCashfreePayment } from './cashfreeService.js';
+import { rupeesToCz } from '../utils/currency.js';
 
 const ensureNumber = (value) => Number(value || 0);
 
@@ -70,7 +71,7 @@ export const requestWalletWithdrawal = async ({ userId, amount, upi, wallet = 'm
   const selectedWallet = 'main';
   const availableBalance = ensureNumber(user.wallet?.balance || 0);
 
-  if (availableBalance < parsedAmount) {
+  if (availableBalance < rupeesToCz(parsedAmount)) {
     throw new Error('Insufficient balance for withdrawal');
   }
 
@@ -124,7 +125,8 @@ export const approveWithdrawalRequest = async ({ withdrawalId, adminNote = '', a
   }
 
   const totalWithdrawableBalance = ensureNumber(user.wallet?.balance || 0);
-  if (totalWithdrawableBalance < withdrawal.amount) {
+  const debitAmount = rupeesToCz(withdrawal.amount);
+  if (totalWithdrawableBalance < debitAmount) {
     throw new Error('Insufficient balance for withdrawal');
   }
 
@@ -133,12 +135,12 @@ export const approveWithdrawalRequest = async ({ withdrawalId, adminNote = '', a
   withdrawal.adminNote = adminNote;
   withdrawal.processedBy = adminId || null;
 
-  user.wallet.balance -= withdrawal.amount;
+  user.wallet.balance -= debitAmount;
 
   user.wallet.transactions.push({
     type: 'withdrawal',
-    amount: -withdrawal.amount,
-    description: `Withdrawal approved${adminNote ? ` - ${adminNote}` : ''}`,
+    amount: -debitAmount,
+    description: `Withdrawal approved: ₹${withdrawal.amount}${adminNote ? ` - ${adminNote}` : ''}`,
     status: 'completed',
     timestamp: new Date(),
   });
