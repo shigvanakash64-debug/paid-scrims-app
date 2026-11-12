@@ -4,10 +4,43 @@ import TournamentParticipant from '../models/TournamentParticipant.js';
 import { rupeesToCz } from '../utils/currency.js';
 import User from '../models/User.js';
 import TournamentMatchResult from '../models/TournamentMatchResult.js';
+import TournamentIssueReport, { TOURNAMENT_ISSUE_CATEGORIES } from '../models/TournamentIssueReport.js';
 import { verifyToken } from '../utils/authUtils.js';
 import { uploadToCloudinary } from '../utils/uploadToCloudinary.js';
 
 export const COMPLETED_TOURNAMENT_EXPIRY_MS = 2 * 24 * 60 * 60 * 1000;
+export const TOURNAMENT_REPORT_ESCALATION_MS = 6 * 60 * 60 * 1000;
+
+export const normalizeInstagramUsername = (value) => {
+  if (typeof value !== 'string') throw new Error('Host Instagram username is required');
+  const username = value.trim().replace(/\s+/g, '').replace(/^@/, '').toLowerCase();
+  if (!username) throw new Error('Host Instagram username is required');
+  if (!/^(?!\.)(?!.*\.\.)[a-z0-9._]{1,30}$/.test(username) || username.endsWith('.')) {
+    throw new Error('Enter a valid Instagram username (letters, numbers, periods and underscores only)');
+  }
+  return username;
+};
+
+export const buildTournamentIssueReportStatus = (report, now = Date.now()) => {
+  if (!report) return null;
+  const confirmedAt = report.hostContactConfirmedAt ? new Date(report.hostContactConfirmedAt) : null;
+  const escalationAvailableAt = confirmedAt
+    ? new Date(confirmedAt.getTime() + TOURNAMENT_REPORT_ESCALATION_MS)
+    : null;
+  const remainingMs = escalationAvailableAt
+    ? Math.max(0, escalationAvailableAt.getTime() - now)
+    : null;
+  return {
+    _id: report._id,
+    issueCategory: report.issueCategory,
+    description: report.description,
+    createdAt: report.createdAt,
+    hostContactConfirmedAt: confirmedAt,
+    escalationAvailableAt,
+    escalationAvailable: Boolean(escalationAvailableAt && remainingMs === 0),
+    remainingMs,
+  };
+};
 
 export const buildTournamentRegistrationWindowQuery = (now = Date.now()) => {
   const currentTime = new Date(now);
@@ -44,6 +77,7 @@ export const cleanupExpiredCompletedTournaments = async () => {
     Tournament.deleteMany({ _id: { $in: tournamentIds } }),
     TournamentParticipant.deleteMany({ tournamentId: { $in: tournamentIds } }),
     TournamentMatchResult.deleteMany({ tournamentId: { $in: tournamentIds } }),
+    TournamentIssueReport.deleteMany({ tournamentId: { $in: tournamentIds } }),
   ]);
 
   return { deletedCount: tournamentIds.length };
@@ -194,6 +228,7 @@ export const validateTournamentInput = ({
   roomId,
   roomPassword,
   hostMessage,
+  hostInstagramUsername,
   now = Date.now(),
 }) => {
   if (!name || !format || entryFee === undefined || maxTeams === undefined) {
@@ -256,6 +291,7 @@ export const validateTournamentInput = ({
   if (typeof hostMessage === 'string' && hostMessage.length > 300) {
     throw new Error('Tournament message cannot exceed 300 characters');
   }
+  const normalizedHostInstagramUsername = normalizeInstagramUsername(hostInstagramUsername);
 
   if (TEAM_SIZE_FORMATS.has(format) && (!Number.isInteger(numericTeamSize) || numericTeamSize < 1 || numericTeamSize > 6)) {
     throw new Error('Team size must be a whole number from 1 to 6');
@@ -287,12 +323,13 @@ export const validateTournamentInput = ({
     roomPassword: roomPassword ? String(roomPassword).trim() : '',
     estimatedTime: String(estimatedTime).trim(),
     hostMessage: hostMessage ? String(hostMessage).trim() : '',
+    hostInstagramUsername: normalizedHostInstagramUsername,
   };
 };
 
 export const createTournament = async (req, res) => {
   try {
-    const { name, game = 'Free Fire', format, entryFee, maxTeams, perGroup, teamSize = 1, teamTournamentMode = 'knockout', successfulEntries = 0, customStages = [], perKillReward = 0, estimatedDate, estimatedTime, registrationDeadline, roomId, roomPassword, hostMessage } = req.body;
+    const { name, game = 'Free Fire', format, entryFee, maxTeams, perGroup, teamSize = 1, teamTournamentMode = 'knockout', successfulEntries = 0, customStages = [], perKillReward = 0, estimatedDate, estimatedTime, registrationDeadline, roomId, roomPassword, hostMessage, hostInstagramUsername } = req.body;
 
     let normalizedValues;
     try {
@@ -313,6 +350,7 @@ export const createTournament = async (req, res) => {
         roomId,
         roomPassword,
         hostMessage,
+        hostInstagramUsername,
       });
     } catch (validationError) {
       return res.status(400).json({ error: validationError.message });
@@ -339,6 +377,7 @@ export const createTournament = async (req, res) => {
       roomId: normalizedValues.roomId,
       roomPassword: normalizedValues.roomPassword,
       hostMessage: normalizedValues.hostMessage,
+      hostInstagramUsername: normalizedValues.hostInstagramUsername,
       ...financials,
       stages: format === 'team-vs-team' ? [] : buildStages(format, customStages),
       createdBy: req.userId,
@@ -728,12 +767,118 @@ export const deleteTournament = async (req, res) => {
       Tournament.deleteOne({ _id: tournament._id }),
       TournamentParticipant.deleteMany({ tournamentId: tournament._id }),
       TournamentMatchResult.deleteMany({ tournamentId: tournament._id }),
+      TournamentIssueReport.deleteMany({ tournamentId: tournament._id }),
     ]);
 
     return res.json({ success: true, message: 'Tournament deleted successfully' });
   } catch (error) {
     console.error('deleteTournament error:', error);
     return res.status(500).json({ error: 'Failed to delete tournament' });
+  }
+};
+
+const findParticipantTournament = async (tournamentId, userId) => {
+  if (!mongoose.isValidObjectId(tournamentId)) {
+    return { error: 'Tournament not found', status: 404 };
+  }
+
+  const tournament = await Tournament.findById(tournamentId)
+    .select('name hostInstagramUsername')
+    .lean();
+  if (!tournament) return { error: 'Tournament not found', status: 404 };
+
+  const isRegistered = await TournamentParticipant.exists({
+    tournamentId: tournament._id,
+    userId,
+    status: 'registered',
+  });
+  if (!isRegistered) return { error: 'Only registered participants can access tournament support', status: 403 };
+  return { tournament };
+};
+
+const serializeTournamentIssueReport = (report) => buildTournamentIssueReportStatus(report);
+
+export const getTournamentSupport = async (req, res) => {
+  try {
+    const access = await findParticipantTournament(req.params.tournamentId, req.userId);
+    if (access.error) return res.status(access.status).json({ error: access.error });
+
+    const report = await TournamentIssueReport.findOne({
+      tournamentId: access.tournament._id,
+      reportingUserId: req.userId,
+    }).lean();
+    return res.json({
+      success: true,
+      tournament: {
+        _id: access.tournament._id,
+        name: access.tournament.name,
+        hostInstagramUsername: access.tournament.hostInstagramUsername || '',
+      },
+      report: serializeTournamentIssueReport(report),
+    });
+  } catch (error) {
+    console.error('getTournamentSupport error:', error);
+    return res.status(500).json({ error: 'Failed to load tournament support' });
+  }
+};
+
+export const createTournamentIssueReport = async (req, res) => {
+  try {
+    const access = await findParticipantTournament(req.params.tournamentId, req.userId);
+    if (access.error) return res.status(access.status).json({ error: access.error });
+
+    const { issueCategory, description } = req.body || {};
+    if (!TOURNAMENT_ISSUE_CATEGORIES.includes(issueCategory)) {
+      return res.status(400).json({ error: 'Choose a valid tournament issue category' });
+    }
+    if (typeof description !== 'string' || !description.trim()) {
+      return res.status(400).json({ error: 'Describe the issue before submitting your report' });
+    }
+    if (description.trim().length > 2000) {
+      return res.status(400).json({ error: 'Issue description cannot exceed 2000 characters' });
+    }
+
+    const report = await TournamentIssueReport.create({
+      tournamentId: access.tournament._id,
+      reportingUserId: req.userId,
+      issueCategory,
+      description: description.trim(),
+    });
+    return res.status(201).json({ success: true, report: serializeTournamentIssueReport(report) });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ error: 'You have already submitted an issue report for this tournament' });
+    }
+    console.error('createTournamentIssueReport error:', error);
+    return res.status(500).json({ error: 'Failed to submit tournament issue report' });
+  }
+};
+
+export const confirmTournamentHostContact = async (req, res) => {
+  try {
+    const access = await findParticipantTournament(req.params.tournamentId, req.userId);
+    if (access.error) return res.status(access.status).json({ error: access.error });
+    if (!mongoose.isValidObjectId(req.params.reportId)) {
+      return res.status(404).json({ error: 'Issue report not found' });
+    }
+
+    const reportQuery = {
+      _id: req.params.reportId,
+      tournamentId: access.tournament._id,
+      reportingUserId: req.userId,
+    };
+    let report = await TournamentIssueReport.findOneAndUpdate(
+      { ...reportQuery, hostContactConfirmedAt: null },
+      { $set: { hostContactConfirmedAt: new Date() } },
+      { new: true },
+    );
+    if (!report) report = await TournamentIssueReport.findOne(reportQuery);
+    if (!report) return res.status(404).json({ error: 'Issue report not found' });
+
+    return res.json({ success: true, report: serializeTournamentIssueReport(report) });
+  } catch (error) {
+    console.error('confirmTournamentHostContact error:', error);
+    return res.status(500).json({ error: 'Failed to confirm host contact' });
   }
 };
 

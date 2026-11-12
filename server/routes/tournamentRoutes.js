@@ -16,6 +16,9 @@ import {
 	listMyTournaments,
 	listPublicTournaments,
 	publishTournamentMatchResult,
+	getTournamentSupport,
+	createTournamentIssueReport,
+	confirmTournamentHostContact,
 	saveTournamentMatchDraft,
 	updateTournamentMessage,
 	submitTeamTournamentResult,
@@ -25,6 +28,9 @@ const router = express.Router();
 
 router.get('/public', listPublicTournaments);
 router.post('/:tournamentId/join', authMiddleware, joinTournament);
+router.get('/:tournamentId/support', authMiddleware, getTournamentSupport);
+router.post('/:tournamentId/reports', authMiddleware, createTournamentIssueReport);
+router.post('/:tournamentId/reports/:reportId/host-contact', authMiddleware, confirmTournamentHostContact);
 router.get('/:tournamentId/public-matches', getPublicTournamentMatches);
 router.get('/:tournamentId/groups', authMiddleware, getTournamentGroups);
 router.get('/:tournamentId/team-matches', authMiddleware, getMyTeamTournamentMatches);

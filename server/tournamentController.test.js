@@ -1,9 +1,49 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { ALL_TOURNAMENT_GAMES, assignTournamentGroups, buildTeamTournamentGroups, buildTournamentBracket, buildTournamentRegistrationWindowQuery, calculateFinancials, isCompletedTournamentExpired, normalizeResultEntry, normalizeTournamentRegistration, resolveTeamMatchClaims, validateTournamentInput } from './controllers/tournamentController.js';
+import { ALL_TOURNAMENT_GAMES, assignTournamentGroups, buildTeamTournamentGroups, buildTournamentBracket, buildTournamentIssueReportStatus, buildTournamentRegistrationWindowQuery, calculateFinancials, isCompletedTournamentExpired, normalizeInstagramUsername, normalizeResultEntry, normalizeTournamentRegistration, resolveTeamMatchClaims, TOURNAMENT_REPORT_ESCALATION_MS, validateTournamentInput as validateTournamentInputBase } from './controllers/tournamentController.js';
 
 const futureRegistrationDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+const validateTournamentInput = (input) => validateTournamentInputBase({ hostInstagramUsername: 'clutch_zone', ...input });
+
+test('new tournaments require and normalize a valid host Instagram username', () => {
+  assert.equal(normalizeInstagramUsername('  @ Host_User.Name  '), 'host_user.name');
+  assert.equal(validateTournamentInput({
+    name: 'Normalized Instagram Cup',
+    format: 'custom',
+    game: 'Free Fire',
+    entryFee: 20,
+    maxTeams: 10,
+    estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
+    registrationDeadline: futureRegistrationDeadline,
+    hostInstagramUsername: '  @Host_Name ',
+  }).hostInstagramUsername, 'host_name');
+  assert.throws(() => normalizeInstagramUsername(''), /required/i);
+  assert.throws(() => normalizeInstagramUsername('@bad..name'), /valid Instagram username/i);
+  assert.throws(() => normalizeInstagramUsername('bad-name'), /valid Instagram username/i);
+  assert.throws(() => validateTournamentInputBase({
+    name: 'No Host Instagram Cup',
+    format: 'custom',
+    game: 'Free Fire',
+    entryFee: 20,
+    maxTeams: 10,
+    estimatedDate: '2026-09-15',
+    estimatedTime: '19:30',
+    registrationDeadline: futureRegistrationDeadline,
+  }), /Host Instagram username is required/i);
+});
+
+test('tournament issue escalation becomes eligible only six hours after host contact confirmation', () => {
+  const confirmedAt = new Date('2026-10-01T10:00:00.000Z');
+  const report = { _id: 'report-1', hostContactConfirmedAt: confirmedAt };
+
+  assert.equal(buildTournamentIssueReportStatus(report, confirmedAt.getTime() + TOURNAMENT_REPORT_ESCALATION_MS - 1).escalationAvailable, false);
+  const eligible = buildTournamentIssueReportStatus(report, confirmedAt.getTime() + TOURNAMENT_REPORT_ESCALATION_MS);
+  assert.equal(eligible.escalationAvailable, true);
+  assert.equal(eligible.remainingMs, 0);
+  assert.equal(buildTournamentIssueReportStatus({ _id: 'report-2', hostContactConfirmedAt: null }).escalationAvailable, false);
+});
 
 test('Mini Militia is enabled for host custom tournaments', () => {
   assert.equal(ALL_TOURNAMENT_GAMES.has('Mini Militia'), true);

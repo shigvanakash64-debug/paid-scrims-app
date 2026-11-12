@@ -64,6 +64,7 @@ const tournamentSchema = new mongoose.Schema({
   estimatedTime: { type: String, default: '', trim: true },
   registrationDeadline: { type: Date, default: null },
   hostMessage: { type: String, default: '', trim: true, maxlength: 300 },
+  hostInstagramUsername: { type: String, default: '', trim: true, maxlength: 30 },
   roomId: { type: String, default: '', trim: true },
   roomPassword: { type: String, default: '', trim: true },
   status: { type: String, enum: ['draft', 'open', 'upcoming', 'active', 'completed', 'cancelled'], default: 'open' },

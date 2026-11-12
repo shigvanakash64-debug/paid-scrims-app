@@ -50,6 +50,7 @@ export const HostTournamentPanel = ({ onBack }) => {
     estimatedDate: '',
     estimatedTime: '',
     registrationDeadline: '',
+    hostInstagramUsername: '',
     hostMessage: '',
     roomId: '',
     roomPassword: '',
@@ -96,6 +97,12 @@ export const HostTournamentPanel = ({ onBack }) => {
       return;
     }
 
+    const hostInstagramUsername = form.hostInstagramUsername.trim().replace(/\s+/g, '').replace(/^@/, '').toLowerCase();
+    if (!/^(?!\.)(?!.*\.\.)[a-z0-9._]{1,30}$/.test(hostInstagramUsername) || hostInstagramUsername.endsWith('.')) {
+      setError('Enter a valid Host Instagram Username (letters, numbers, periods and underscores only).');
+      return;
+    }
+
     if (gameFormatWarning) {
       setError(gameFormatWarning);
       return;
@@ -125,6 +132,7 @@ export const HostTournamentPanel = ({ onBack }) => {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
         body: JSON.stringify({
           ...form,
+          hostInstagramUsername,
           registrationDeadline: new Date(form.registrationDeadline).toISOString(),
           teamSize: Number(form.teamSize),
           format,
@@ -242,6 +250,10 @@ export const HostTournamentPanel = ({ onBack }) => {
                 {created?.registrationDeadline ? new Date(created.registrationDeadline).toLocaleString() : 'Not set'}
               </p>
             </div>
+            <div className="mt-3">
+              <span className="text-xs text-[#A1A1A1]">Host Instagram Username</span>
+              <p className="font-semibold text-white">@{created?.hostInstagramUsername}</p>
+            </div>
           </div>
         </Card>
 
@@ -278,6 +290,21 @@ export const HostTournamentPanel = ({ onBack }) => {
                 ))}
               </select>
               {gameFormatWarning && <p className="text-xs text-[#FCA5A5]">{gameFormatWarning}</p>}
+            </label>
+
+            <label className="space-y-2 text-sm text-[#A1A1A1]">
+              Host Instagram Username
+              <input
+                className="auth-input"
+                name="hostInstagramUsername"
+                value={form.hostInstagramUsername}
+                onChange={updateForm}
+                required
+                maxLength={40}
+                autoComplete="off"
+                placeholder="@host_username"
+              />
+              <span className="block text-xs text-[#737373]">Required for tournament support. You may include the leading @.</span>
             </label>
 
             {usesTeamSize(format) && (

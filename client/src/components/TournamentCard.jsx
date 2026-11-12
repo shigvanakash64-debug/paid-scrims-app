@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Card } from './Card';
+import TournamentSupport from './TournamentSupport';
 import TVTResultsPage from '../screens/TVTResultsPage';
 import { rupeesToCz } from '../utils/currency';
 
@@ -198,6 +199,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
           </button>
         )}
         {isJoined && <button type="button" className="btn btn-sm btn-secondary" onClick={handleLoadGroups}>Your Group</button>}
+        {isJoined && user && <TournamentSupport tournament={tournament} user={user} />}
       </div>
 
       {activePanel && activePanel !== 'tvt-results' && (
