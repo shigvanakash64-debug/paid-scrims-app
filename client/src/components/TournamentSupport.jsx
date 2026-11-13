@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const ISSUE_CATEGORIES = [
@@ -26,6 +26,7 @@ export const TournamentSupport = ({ tournament, user }) => {
   const [error, setError] = useState('');
   const [countdownMs, setCountdownMs] = useState(null);
   const [showEscalationReminder, setShowEscalationReminder] = useState(false);
+  const eligibilityCheckStarted = useRef(false);
   const report = support?.report;
 
   const loadSupport = useCallback(async () => {
@@ -47,9 +48,11 @@ export const TournamentSupport = ({ tournament, user }) => {
 
   useEffect(() => {
     if (!isOpen || !report?.hostContactConfirmedAt || report.escalationAvailable || countdownMs !== 0) return undefined;
+    if (eligibilityCheckStarted.current) return undefined;
+    eligibilityCheckStarted.current = true;
     loadSupport().catch((loadError) => setError(loadError.message));
     return undefined;
-  }, [countdownMs, isOpen, loadSupport, report]);
+  }, [countdownMs, isOpen, loadSupport, report?._id, report?.hostContactConfirmedAt, report?.escalationAvailable]);
 
   useEffect(() => {
     if (!isOpen || !report?.hostContactConfirmedAt || report.escalationAvailable) return undefined;
@@ -139,6 +142,18 @@ export const TournamentSupport = ({ tournament, user }) => {
     }
   };
 
+  const refreshEscalationStatus = async () => {
+    setCheckingEscalation(true);
+    setError('');
+    try {
+      await loadSupport();
+    } catch (loadError) {
+      setError(loadError.message);
+    } finally {
+      setCheckingEscalation(false);
+    }
+  };
+
   const hostInstagramUsername = support?.tournament?.hostInstagramUsername || '';
   const hostInstagramUrl = hostInstagramUsername
     ? `https://www.instagram.com/${encodeURIComponent(hostInstagramUsername)}/`
@@ -210,6 +225,11 @@ export const TournamentSupport = ({ tournament, user }) => {
                       <div className="mt-4 border-t border-[#242424] pt-4">
                         <p className="text-sm text-[#A1A1A1]">Your six-hour waiting period started when you confirmed host contact. If the host has not resolved the issue after the wait, you can escalate to Clutch Zone.</p>
                         <p className="mt-3 font-mono text-lg font-semibold text-[#FFB066]" role="timer" aria-label="Time remaining before Clutch Zone escalation">{countdown}</p>
+                        {countdownMs === 0 && (
+                          <button type="button" className="btn btn-sm btn-secondary mt-3" onClick={refreshEscalationStatus} disabled={checkingEscalation}>
+                            {checkingEscalation ? 'Checking eligibility…' : 'Check escalation status'}
+                          </button>
+                        )}
                       </div>
                     )}
                   </section>
