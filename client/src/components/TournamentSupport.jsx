@@ -153,8 +153,8 @@ export const TournamentSupport = ({ tournament, user }) => {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-[110] overflow-y-auto bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby={`tournament-support-title-${tournament._id}`}>
-          <div className="mx-auto my-6 w-full max-w-xl rounded-xl border border-[#2A2A2A] bg-[#111111] p-5 text-white shadow-2xl">
+        <div className="tournament-support-dialog fixed inset-0 z-[110] overflow-y-auto bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby={`tournament-support-title-${tournament._id}`}>
+          <div className="mx-auto my-6 w-full max-w-xl min-w-0 rounded-xl border border-[#2A2A2A] bg-[#111111] p-5 text-white shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 id={`tournament-support-title-${tournament._id}`} className="text-xl font-semibold">Tournament Support</h2>
@@ -173,8 +173,8 @@ export const TournamentSupport = ({ tournament, user }) => {
                   <h3 className="font-semibold text-[#FFB066]">Contact the tournament host first</h3>
                   {hostInstagramUsername ? (
                     <>
-                      <p className="mt-2 text-sm text-[#E5E5E5]">Host Instagram: <b>@{hostInstagramUsername}</b></p>
-                      <a className="btn btn-sm btn-primary mt-3 inline-flex" href={hostInstagramUrl} target="_blank" rel="noopener noreferrer">
+                      <p className="mt-2 break-all text-sm text-[#E5E5E5]">Host Instagram: <b>@{hostInstagramUsername}</b></p>
+                      <a className="tournament-support-host-link btn btn-sm btn-primary mt-3" href={hostInstagramUrl} target="_blank" rel="noopener noreferrer">
                         Contact Tournament Host on Instagram
                       </a>
                     </>
@@ -255,7 +255,7 @@ export const TournamentSupport = ({ tournament, user }) => {
                   <p className="mt-3 text-sm text-[#A1A1A1]">Evidence is sent directly through Instagram DM and is not uploaded to Clutch Zone.</p>
                   <div className="mt-5 flex flex-wrap justify-end gap-2">
                     <button type="button" className="btn btn-sm btn-secondary" onClick={() => setShowEscalationReminder(false)}>Back</button>
-                    <a className="btn btn-sm btn-primary inline-flex" href="https://www.instagram.com/clutchzone_official_/" target="_blank" rel="noopener noreferrer">
+                    <a className="tournament-support-escalation-link btn btn-sm btn-primary" href="https://www.instagram.com/clutchzone_official_/" target="_blank" rel="noopener noreferrer">
                       Continue to Clutch Zone Instagram
                     </a>
                   </div>
