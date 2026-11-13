@@ -5,6 +5,7 @@ import { rupeesToCz } from '../utils/currency.js';
 import User from '../models/User.js';
 import TournamentMatchResult from '../models/TournamentMatchResult.js';
 import TournamentIssueReport, { TOURNAMENT_ISSUE_CATEGORIES } from '../models/TournamentIssueReport.js';
+import { sendNotification } from '../services/notificationService.js';
 import { verifyToken } from '../utils/authUtils.js';
 import { uploadToCloudinary } from '../utils/uploadToCloudinary.js';
 
@@ -783,7 +784,7 @@ const findParticipantTournament = async (tournamentId, userId) => {
   }
 
   const tournament = await Tournament.findById(tournamentId)
-    .select('name hostInstagramUsername')
+    .select('name hostInstagramUsername createdBy')
     .lean();
   if (!tournament) return { error: 'Tournament not found', status: 404 };
 
@@ -844,13 +845,79 @@ export const createTournamentIssueReport = async (req, res) => {
       issueCategory,
       description: description.trim(),
     });
-    return res.status(201).json({ success: true, report: serializeTournamentIssueReport(report) });
+
+    const hostNotificationMessage = `New ${issueCategory} report from ${req.user?.username || 'a player'} for "${access.tournament.name}". Open your Host Dashboard to review it.`;
+    let hostNotificationSaved = false;
+    try {
+      const notificationResult = await User.updateOne(
+        { _id: access.tournament.createdBy },
+        {
+          $push: {
+            notifications: {
+              type: 'warning',
+              message: hostNotificationMessage,
+              link: `/host-dashboard?tournamentId=${access.tournament._id}`,
+              read: false,
+              createdAt: new Date(),
+            },
+          },
+        },
+      );
+      hostNotificationSaved = notificationResult.modifiedCount === 1;
+      if (!hostNotificationSaved) {
+        console.error(`Host notification was not saved for tournament ${access.tournament._id}`);
+      }
+
+      const host = hostNotificationSaved
+        ? await User.findById(access.tournament.createdBy).select('onesignalPlayerId notificationPreferences').lean()
+        : null;
+      if (host?.onesignalPlayerId && host.notificationPreferences?.systemNotifications !== false) {
+        void sendNotification(
+          [host.onesignalPlayerId],
+          'New Tournament Issue Report',
+          hostNotificationMessage,
+          {
+            skipInApp: true,
+            url: `/host-dashboard?tournamentId=${access.tournament._id}`,
+            data: { tournamentId: String(access.tournament._id), reportId: String(report._id) },
+          },
+        ).then((result) => {
+          if (!result.success) console.warn('Host tournament report push notification was not delivered:', result.error || result.message);
+        });
+      }
+    } catch (notificationError) {
+      console.error('Failed to notify tournament host about issue report:', notificationError);
+    }
+
+    return res.status(201).json({
+      success: true,
+      report: serializeTournamentIssueReport(report),
+      hostNotificationSaved,
+    });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(409).json({ error: 'You have already submitted an issue report for this tournament' });
     }
     console.error('createTournamentIssueReport error:', error);
     return res.status(500).json({ error: 'Failed to submit tournament issue report' });
+  }
+};
+
+export const listMyTournamentIssueReports = async (req, res) => {
+  try {
+    const tournaments = await Tournament.find({ createdBy: req.userId }).select('_id').lean();
+    const tournamentIds = tournaments.map((tournament) => tournament._id);
+    const reports = tournamentIds.length
+      ? await TournamentIssueReport.find({ tournamentId: { $in: tournamentIds } })
+          .sort({ createdAt: -1 })
+          .populate('tournamentId', 'name')
+          .populate('reportingUserId', 'username')
+          .lean()
+      : [];
+    return res.json({ success: true, reports });
+  } catch (error) {
+    console.error('listMyTournamentIssueReports error:', error);
+    return res.status(500).json({ error: 'Failed to load tournament issue reports' });
   }
 };
 

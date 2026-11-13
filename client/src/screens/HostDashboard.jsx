@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { AdminBRMatchResultsView } from '../components/AdminBRMatchResultsView';
@@ -19,6 +19,9 @@ const formatTime12Hour = (value) => {
 export const HostDashboard = ({ onNavigate }) => {
   const [tournaments, setTournaments] = useState([]);
   const [matches, setMatches] = useState([]);
+  const [issueReports, setIssueReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsError, setReportsError] = useState('');
   const [selectedMatchId, setSelectedMatchId] = useState(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [messageDrafts, setMessageDrafts] = useState({});
@@ -47,8 +50,26 @@ export const HostDashboard = ({ onNavigate }) => {
     }
   };
 
+  const loadIssueReports = async () => {
+    setReportsLoading(true);
+    setReportsError('');
+    try {
+      const response = await fetch(`${API_BASE}/tournaments/host/reports`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to load tournament issue reports');
+      setIssueReports(data.reports || []);
+    } catch (loadError) {
+      setReportsError(loadError.message);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadDashboard();
+    loadIssueReports();
   }, []);
 
   const handleDeleteTournament = async (tournamentId) => {
@@ -102,6 +123,49 @@ export const HostDashboard = ({ onNavigate }) => {
         {activeTournaments.length === 0 ? <Card><p className="text-sm text-[#A1A1A1]">No active tournaments created yet.</p></Card> : (
           <div className="grid gap-4 md:grid-cols-2">
             {activeTournaments.map((tournament) => <Card key={tournament._id}><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-white">{tournament.name}</h3><p className="mt-1 text-xs text-[#A1A1A1]">{tournament.game} · {tournament.format === 'single-match' ? 'Per Kill Tournament' : tournament.format}</p></div><span className="text-xs text-[#FFB066]">{tournament.status}</span></div><div className={`mt-4 grid gap-2 text-xs text-[#A1A1A1] ${showPrizePool(tournament.format) ? 'grid-cols-3' : 'grid-cols-4'}`}><span>Entry<br /><b className="text-white">₹{tournament.entryFee}</b></span><span>Paid Entries<br /><b className="text-white">{tournament.successfulEntries || 0}/{tournament.maxTeams}</b></span>{showPrizePool(tournament.format) ? <span>Prize Pool<br /><b className="text-white">₹{Number(tournament.prizePool || 0).toLocaleString()}</b></span> : <span>Collected<br /><b className="text-white">₹{getCollectedAmount(tournament).toLocaleString()}</b></span>}{!showPrizePool(tournament.format) && <span>Per Kill<br /><b className="text-white">₹{Number(tournament.perKillReward || 0).toLocaleString()}</b></span>}</div><div className="mt-4 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] p-3 text-xs text-[#A1A1A1] space-y-1">{tournament.estimatedDate && <div><span className="text-[#A1A1A1]">Schedule:</span> <b className="text-white">{new Date(tournament.estimatedDate).toLocaleDateString()}</b></div>}{tournament.estimatedTime && String(tournament.estimatedTime) !== 'undefined' && <div><span className="text-[#A1A1A1]">Time:</span> <b className="text-white">{tournament.estimatedTime}</b></div>}{!tournament.estimatedDate && !tournament.estimatedTime && <div className="text-[#A1A1A1]">No schedule yet</div>}</div><div className="mt-4 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] p-3"><label className="block text-[10px] uppercase tracking-[0.2em] text-[#A1A1A1]">Host Message</label>{editingMessageId === tournament._id ? (<><textarea value={(messageDrafts[tournament._id] ?? tournament.hostMessage ?? '')} onChange={(event) => setMessageDrafts((current) => ({ ...current, [tournament._id]: event.target.value }))} className="mt-2 w-full rounded-md border border-[#2B2B2B] bg-[#111111] px-3 py-2 text-sm text-white outline-none focus:border-[#FF6A00]" rows={3} placeholder="Add a message for players" /><div className="mt-3 flex justify-end gap-2"><Button variant="secondary" size="sm" onClick={() => setEditingMessageId(null)}>Cancel</Button><Button variant="secondary" size="sm" onClick={() => { const nextMessage = messageDrafts[tournament._id] ?? tournament.hostMessage ?? ''; handleMessageSave(tournament._id, nextMessage); setEditingMessageId(null); }}>Save Message</Button></div></>) : (<><p className="mt-2 text-sm text-white">{tournament.hostMessage || 'No host message yet.'}</p><div className="mt-3 flex justify-end"><Button variant="secondary" size="sm" onClick={() => { setEditingMessageId(tournament._id); setMessageDrafts((current) => ({ ...current, [tournament._id]: tournament.hostMessage || '' })); }}>Edit</Button></div></>)}</div><div className="mt-4 flex gap-3"><Button variant="secondary" size="sm" className="flex-1" onClick={() => onNavigate?.('tournament-matches', tournament._id)}>Manage Matches & Results</Button><Button variant="secondary" size="sm" className="min-w-[78px]" onClick={() => handleDeleteTournament(tournament._id)}>Delete</Button></div></Card>)}
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-white">Tournament Issue Reports</h2>
+            <p className="text-sm text-[#A1A1A1]">Review player complaints and reply to them through Instagram DM.</p>
+          </div>
+          <Button variant="secondary" size="sm" onClick={loadIssueReports} disabled={reportsLoading} className="flex items-center gap-2">
+            <RefreshCw size={14} className={reportsLoading ? 'animate-spin' : ''} />
+            {reportsLoading ? 'Refreshing…' : 'Refresh reports'}
+          </Button>
+        </div>
+        {reportsError && <p className="text-sm text-[#FCA5A5]" role="alert">{reportsError}</p>}
+        {!reportsError && issueReports.length === 0 ? (
+          <Card><p className="text-sm text-[#A1A1A1]">{reportsLoading ? 'Loading reports…' : 'No tournament issue reports received.'}</p></Card>
+        ) : (
+          <div className="space-y-3">
+            {issueReports.map((report) => (
+              <Card key={report._id}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="break-words font-semibold text-white">{report.tournamentId?.name || 'Tournament'}</h3>
+                    <p className="mt-1 text-xs text-[#A1A1A1]">
+                      From {report.reportingUserId?.username || 'Player'} · {new Date(report.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <span className="rounded-md border border-[#5A3218] bg-[#21150D] px-2 py-1 text-xs text-[#FFB066]">
+                    {report.issueCategory}
+                  </span>
+                </div>
+                <p className="mt-3 whitespace-pre-wrap break-words rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] p-3 text-sm text-[#E5E5E5]">
+                  {report.description}
+                </p>
+                <p className="mt-3 text-xs text-[#A1A1A1]">
+                  {report.hostContactConfirmedAt
+                    ? `Player confirmed contacting you on ${new Date(report.hostContactConfirmedAt).toLocaleString()}.`
+                    : 'Player has not yet confirmed contacting you.'}
+                </p>
+              </Card>
+            ))}
           </div>
         )}
       </section>

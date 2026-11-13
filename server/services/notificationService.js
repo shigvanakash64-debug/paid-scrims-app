@@ -50,7 +50,7 @@ export const sendNotification = async (playerIds, title, message, options = {}) 
     const normalizedPlayerIds = Array.isArray(playerIds) ? playerIds.filter((id) => id && id.trim()) : [];
 
     // Save the in-app notification first so it is available even when push is unavailable
-    await Promise.all(
+    if (!options.skipInApp) await Promise.all(
       [...userIds, ...normalizedPlayerIds].map(async (recipient) => {
         try {
           const normalizedRecipient = recipient?.toString?.() || recipient;

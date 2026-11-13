@@ -18,6 +18,7 @@ import {
 	publishTournamentMatchResult,
 	getTournamentSupport,
 	createTournamentIssueReport,
+	listMyTournamentIssueReports,
 	confirmTournamentHostContact,
 	saveTournamentMatchDraft,
 	updateTournamentMessage,
@@ -27,6 +28,7 @@ import {
 const router = express.Router();
 
 router.get('/public', listPublicTournaments);
+router.get('/host/reports', authMiddleware, hostOnlyMiddleware, listMyTournamentIssueReports);
 router.post('/:tournamentId/join', authMiddleware, joinTournament);
 router.get('/:tournamentId/support', authMiddleware, getTournamentSupport);
 router.post('/:tournamentId/reports', authMiddleware, createTournamentIssueReport);
