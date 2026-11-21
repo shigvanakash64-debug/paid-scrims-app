@@ -183,6 +183,76 @@ export const rejectWithdrawalRequest = async ({ withdrawalId, adminNote = '' }) 
   };
 };
 
+export const setWithdrawalProcessing = async ({ withdrawalId, adminNote = '', adminId }) => {
+  const user = await User.findOne({
+    'wallet.pendingWithdrawals._id': withdrawalId,
+    'wallet.pendingWithdrawals.status': 'approved',
+  });
+  if (!user) throw new Error('Approved withdrawal request not found');
+  const withdrawal = user.wallet.pendingWithdrawals.id(withdrawalId);
+  if (!withdrawal) throw new Error('Withdrawal not found');
+  withdrawal.status = 'processing';
+  withdrawal.processedAt = new Date();
+  withdrawal.adminNote = adminNote;
+  withdrawal.processedBy = adminId || null;
+  await user.save();
+  return { withdrawalId: withdrawal._id, amount: withdrawal.amount, status: withdrawal.status, processedAt: withdrawal.processedAt };
+};
+
+export const markWithdrawalPaid = async ({ withdrawalId, payoutReference, adminNote = '', adminId }) => {
+  if (!payoutReference || !payoutReference.trim()) throw new Error('A genuine external payout reference is required');
+  const user = await User.findOne({
+    'wallet.pendingWithdrawals._id': withdrawalId,
+    'wallet.pendingWithdrawals.status': { $in: ['approved', 'processing'] },
+  });
+  if (!user) throw new Error('Approved or processing withdrawal request not found');
+  const withdrawal = user.wallet.pendingWithdrawals.id(withdrawalId);
+  if (!withdrawal) throw new Error('Withdrawal not found');
+  withdrawal.status = 'paid';
+  withdrawal.processedAt = new Date();
+  withdrawal.adminNote = adminNote;
+  withdrawal.payoutReference = payoutReference.trim();
+  withdrawal.payoutRecordedAt = new Date();
+  withdrawal.payoutRecordedBy = adminId || null;
+  await user.save();
+  return { withdrawalId: withdrawal._id, amount: withdrawal.amount, status: withdrawal.status, payoutReference: withdrawal.payoutReference, processedAt: withdrawal.processedAt };
+};
+
+export const markWithdrawalFailed = async ({ withdrawalId, adminNote = '', adminId }) => {
+  const user = await User.findOne({
+    'wallet.pendingWithdrawals._id': withdrawalId,
+    'wallet.pendingWithdrawals.status': { $in: ['approved', 'processing'] },
+  });
+  if (!user) throw new Error('Approved or processing withdrawal request not found');
+  const withdrawal = user.wallet.pendingWithdrawals.id(withdrawalId);
+  if (!withdrawal) throw new Error('Withdrawal not found');
+  if (!withdrawal.reversedAt) {
+    const reversalAmount = rupeesToCz(withdrawal.amount);
+    withdrawal.reversedAt = new Date();
+    withdrawal.reversalReference = `WDR-REV-${withdrawal._id}`;
+    withdrawal.status = 'failed';
+    withdrawal.processedAt = new Date();
+    withdrawal.adminNote = adminNote;
+    withdrawal.processedBy = adminId || null;
+    user.wallet.balance += reversalAmount;
+    user.wallet.transactions.push({
+      type: 'withdrawal_reversal',
+      amount: reversalAmount,
+      currency: 'CZ',
+      status: 'completed',
+      reason: adminNote || 'Verified payout failure',
+      referenceId: withdrawal.reversalReference,
+      description: `Withdrawal reversed: ₹${withdrawal.amount}`,
+      timestamp: new Date(),
+      actorId: adminId || null,
+    });
+  } else {
+    withdrawal.status = 'failed';
+  }
+  await user.save();
+  return { withdrawalId: withdrawal._id, amount: withdrawal.amount, status: withdrawal.status, reversalReference: withdrawal.reversalReference, processedAt: withdrawal.processedAt };
+};
+
 export const getAdminWalletOverview = async () => {
   const [totalUsers, totalWalletBalance, pendingWithdrawals, liveMatches, depositsToday, withdrawalsToday, recentDeposits] = await Promise.all([
     User.countDocuments({}),

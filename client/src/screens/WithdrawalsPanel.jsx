@@ -43,6 +43,49 @@ export const WithdrawalsPanel = () => {
     }
   };
 
+  const handleProcessing = async (withdrawalId) => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('clutchzone_token');
+      await axios.post(`${API_BASE}/admin/withdrawals/${withdrawalId}/processing`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      await fetchWithdrawals();
+    } catch (processingError) {
+      alert(processingError.response?.data?.error || 'Failed to mark withdrawal as processing');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePaid = async (withdrawalId) => {
+    const payoutReference = window.prompt('Enter the genuine external payout or transaction reference');
+    if (!payoutReference || !payoutReference.trim()) return;
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('clutchzone_token');
+      await axios.post(`${API_BASE}/admin/withdrawals/${withdrawalId}/paid`, { payoutReference: payoutReference.trim() }, { headers: { Authorization: `Bearer ${token}` } });
+      await fetchWithdrawals();
+    } catch (paidError) {
+      alert(paidError.response?.data?.error || 'Failed to record payout completion');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFailed = async (withdrawalId) => {
+    const reason = window.prompt('Enter the verified payout failure reason');
+    if (!reason || !reason.trim()) return;
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('clutchzone_token');
+      await axios.post(`${API_BASE}/admin/withdrawals/${withdrawalId}/failed`, { adminNote: reason.trim() }, { headers: { Authorization: `Bearer ${token}` } });
+      await fetchWithdrawals();
+    } catch (failedError) {
+      alert(failedError.response?.data?.error || 'Failed to record payout failure');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleApprove = async (withdrawalId) => {
     setIsLoading(true);
     try {
@@ -118,7 +161,7 @@ export const WithdrawalsPanel = () => {
 
       {/* Filter */}
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {['pending', 'approved', 'rejected', 'all'].map((status) => (
+        {['pending', 'approved', 'processing', 'paid', 'failed', 'rejected', 'all'].map((status) => (
           <button
             key={status}
             onClick={() => {
@@ -150,6 +193,10 @@ export const WithdrawalsPanel = () => {
               requestedAt={new Date(withdrawal.requestedAt).toLocaleString()}
               onApprove={() => handleApprove(withdrawal.withdrawalId)}
               onReject={() => handleReject(withdrawal.withdrawalId)}
+              status={withdrawal.status}
+              onProcessing={() => handleProcessing(withdrawal.withdrawalId)}
+              onPaid={() => handlePaid(withdrawal.withdrawalId)}
+              onFailed={() => handleFailed(withdrawal.withdrawalId)}
               isLoading={isLoading}
             />
           ))}

@@ -167,7 +167,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      setMessage('Your redemption request has been submitted successfully.\n\nThe request is under admin review.\n\nEstimated processing time: 24–48 hours.');
+      setMessage('Your redemption request has been submitted successfully and is under admin review. Payout status will be shown in withdrawal history.');
       setRedeemalAmount('');
       setUpiId('');
       fetchWalletData(); // Refresh data
@@ -489,7 +489,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
               {loading ? 'Submitting...' : 'Request Redemption'}
             </button>
 
-            <div className="mt-2 text-xs text-[#A1A1A1]">Minimum redemption is CZ 1000 (₹100). All Time Referral Money is view-only. Redemptions require admin approval and may take 24-48 hours.</div>
+            <div className="mt-2 text-xs text-[#A1A1A1]">Minimum redemption is CZ 1000 (₹100). All Time Referral Money is view-only. Redemptions require admin approval and payout completion is recorded separately.</div>
           </div>
         )}
       </div>
@@ -540,10 +540,12 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                     <div className="text-white font-semibold">CZ - {rupeesToCz(withdrawal.amount).toLocaleString()} (₹{Number(withdrawal.amount).toLocaleString()})</div>
                     <div className="text-xs text-[#A1A1A1]">UPI: {withdrawal.upi || '—'}</div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${withdrawal.status === 'approved' ? 'bg-[#022c0b] text-[#22C55E]' : withdrawal.status === 'rejected' ? 'bg-[#3d1c1c] text-[#EF4444]' : 'bg-[#2A2A2A] text-[#F59E0B]'}`}>{withdrawal.status}</span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${withdrawal.status === 'paid' ? 'bg-[#022c0b] text-[#22C55E]' : withdrawal.status === 'rejected' || withdrawal.status === 'failed' ? 'bg-[#3d1c1c] text-[#EF4444]' : 'bg-[#2A2A2A] text-[#F59E0B]'}`}>{withdrawal.status}</span>
                 </div>
                 <div className="mt-2 text-xs text-[#A1A1A1]">Requested: {new Date(withdrawal.requestedAt || withdrawal.createdAt).toLocaleString()}</div>
                 {withdrawal.processedAt && <div className="text-xs text-[#A1A1A1]">Processed: {new Date(withdrawal.processedAt).toLocaleString()}</div>}
+                {withdrawal.payoutReference && <div className="text-xs text-[#A1A1A1]">Payout reference: {withdrawal.payoutReference}</div>}
+                {withdrawal.adminNote && <div className="text-xs text-[#A1A1A1]">Review note: {withdrawal.adminNote}</div>}
               </div>
             ))}
             {sortedRedeemals.length > 10 && (

@@ -42,6 +42,9 @@ export const ContactsScreen = ({ onNavigate }) => {
               <button type="button" className="contact-btn" onClick={() => onNavigate?.('grievanceredressal')}>
                 Open Grievance Policy
               </button>
+              <button type="button" className="contact-btn" onClick={() => onNavigate?.('complaints')}>
+                Submit Complaint
+              </button>
             </div>
           </div>
 

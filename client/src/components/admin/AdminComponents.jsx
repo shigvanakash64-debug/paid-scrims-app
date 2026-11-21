@@ -139,21 +139,22 @@ export const PaymentStatusCard = ({ player, isPaid, paymentScreenshots, onApprov
     )}
 
     {!isPaid && (
-      <div className="flex gap-2">
-        <button
-          onClick={onApprove}
-          disabled={isLoading}
-          className="flex-1 bg-[#22C55E] text-black px-3 py-2 rounded font-semibold text-sm hover:opacity-90 transition disabled:opacity-50"
-        >
-          {isLoading ? '...' : 'Approve'}
-        </button>
-        <button
-          onClick={onReject}
-          disabled={isLoading}
-          className="flex-1 border border-[#EF4444] text-[#EF4444] px-3 py-2 rounded font-semibold text-sm hover:bg-[#3d1c1c] transition disabled:opacity-50"
-        >
-          {isLoading ? '...' : 'Reject'}
-        </button>
+      <div className="flex flex-wrap gap-2">
+        {(!status || status === 'pending') && (
+          <>
+            <button onClick={onApprove} disabled={isLoading} className="flex-1 bg-[#22C55E] text-black px-3 py-2 rounded font-semibold text-sm hover:opacity-90 transition disabled:opacity-50">{isLoading ? '...' : 'Approve'}</button>
+            <button onClick={onReject} disabled={isLoading} className="flex-1 border border-[#EF4444] text-[#EF4444] px-3 py-2 rounded font-semibold text-sm hover:bg-[#3d1c1c] transition disabled:opacity-50">{isLoading ? '...' : 'Reject'}</button>
+          </>
+        )}
+        {status === 'approved' && (
+          <button onClick={onProcessing} disabled={isLoading} className="flex-1 border border-[#F59E0B] text-[#F59E0B] px-3 py-2 rounded font-semibold text-sm disabled:opacity-50">Mark Processing</button>
+        )}
+        {(status === 'approved' || status === 'processing') && (
+          <>
+            <button onClick={onPaid} disabled={isLoading} className="flex-1 bg-[#22C55E] text-black px-3 py-2 rounded font-semibold text-sm disabled:opacity-50">Record Paid</button>
+            <button onClick={onFailed} disabled={isLoading} className="flex-1 border border-[#EF4444] text-[#EF4444] px-3 py-2 rounded font-semibold text-sm disabled:opacity-50">Record Failed</button>
+          </>
+        )}
       </div>
     )}
   </div>
@@ -335,6 +336,10 @@ export const WithdrawalCard = ({
   requestedAt,
   onApprove,
   onReject,
+  status,
+  onProcessing,
+  onPaid,
+  onFailed,
   isLoading,
 }) => (
   <div className="bg-[#111111] border border-[#1F1F1F] rounded-lg p-4 space-y-3">

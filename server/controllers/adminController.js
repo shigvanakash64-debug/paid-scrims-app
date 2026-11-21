@@ -16,6 +16,9 @@ import { markFirstDeposit, updateReferralStatus, creditReferralReward, getReward
 import {
   approveWithdrawalRequest,
   rejectWithdrawalRequest,
+  setWithdrawalProcessing,
+  markWithdrawalPaid,
+  markWithdrawalFailed,
 } from "../services/walletService.js";
 
 export const getHosts = async (req, res) => {
@@ -789,14 +792,36 @@ export const cancelMatch = async (req, res) => {
       return res.status(404).json({ error: "Match not found" });
     }
 
-    // Refund paid players
-    const paidUserIds = (match.paidUsers || []).map((user) => user.toString());
-    for (const playerId of paidUserIds) {
-      const player = await User.findById(playerId);
-      if (player) {
-        player.wallet.balance += match.entry;
-        await player.save();
+    // Refund paid players exactly once
+    if (!match.cancellationRefundProcessed) {
+      const paidUserIds = (match.paidUsers || []).map((user) => user.toString());
+      for (const playerId of paidUserIds) {
+        const referenceId = `MATCH-${match._id}-ENTRY-${playerId}-REFUND`;
+        const alreadyRefunded = await User.findOne({
+          _id: playerId,
+          'wallet.transactions.referenceId': referenceId,
+        }).select('_id');
+        if (alreadyRefunded) continue;
+
+        await User.findByIdAndUpdate(playerId, {
+          $inc: { 'wallet.balance': match.entry },
+          $push: {
+            'wallet.transactions': {
+              type: 'refund',
+              amount: match.entry,
+              currency: 'CZ',
+              status: 'completed',
+              reason: reason || 'Admin cancelled match',
+              referenceId,
+              description: `Match cancellation refund - ${match._id}`,
+              matchId: match._id,
+              timestamp: new Date(),
+              actorId: req.userId,
+            },
+          },
+        });
       }
+      match.cancellationRefundProcessed = true;
     }
 
     match.status = 'cancelled';
@@ -1108,7 +1133,7 @@ export const getAllWithdrawals = async (req, res) => {
     const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
     const skip = (page - 1) * limit;
     const statusFilter = status === 'all'
-      ? { $in: ['pending', 'approved', 'rejected'] }
+      ? { $in: ['pending', 'approved', 'processing', 'paid', 'rejected', 'failed'] }
       : status;
 
     const withdrawals = await User.aggregate([
@@ -1136,7 +1161,8 @@ export const getAllWithdrawals = async (req, res) => {
           status: '$wallet.pendingWithdrawals.status',
           requestedAt: '$wallet.pendingWithdrawals.requestedAt',
           processedAt: '$wallet.pendingWithdrawals.processedAt',
-          adminNote: '$wallet.pendingWithdrawals.adminNote'
+          adminNote: '$wallet.pendingWithdrawals.adminNote',
+          payoutReference: '$wallet.pendingWithdrawals.payoutReference'
         }
       },
       {
@@ -1184,7 +1210,7 @@ export const getAllWithdrawals = async (req, res) => {
       summary: statusSummary.reduce((summary, row) => {
         summary[row._id] = { count: row.count, amount: row.amount };
         return summary;
-      }, { pending: { count: 0, amount: 0 }, approved: { count: 0, amount: 0 }, rejected: { count: 0, amount: 0 } }),
+      }, { pending: { count: 0, amount: 0 }, approved: { count: 0, amount: 0 }, processing: { count: 0, amount: 0 }, paid: { count: 0, amount: 0 }, rejected: { count: 0, amount: 0 }, failed: { count: 0, amount: 0 } }),
       pagination: {
         total: total[0]?.total || 0,
         page,
@@ -1228,6 +1254,49 @@ export const approveWithdrawal = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
     res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Manual payout workflow for withdrawals
+ */
+export const setWithdrawalProcessingStatus = async (req, res) => {
+  try {
+    const result = await setWithdrawalProcessing({
+      withdrawalId: req.params.withdrawalId,
+      adminNote: req.body?.adminNote,
+      adminId: req.userId,
+    });
+    res.status(200).json({ success: true, withdrawal: result });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+export const markWithdrawalPaidStatus = async (req, res) => {
+  try {
+    const result = await markWithdrawalPaid({
+      withdrawalId: req.params.withdrawalId,
+      payoutReference: req.body?.payoutReference,
+      adminNote: req.body?.adminNote,
+      adminId: req.userId,
+    });
+    res.status(200).json({ success: true, withdrawal: result });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+export const markWithdrawalFailedStatus = async (req, res) => {
+  try {
+    const result = await markWithdrawalFailed({
+      withdrawalId: req.params.withdrawalId,
+      adminNote: req.body?.adminNote,
+      adminId: req.userId,
+    });
+    res.status(200).json({ success: true, withdrawal: result });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 };
 

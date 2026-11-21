@@ -8,6 +8,7 @@ import TournamentIssueReport, { TOURNAMENT_ISSUE_CATEGORIES } from '../models/To
 import { sendNotification } from '../services/notificationService.js';
 import { verifyToken } from '../utils/authUtils.js';
 import { uploadToCloudinary } from '../utils/uploadToCloudinary.js';
+import { assertPaidActivityEligibility } from '../utils/ageEligibility.js';
 
 export const COMPLETED_TOURNAMENT_EXPIRY_MS = 2 * 24 * 60 * 60 * 1000;
 export const TOURNAMENT_REPORT_ESCALATION_MS = 6 * 60 * 60 * 1000;
@@ -753,15 +754,116 @@ export const resolveTeamTournamentDispute = async (req, res) => {
   }
 };
 
+export const cancelTournament = async (req, res) => {
+  try {
+    const isAdmin = req.user?.role === 'admin';
+    const tournament = isAdmin
+      ? await Tournament.findById(req.params.tournamentId)
+      : await Tournament.findOne({ _id: req.params.tournamentId, createdBy: req.userId });
+    if (!tournament) return res.status(404).json({ error: 'Tournament not found' });
+    if (tournament.status === 'completed' || tournament.payoutsDistributed) {
+      return res.status(409).json({ error: 'A completed tournament or tournament with distributed prizes cannot be cancelled' });
+    }
+    if (tournament.status === 'cancelled') {
+      if (tournament.cancellationRefundProcessed) {
+        return res.status(200).json({ success: true, alreadyProcessed: true, tournament });
+      }
+    } else {
+      const hasDispute = (tournament.stages || []).some((stage) =>
+        (stage.matches || []).some((match) => match.status === 'disputed')
+      );
+      if (hasDispute) {
+        return res.status(409).json({ error: 'Tournament cancellation is blocked while a match dispute is pending' });
+      }
+    }
+
+    tournament.status = 'cancelled';
+    tournament.cancelledAt = tournament.cancelledAt || new Date();
+    tournament.cancelledBy = tournament.cancelledBy || req.userId;
+    tournament.cancellationReason = String(req.body?.reason || '').trim() || tournament.cancellationReason || 'Tournament cancelled by authorized administrator or host';
+    await tournament.save();
+
+    if (!tournament.cancellationRefundProcessed) {
+      const participants = await TournamentParticipant.find({
+        tournamentId: tournament._id,
+        status: 'registered',
+      });
+      const entryFeeCz = rupeesToCz(tournament.entryFee);
+      const refundResults = [];
+
+      for (const participant of participants) {
+        const referenceId = `TNR-${tournament._id}-ENTRY-${participant._id}-REFUND`;
+        const alreadyRefunded = await User.findOne({
+          _id: participant.userId,
+          'wallet.transactions.referenceId': referenceId,
+        }).select('_id');
+        if (alreadyRefunded) {
+          participant.status = 'cancelled';
+          await participant.save();
+          refundResults.push({ participantId: participant._id, refunded: false, alreadyRefunded: true });
+          continue;
+        }
+
+        await User.findByIdAndUpdate(participant.userId, {
+          $inc: { 'wallet.balance': entryFeeCz },
+          $push: {
+            'wallet.transactions': {
+              type: 'refund',
+              amount: entryFeeCz,
+              currency: 'CZ',
+              status: 'completed',
+              reason: tournament.cancellationReason,
+              referenceId,
+              description: `Tournament cancellation refund: ${tournament.name}`,
+              timestamp: new Date(),
+              actorId: req.userId,
+              tournamentId: tournament._id,
+            },
+          },
+        });
+        participant.status = 'cancelled';
+        await participant.save();
+        refundResults.push({ participantId: participant._id, refunded: true, amount: entryFeeCz });
+      }
+
+      tournament.cancellationRefundProcessed = true;
+      tournament.cancellationRefundAt = new Date();
+      await tournament.save();
+      return res.status(200).json({ success: true, refundsProcessed: refundResults.length, refundResults, tournament });
+    }
+
+    return res.status(200).json({ success: true, alreadyProcessed: true, tournament });
+  } catch (error) {
+    console.error('cancelTournament error:', error);
+    return res.status(500).json({ error: 'Failed to cancel tournament safely' });
+  }
+};
+
 export const deleteTournament = async (req, res) => {
   try {
-    const tournament = await Tournament.findOne({
-      _id: req.params.tournamentId,
-      createdBy: req.userId,
-    });
+    const isAdmin = req.user?.role === 'admin';
+    const tournament = isAdmin
+      ? await Tournament.findById(req.params.tournamentId)
+      : await Tournament.findOne({ _id: req.params.tournamentId, createdBy: req.userId });
 
     if (!tournament) {
       return res.status(404).json({ error: 'Tournament not found' });
+    }
+
+    const participantCount = await TournamentParticipant.countDocuments({
+      tournamentId: tournament._id,
+      status: 'registered',
+    });
+    if (
+      participantCount > 0
+      || tournament.status === 'completed'
+      || tournament.payoutsDistributed
+      || tournament.status === 'active'
+      || (tournament.stages || []).some((stage) => (stage.matches || []).some((match) => match.status === 'disputed'))
+    ) {
+      return res.status(409).json({
+        error: 'This tournament cannot be deleted because it has participants or financially relevant tournament activity. Cancel it through the authorized cancellation workflow instead.',
+      });
     }
 
     await Promise.all([
@@ -1013,6 +1115,12 @@ export const joinTournament = async (req, res) => {
     const now = new Date();
     const tournamentForRegistration = await Tournament.findById(tournamentId).select('format teamSize status registrationDeadline createdAt').lean();
     if (!tournamentForRegistration) return res.status(404).json({ error: 'Tournament not found' });
+    const eligibilityUser = await User.findById(req.userId);
+    try {
+      assertPaidActivityEligibility(eligibilityUser);
+    } catch (eligibilityError) {
+      return res.status(403).json({ error: eligibilityError.message, code: eligibilityError.code });
+    }
     const registrationDeadline = tournamentForRegistration.registrationDeadline
       || (tournamentForRegistration.createdAt ? new Date(new Date(tournamentForRegistration.createdAt).getTime() + COMPLETED_TOURNAMENT_EXPIRY_MS) : null);
     if (registrationDeadline && registrationDeadline <= now) {

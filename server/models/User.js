@@ -49,6 +49,24 @@ const userSchema = new mongoose.Schema({
     default: 0
   },
   phoneOtpLastSentAt: Date,
+  ageDeclaration: {
+    isAdult: {
+      type: Boolean,
+      default: null,
+    },
+    minimumAge: {
+      type: Number,
+      default: null,
+    },
+    declaredAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  eligibilityRestricted: {
+    type: Boolean,
+    default: false,
+  },
   wallet: {
     balance: {
       type: Number,
@@ -123,7 +141,7 @@ const userSchema = new mongoose.Schema({
       },
       status: {
         type: String,
-        enum: ['pending', 'approved', 'rejected'],
+        enum: ['pending', 'approved', 'processing', 'paid', 'rejected', 'failed'],
         default: 'pending'
       },
       requestedAt: {
@@ -132,7 +150,25 @@ const userSchema = new mongoose.Schema({
       },
       processedAt: Date,
       adminNote: String,
-      upi: String
+      upi: String,
+      payoutReference: String,
+      payoutRecordedAt: Date,
+      payoutRecordedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
+      },
+      processedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
+      },
+      source: {
+        type: String,
+        default: 'main',
+      },
+      reversedAt: Date,
+      reversalReference: String,
     }],
     pendingDeposits: [{
       _id: {
@@ -176,7 +212,7 @@ const userSchema = new mongoose.Schema({
     transactions: [{
       type: {
         type: String,
-        enum: ['deposit', 'withdrawal', 'match_win', 'match_loss', 'refund', 'fee', 'bonus', 'signup_bonus', 'referral', 'admin_adjustment'],
+        enum: ['deposit', 'withdrawal', 'withdrawal_reversal', 'match_win', 'match_loss', 'refund', 'fee', 'bonus', 'signup_bonus', 'referral', 'wallet_correction', 'admin_adjustment'],
         required: true
       },
       amount: {
@@ -187,6 +223,31 @@ const userSchema = new mongoose.Schema({
       timestamp: {
         type: Date,
         default: Date.now
+      },
+      referenceId: {
+        type: String,
+        trim: true,
+        default: null,
+      },
+      currency: {
+        type: String,
+        enum: ['CZ', 'INR'],
+        default: 'CZ',
+      },
+      status: {
+        type: String,
+        enum: ['pending', 'completed', 'failed', 'reversed'],
+        default: 'completed',
+      },
+      reason: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      actorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
       },
       matchId: {
         type: mongoose.Schema.Types.ObjectId,

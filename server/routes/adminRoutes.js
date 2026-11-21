@@ -28,8 +28,11 @@ import {
   approveWithdrawal,
   rejectWithdrawal,
   getHosts,
+  setWithdrawalProcessingStatus,
+  markWithdrawalPaidStatus,
+  markWithdrawalFailedStatus,
 } from "../controllers/adminController.js";
-import { getAllTickets } from "../controllers/ticketController.js";
+import { getAllTickets, updateTicketStatus } from "../controllers/ticketController.js";
 
 const router = express.Router();
 router.use(authMiddleware, adminMiddleware);
@@ -174,6 +177,7 @@ router.put("/users/:userId/title", authMiddleware, updateUserTitle);
  */
 router.get("/withdrawals", authMiddleware, getAllWithdrawals);
 router.get("/tickets", authMiddleware, getAllTickets);
+router.patch("/tickets/:ticketId", authMiddleware, updateTicketStatus);
 
 /**
  * POST /api/admin/withdrawals/:withdrawalId/approve
@@ -186,5 +190,8 @@ router.post("/withdrawals/:withdrawalId/approve", authMiddleware, approveWithdra
  * Reject a withdrawal request
  */
 router.post("/withdrawals/:withdrawalId/reject", authMiddleware, rejectWithdrawal);
+router.post("/withdrawals/:withdrawalId/processing", authMiddleware, setWithdrawalProcessingStatus);
+router.post("/withdrawals/:withdrawalId/paid", authMiddleware, markWithdrawalPaidStatus);
+router.post("/withdrawals/:withdrawalId/failed", authMiddleware, markWithdrawalFailedStatus);
 
 export default router;

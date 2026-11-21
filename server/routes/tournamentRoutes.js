@@ -6,6 +6,7 @@ import {
 	createTournament,
 	createTournamentMatchResult,
 	deleteTournament,
+	cancelTournament,
 	getPublicTournamentMatches,
 	getMyTeamTournamentMatches,
 	getTournamentGroups,
@@ -43,7 +44,8 @@ router.post('/', authMiddleware, hostOnlyMiddleware, createTournament);
 router.post('/:tournamentId/stages', authMiddleware, hostOnlyMiddleware, addTournamentStage);
 router.post('/:tournamentId/team-bracket', authMiddleware, hostOnlyMiddleware, generateTeamTournamentBracket);
 router.put('/:tournamentId/message', authMiddleware, hostOnlyMiddleware, updateTournamentMessage);
-router.delete('/:tournamentId', authMiddleware, hostOnlyMiddleware, deleteTournament);
+router.delete('/:tournamentId', authMiddleware, hostMiddleware, deleteTournament);
+router.post('/:tournamentId/cancel', authMiddleware, hostMiddleware, cancelTournament);
 router.post('/:tournamentId/results', authMiddleware, hostOnlyMiddleware, createTournamentMatchResult);
 router.get('/:tournamentId/manage', authMiddleware, hostMiddleware, getTournamentManageView);
 router.put('/:tournamentId/matches/:matchId/result', authMiddleware, hostMiddleware, saveTournamentMatchDraft);

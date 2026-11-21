@@ -2,6 +2,7 @@ import BRMatch from '../models/BRMatch.js';
 import BRParticipant from '../models/BRParticipant.js';
 import User from '../models/User.js';
 import { rupeesToCz } from '../utils/currency.js';
+import { assertPaidActivityEligibility } from '../utils/ageEligibility.js';
 
 /**
  * Step 1: Initiate join (check wallet, deduct entry fee, create participant placeholder)
@@ -42,6 +43,11 @@ export const initiateBRJoin = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
+    }
+    try {
+      assertPaidActivityEligibility(user);
+    } catch (eligibilityError) {
+      return res.status(403).json({ error: eligibilityError.message, code: eligibilityError.code });
     }
 
     const walletBalance = user.wallet?.balance || 0;

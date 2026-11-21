@@ -68,6 +68,11 @@ const tournamentSchema = new mongoose.Schema({
   roomId: { type: String, default: '', trim: true },
   roomPassword: { type: String, default: '', trim: true },
   status: { type: String, enum: ['draft', 'open', 'upcoming', 'active', 'completed', 'cancelled'], default: 'open' },
+  cancelledAt: { type: Date, default: null },
+  cancelledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  cancellationReason: { type: String, trim: true, maxlength: 500, default: '' },
+  cancellationRefundProcessed: { type: Boolean, default: false },
+  cancellationRefundAt: { type: Date, default: null },
   stages: { type: [tournamentStageSchema], default: [] },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });

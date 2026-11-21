@@ -28,6 +28,7 @@ import { AboutUsScreen } from './screens/AboutUsScreen';
 import { StoreInfoScreen } from './screens/StoreInfoScreen';
 import { StoreContactScreen } from './screens/StoreContactScreen';
 import { LegalPolicyScreen } from './screens/LegalPolicyScreen';
+import { GrievanceScreen } from './screens/GrievanceScreen';
 import './App.css';
 
 // Lazy load admin dashboard
@@ -38,7 +39,7 @@ const HomeScreen = lazy(() => import('./screens/HomeScreen').then(m => ({ defaul
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 const ENTRY_CHOICE_KEY = 'clutchzone_entry_choice';
-const VALID_SCREENS = ['entry', 'home', 'pairing', 'profile', 'wallet', 'ads', 'leaderboard', 'settings', 'admin', 'host', 'inbox', 'global-chat', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'paymentwalletpolicy', 'grievanceredressal', 'communityguidelines', 'tournamentrules', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
+const VALID_SCREENS = ['entry', 'home', 'pairing', 'profile', 'wallet', 'ads', 'leaderboard', 'settings', 'admin', 'host', 'inbox', 'global-chat', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'paymentwalletpolicy', 'grievanceredressal', 'communityguidelines', 'tournamentrules', 'complaints', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
 
 const SCREEN_PATHS = {
   '/privacypolicy': 'privacy-policy',
@@ -52,6 +53,7 @@ const SCREEN_PATHS = {
   '/grievanceredressal': 'grievanceredressal',
   '/communityguidelines': 'communityguidelines',
   '/tournamentrules': 'tournamentrules',
+  '/complaints': 'complaints',
   '/payment-status': 'payment-status',
 };
 
@@ -474,7 +476,7 @@ function App() {
     }
   };
 
-  const handleRegister = async ({ username, password, referralCode, role }) => {
+  const handleRegister = async ({ username, password, referralCode, role, ageDeclaration }) => {
     try {
       const normalizedUsername = username.trim().toLowerCase();
       const response = await axios.post(`${API_BASE}/auth/register`, {
@@ -482,6 +484,7 @@ function App() {
         password,
         referralCode,
         role,
+        ageDeclaration,
       });
       setSession(response.data.user, response.data.token);
       return { success: true };
@@ -790,6 +793,9 @@ function App() {
     }
 
     if (!user) {
+      if (currentScreen === 'complaints') {
+        return <LoginScreen onLogin={handleLogin} onNavigateRegister={() => setCurrentScreen('register')} />;
+      }
       const publicScreens = [
         'instructions',
         'contacts',
@@ -906,6 +912,8 @@ function App() {
         return <PaymentStatusScreen user={user} onNavigate={handleScreenChange} />;
       case 'settings':
         return <SettingsScreen user={user} />;
+      case 'complaints':
+        return <GrievanceScreen />;
       case 'privacy-policy':
         return <LegalPolicyScreen page="privacy-policy" onNavigate={handleScreenChange} />;
       case 'terms-conditions':

@@ -10,6 +10,7 @@ export const AdminSidebar = ({ currentScreen, onScreenChange, isMobile, mode = '
       { id: 'hosts', label: 'Hosts', icon: '🧑‍💼' },
       { id: 'disputes', label: 'Disputes', icon: '⚠️' },
       { id: 'withdrawals', label: 'Redemptions', icon: '💸' },
+      { id: 'complaints', label: 'Complaints', icon: '📝' },
       { id: 'users', label: 'Users', icon: '👤' },
       { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
     ];

@@ -5,6 +5,7 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
   const [password, setPassword] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [role, setRole] = useState('');
+  const [ageDeclaration, setAgeDeclaration] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -20,6 +21,7 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
         password,
         referralCode: referralCode.trim(),
         role,
+        ageDeclaration,
       });
 
       if (result?.success === false) {
@@ -77,6 +79,18 @@ export const RegisterScreen = ({ onRegister, onNavigateLogin }) => {
               onChange={(event) => setReferralCode(event.target.value.toUpperCase())}
               placeholder="Enter referral code"
             />
+          </label>
+          <label className="auth-field" style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+            <input
+              type="checkbox"
+              checked={ageDeclaration}
+              onChange={(event) => setAgeDeclaration(event.target.checked)}
+              required
+              style={{ width: 18, height: 18, marginTop: 2 }}
+            />
+            <span className="auth-sub" style={{ margin: 0 }}>
+              I declare that I meet the applicable minimum age of 18. This is a declaration, not identity verification.
+            </span>
           </label>
           {error && <div className="text-[#FCA5A5] text-sm mt-2">{error}</div>}
           {loading && (

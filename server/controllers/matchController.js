@@ -13,6 +13,7 @@ import {
 import { creditCashback, creditWelcomeBonus, creditReferralReward, markCompletedPaidMatch, updateReferralStatus } from "../utils/rewardService.js";
 import { refundPaidUsers } from "../utils/refund.js";
 import { rupeesToCz } from "../utils/currency.js";
+import { assertPaidActivityEligibility } from "../utils/ageEligibility.js";
 
 const PAYMENT_UPIS = [
   '8261047808@fam',
@@ -577,6 +578,11 @@ export const createMatch = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
+    try {
+      assertPaidActivityEligibility(user);
+    } catch (eligibilityError) {
+      return res.status(403).json({ error: eligibilityError.message, code: eligibilityError.code });
+    }
 
     const activeMatch = await Match.findOne({
       players: userId,
@@ -706,7 +712,12 @@ export const acceptMatch = async (req, res) => {
       return res.status(400).json({ error: 'You already have an active match. Finish or cancel it before joining another.' });
     }
 
-    const opponent = await User.findById(userId).select('username onesignalPlayerId');
+    const opponent = await User.findById(userId);
+    try {
+      assertPaidActivityEligibility(opponent);
+    } catch (eligibilityError) {
+      return res.status(403).json({ error: eligibilityError.message, code: eligibilityError.code });
+    }
     const opponentUsername = opponent?.username || 'Opponent';
 
     match.players.push(userId);
@@ -1052,6 +1063,34 @@ export const cancelMatch = async (req, res) => {
 
     if (req.isAdmin) {
       // Admin cancellation - fully cancel
+      if (!match.cancellationRefundProcessed) {
+        for (const playerId of (match.paidUsers || [])) {
+          const referenceId = `MATCH-${match._id}-ENTRY-${playerId.toString()}-REFUND`;
+          const alreadyRefunded = await User.findOne({
+            _id: playerId,
+            'wallet.transactions.referenceId': referenceId,
+          }).select('_id');
+          if (alreadyRefunded) continue;
+          await User.findByIdAndUpdate(playerId, {
+            $inc: { 'wallet.balance': match.entry },
+            $push: {
+              'wallet.transactions': {
+                type: 'refund',
+                amount: match.entry,
+                currency: 'CZ',
+                status: 'completed',
+                reason: 'Authorized admin cancelled match',
+                referenceId,
+                description: `Match cancellation refund - ${match._id}`,
+                matchId: match._id,
+                timestamp: new Date(),
+                actorId: userId,
+              },
+            },
+          });
+        }
+        match.cancellationRefundProcessed = true;
+      }
       match.status = 'cancelled';
       match.canceledBy = userId;
       match.adminMessages.push({
@@ -1060,6 +1099,34 @@ export const cancelMatch = async (req, res) => {
       });
     } else if (isCreator) {
       // Creator cancellation - fully cancel the match request
+      if (!match.cancellationRefundProcessed) {
+        for (const playerId of (match.paidUsers || [])) {
+          const referenceId = `MATCH-${match._id}-ENTRY-${playerId.toString()}-REFUND`;
+          const alreadyRefunded = await User.findOne({
+            _id: playerId,
+            'wallet.transactions.referenceId': referenceId,
+          }).select('_id');
+          if (alreadyRefunded) continue;
+          await User.findByIdAndUpdate(playerId, {
+            $inc: { 'wallet.balance': match.entry },
+            $push: {
+              'wallet.transactions': {
+                type: 'refund',
+                amount: match.entry,
+                currency: 'CZ',
+                status: 'completed',
+                reason: 'Creator cancelled before match start',
+                referenceId,
+                description: `Match cancellation refund - ${match._id}`,
+                matchId: match._id,
+                timestamp: new Date(),
+                actorId: userId,
+              },
+            },
+          });
+        }
+        match.cancellationRefundProcessed = true;
+      }
       match.status = 'cancelled';
       match.canceledBy = userId;
       match.adminMessages.push({

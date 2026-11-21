@@ -176,6 +176,12 @@ const matchSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    cancelReason: String,
+    cancelledAt: Date,
+    cancellationRefundProcessed: {
+      type: Boolean,
+      default: false,
+    },
     result: {
       submittedBy: [
         {

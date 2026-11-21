@@ -2,6 +2,7 @@ import Challenge from '../models/Challenge.js';
 import Match from '../models/Match.js';
 import User from '../models/User.js';
 import { getNextPaymentUpi, serializeMatch } from './matchController.js';
+import { assertPaidActivityEligibility } from '../utils/ageEligibility.js';
 
 const entryFees = [50, 100, 200, 300, 500, 1000, 2000, 5000, 10000];
 const modes = ['1v1', '2v2', '3v3', '4v4'];
@@ -27,6 +28,12 @@ export const createChallenge = async (req, res) => {
 
     const [challenger, target] = await Promise.all([User.findById(challengerId), User.findById(targetUserId)]);
     if (!challenger || !target) return res.status(404).json({ error: 'Player not found' });
+    try {
+      assertPaidActivityEligibility(challenger);
+      assertPaidActivityEligibility(target);
+    } catch (eligibilityError) {
+      return res.status(403).json({ error: eligibilityError.message, code: eligibilityError.code });
+    }
     if (target.isBanned || challenger.isBanned) return res.status(403).json({ error: 'This player is not eligible for challenges' });
     if (Number(challenger.wallet?.balance || 0) < parsedEntry) return res.status(400).json({ error: 'Insufficient wallet balance' });
 
@@ -83,6 +90,14 @@ export const acceptChallenge = async (req, res) => {
     if (!challenge) return res.status(400).json({ error: 'Challenge is no longer available' });
     const [challenger, target] = await Promise.all([User.findById(challenge.challenger), User.findById(challenge.challengedPlayer)]);
     if (!challenger || !target || challenger.isBanned || target.isBanned) return res.status(403).json({ error: 'Both players must be eligible' });
+    try {
+      assertPaidActivityEligibility(challenger);
+      assertPaidActivityEligibility(target);
+    } catch (eligibilityError) {
+      challenge.status = 'pending';
+      await challenge.save();
+      return res.status(403).json({ error: eligibilityError.message, code: eligibilityError.code });
+    }
     const activeMatch = await Match.findOne({
       players: { $in: [challenger._id, target._id] },
       status: { $in: activeMatchStatuses },

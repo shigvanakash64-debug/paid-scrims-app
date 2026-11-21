@@ -10,6 +10,7 @@ import { AdminHostsPanel } from '../../screens/AdminHostsPanel';
 import { HostDashboard } from '../../screens/HostDashboard';
 import { HostTournamentPanel } from '../../screens/HostTournamentPanel';
 import { HostTournamentMatchesPanel } from '../../screens/HostTournamentMatchesPanel';
+import { ComplaintsPanel } from '../../screens/ComplaintsPanel';
 
 const SCREENS = {
   DASHBOARD: 'dashboard',
@@ -19,6 +20,7 @@ const SCREENS = {
   DISPUTES: 'disputes',
   LEADERBOARD: 'leaderboard',
   MATCHES: 'matches',
+  COMPLAINTS: 'complaints',
 };
 
 export const AdminLayout = ({ mode = 'admin', onLogout }) => {
@@ -44,6 +46,8 @@ export const AdminLayout = ({ mode = 'admin', onLogout }) => {
         return <AdminLeaderboardPanel />;
       case SCREENS.MATCHES:
         return <AdminRequests />;
+      case SCREENS.COMPLAINTS:
+        return <ComplaintsPanel />;
       case 'hosts':
         return <AdminHostsPanel />;
       default:

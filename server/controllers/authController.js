@@ -4,6 +4,7 @@ import { createToken, generateSalt, hashPassword } from "../utils/authUtils.js";
 import bcrypt from "bcrypt";
 import { sendNotification } from "../services/notificationService.js";
 import { ensureReferralCodeForUser, applyReferralCode, creditSignupBonus } from "../utils/rewardService.js";
+import { getConfiguredMinimumAge } from "../utils/ageEligibility.js";
 
 const normalizeIndianPhone = (rawPhone) => {
   if (!rawPhone) return null;
@@ -49,6 +50,12 @@ const sanitizeUser = (user) => {
     role: user.role || 'user',
     isAdmin: user.role === 'admin',
     ffUid: user.ffUid || "",
+    ageDeclaration: user.ageDeclaration?.declaredAt ? {
+      isAdult: user.ageDeclaration.isAdult === true,
+      minimumAge: user.ageDeclaration.minimumAge,
+      declaredAt: user.ageDeclaration.declaredAt,
+    } : null,
+    eligibilityRestricted: Boolean(user.eligibilityRestricted),
     wallet: {
       balance: user.wallet?.balance || 0,
       bonusBalance: user.wallet?.bonusBalance || 0,
@@ -82,7 +89,7 @@ export const register = async (req, res) => {
   try {
     console.log("REGISTER BODY:", req.body);
 
-    let { username, password, phone: rawPhone, referralCode, role = 'user' } = req.body;
+    let { username, password, phone: rawPhone, referralCode, role = 'user', ageDeclaration } = req.body;
     username = username || req.body.name || req.body.userName || req.body.user;
     const phone = rawPhone ? normalizeIndianPhone(rawPhone) : null;
 
@@ -93,6 +100,14 @@ export const register = async (req, res) => {
 
     if (!['user', 'host'].includes(role)) {
       return res.status(400).json({ error: 'Invalid account type' });
+    }
+
+    const minimumAge = getConfiguredMinimumAge();
+    if (ageDeclaration !== true) {
+      return res.status(400).json({
+        error: `You must declare that you meet the minimum age of ${minimumAge} to create an account`,
+        code: 'AGE_DECLARATION_REQUIRED',
+      });
     }
 
     const normalizedUsername = username.trim().toLowerCase();
@@ -137,6 +152,11 @@ export const register = async (req, res) => {
       phoneOtpLastSentAt: null,
       role,
       title: role === 'host' ? 'HOST' : '',
+      ageDeclaration: {
+        isAdult: true,
+        minimumAge,
+        declaredAt: new Date(),
+      },
     });
     console.log("USER CREATED:", user._id, user.username);
 

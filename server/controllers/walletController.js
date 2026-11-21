@@ -4,6 +4,7 @@ import { sendNotification } from '../services/notificationService.js';
 import { createCashfreeOrder, verifyCashfreePayment } from '../services/cashfreeService.js';
 import { getWithdrawalEligibilityForUser } from '../utils/rewardService.js';
 import { rupeesToCz } from '../utils/currency.js';
+import { assertPaidActivityEligibility } from '../utils/ageEligibility.js';
 
 const normalizeAmount = (value) => Number(value || 0);
 
@@ -25,6 +26,11 @@ export const requestWithdrawal = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
+    try {
+      assertPaidActivityEligibility(user);
+    } catch (eligibilityError) {
+      return res.status(403).json({ error: eligibilityError.message, code: eligibilityError.code });
+    }
 
     const eligibility = await getWithdrawalEligibilityForUser(userId);
     if (!eligibility.canWithdraw) {
@@ -33,6 +39,19 @@ export const requestWithdrawal = async (req, res) => {
         code: 'WITHDRAWAL_REQUIREMENTS_NOT_MET',
         message: 'Deposit ₹20 and play a CZ 200+ (₹20+) entry match before redeeming.',
         eligibility,
+      });
+    }
+
+    const activeWithdrawal = (user.wallet?.pendingWithdrawals || []).find((withdrawal) =>
+      ['pending', 'approved', 'processing'].includes(withdrawal.status)
+    );
+    if (activeWithdrawal) {
+      return res.status(409).json({
+        success: false,
+        code: 'ACTIVE_WITHDRAWAL_EXISTS',
+        error: 'You already have an active withdrawal request',
+        withdrawalId: activeWithdrawal._id,
+        status: activeWithdrawal.status,
       });
     }
 
@@ -84,7 +103,6 @@ export const requestWithdrawal = async (req, res) => {
       withdrawalId: withdrawalRequest._id,
       amount: parsedAmount,
       status: 'pending',
-      estimatedTime: '24-48 hours',
     });
   } catch (error) {
     console.error('Withdrawal Error:', error);
