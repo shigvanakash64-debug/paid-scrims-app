@@ -24,6 +24,10 @@ export const Header = ({ user, currentScreen, onNavigate, onBack, canGoBack, onL
     { key: 'refund-policy', label: 'Refund Policy', screen: 'refund-policy' },
     { key: 'fair-play', label: 'Fair Play Policy', screen: 'fair-play' },
     { key: 'responsible-gaming', label: 'Responsible Gaming Policy', screen: 'responsible-gaming' },
+    { key: 'paymentwalletpolicy', label: 'Payment & Wallet Policy', screen: 'paymentwalletpolicy' },
+    { key: 'tournamentrules', label: 'Tournament Rules & Regulations', screen: 'tournamentrules' },
+    { key: 'communityguidelines', label: 'Community Guidelines', screen: 'communityguidelines' },
+    { key: 'grievanceredressal', label: 'Grievance Redressal Policy', screen: 'grievanceredressal' },
     { key: 'contacts', label: 'Contacts', screen: 'contacts' },
     { key: 'instructions', label: 'Instructions', screen: 'instructions' },
   ];

@@ -301,6 +301,14 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-
 .info-page .info-section{color:#F4F2EA}
 .info-page .info-heading{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:#F4F2EA;margin-bottom:10px}
 .info-page .info-text{font-size:14px;line-height:1.8;color:#F4F2EA;margin-bottom:18px}
+.legal-page .legal-intro{color:#D6D6D6;font-size:14px;line-height:1.8;margin:4px 0 12px}
+.legal-dates{display:flex;flex-wrap:wrap;gap:8px 16px;margin-bottom:18px;color:#A1A1A1;font-size:12px}
+.legal-dates strong{color:#FFB066}
+.legal-page .legal-section{padding:14px 0;border-top:1px solid var(--border)}
+.legal-policy-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:18px 0 4px}
+.legal-policy-nav button{background:#111;border:1px solid var(--border);border-radius:10px;color:#F4F2EA;padding:10px 8px;font-size:12px;cursor:pointer}
+.legal-policy-nav button:hover{border-color:var(--orange);color:var(--orange)}
+.contact-inline-link{color:var(--orange)}
 .info-ticket-form{margin-top:20px}
 .info-ticket-form .form-input{min-height:48px}
 .info-ticket-form textarea.form-input{min-height:120px;resize:vertical}

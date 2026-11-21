@@ -27,6 +27,7 @@ import { WallpaperAdminScreen } from './screens/WallpaperAdminScreen';
 import { AboutUsScreen } from './screens/AboutUsScreen';
 import { StoreInfoScreen } from './screens/StoreInfoScreen';
 import { StoreContactScreen } from './screens/StoreContactScreen';
+import { LegalPolicyScreen } from './screens/LegalPolicyScreen';
 import './App.css';
 
 // Lazy load admin dashboard
@@ -37,7 +38,29 @@ const HomeScreen = lazy(() => import('./screens/HomeScreen').then(m => ({ defaul
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'clutchzone_token';
 const ENTRY_CHOICE_KEY = 'clutchzone_entry_choice';
-const VALID_SCREENS = ['entry', 'home', 'pairing', 'profile', 'wallet', 'ads', 'leaderboard', 'settings', 'admin', 'host', 'inbox', 'global-chat', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'responsible-gaming', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
+const VALID_SCREENS = ['entry', 'home', 'pairing', 'profile', 'wallet', 'ads', 'leaderboard', 'settings', 'admin', 'host', 'inbox', 'global-chat', 'instructions', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'paymentwalletpolicy', 'grievanceredressal', 'communityguidelines', 'tournamentrules', 'wallpaper-home', 'wallpaper-collection', 'wallpaper-details', 'wallpaper-library', 'about-us', 'wallpaper-manager', 'store-terms', 'store-privacy', 'store-refund', 'store-shipping', 'store-disclaimer', 'store-license', 'store-dmca', 'store-contact', 'payment-status'];
+
+const SCREEN_PATHS = {
+  '/privacypolicy': 'privacy-policy',
+  '/termsandconditions': 'terms-conditions',
+  '/refundpolicy': 'refund-policy',
+  '/fairplaypolicy': 'fair-play',
+  '/responsiblegamingpolicy': 'responsible-gaming',
+  '/contactus': 'contacts',
+  '/instructions': 'instructions',
+  '/paymentwalletpolicy': 'paymentwalletpolicy',
+  '/grievanceredressal': 'grievanceredressal',
+  '/communityguidelines': 'communityguidelines',
+  '/tournamentrules': 'tournamentrules',
+  '/payment-status': 'payment-status',
+};
+
+const SCREEN_URLS = Object.fromEntries(Object.entries(SCREEN_PATHS).map(([path, screen]) => [screen, path]));
+
+const getScreenFromPath = () => {
+  if (typeof window === 'undefined') return null;
+  return SCREEN_PATHS[window.location.pathname.toLowerCase()] || null;
+};
 
 const getStoredEntryChoice = () => {
   if (typeof window === 'undefined') return null;
@@ -74,6 +97,9 @@ const getInitialScreen = () => {
   if (pathLower === '/payment-status' || pathLower.startsWith('/payment-status')) {
     return 'payment-status';
   }
+
+  const policyScreen = getScreenFromPath();
+  if (policyScreen) return policyScreen;
 
   const savedScreen = localStorage.getItem('clutchzone_currentScreen');
   if (savedScreen && VALID_SCREENS.includes(savedScreen)) {
@@ -243,7 +269,7 @@ function App() {
         }
       })();
 
-      const pathScreen = typeof window !== 'undefined' && window.location.pathname === '/payment-status' ? 'payment-status' : null;
+      const pathScreen = getScreenFromPath();
       const fallbackScreen = 'wallpaper-home';
       const targetScreen = pathScreen || (savedScreen && VALID_SCREENS.includes(savedScreen) ? savedScreen : fallbackScreen);
 
@@ -511,6 +537,14 @@ function App() {
     } else {
       setSelectedWallpaper(null);
     }
+    const targetPath = SCREEN_URLS[targetScreen];
+    if (typeof window !== 'undefined' && targetPath) {
+      if (replace) {
+        window.history.replaceState({ screen: targetScreen }, '', targetPath);
+      } else if (window.location.pathname.toLowerCase() !== targetPath) {
+        window.history.pushState({ screen: targetScreen }, '', targetPath);
+      }
+    }
   };
 
   const handleScreenChange = (screen, wallpaper = null, replace = false) => {
@@ -552,6 +586,16 @@ function App() {
       localStorage.setItem('clutchzone_currentScreen', safeScreen);
     }
   }, [currentScreen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handlePopState = () => {
+      const pathScreen = getScreenFromPath();
+      if (pathScreen) setCurrentScreen(pathScreen);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const canGoBack = screenHistory.length > 0;
 
@@ -746,6 +790,47 @@ function App() {
     }
 
     if (!user) {
+      const publicScreens = [
+        'instructions',
+        'contacts',
+        'privacy-policy',
+        'terms-conditions',
+        'refund-policy',
+        'fair-play',
+        'responsible-gaming',
+        'paymentwalletpolicy',
+        'grievanceredressal',
+        'communityguidelines',
+        'tournamentrules',
+      ];
+      if (publicScreens.includes(currentScreen)) {
+        switch (currentScreen) {
+          case 'contacts':
+            return <ContactsScreen onNavigate={handleScreenChange} />;
+          case 'privacy-policy':
+            return <LegalPolicyScreen page="privacy-policy" onNavigate={handleScreenChange} />;
+          case 'terms-conditions':
+            return <LegalPolicyScreen page="terms-conditions" onNavigate={handleScreenChange} />;
+          case 'refund-policy':
+            return <LegalPolicyScreen page="refund-policy" onNavigate={handleScreenChange} />;
+          case 'fair-play':
+            return <LegalPolicyScreen page="fair-play" onNavigate={handleScreenChange} />;
+          case 'responsible-gaming':
+            return <LegalPolicyScreen page="responsible-gaming" onNavigate={handleScreenChange} />;
+          case 'paymentwalletpolicy':
+            return <LegalPolicyScreen page="paymentwalletpolicy" onNavigate={handleScreenChange} />;
+          case 'grievanceredressal':
+            return <LegalPolicyScreen page="grievanceredressal" onNavigate={handleScreenChange} />;
+          case 'communityguidelines':
+            return <LegalPolicyScreen page="communityguidelines" onNavigate={handleScreenChange} />;
+          case 'tournamentrules':
+            return <LegalPolicyScreen page="tournamentrules" onNavigate={handleScreenChange} />;
+          case 'instructions':
+            return <InstructionsScreen />;
+          default:
+            break;
+        }
+      }
       if (currentScreen === 'entry') {
         return <EntryChoiceOverlay onChoose={handleEntryChoice} />;
       }
@@ -808,7 +893,7 @@ function App() {
       case 'global-chat':
         return <GlobalChatScreen user={user} />;
       case 'contacts':
-        return <ContactsScreen />;
+        return <ContactsScreen onNavigate={handleScreenChange} />;
       case 'profile':
         return <ProfileScreen user={user} onUserUpdate={handleUserUpdate} onProfileSave={handleProfileSave} onNavigate={handleScreenChange} />;
       case 'wallet':
@@ -822,15 +907,23 @@ function App() {
       case 'settings':
         return <SettingsScreen user={user} />;
       case 'privacy-policy':
-        return <InfoScreen page="privacy-policy" />;
+        return <LegalPolicyScreen page="privacy-policy" onNavigate={handleScreenChange} />;
       case 'terms-conditions':
-        return <InfoScreen page="terms-conditions" />;
+        return <LegalPolicyScreen page="terms-conditions" onNavigate={handleScreenChange} />;
       case 'refund-policy':
-        return <InfoScreen page="refund-policy" />;
+        return <LegalPolicyScreen page="refund-policy" onNavigate={handleScreenChange} />;
       case 'fair-play':
-        return <InfoScreen page="fair-play" />;
+        return <LegalPolicyScreen page="fair-play" onNavigate={handleScreenChange} />;
       case 'responsible-gaming':
-        return <InfoScreen page="responsible-gaming" />;
+        return <LegalPolicyScreen page="responsible-gaming" onNavigate={handleScreenChange} />;
+      case 'paymentwalletpolicy':
+        return <LegalPolicyScreen page="paymentwalletpolicy" onNavigate={handleScreenChange} />;
+      case 'grievanceredressal':
+        return <LegalPolicyScreen page="grievanceredressal" onNavigate={handleScreenChange} />;
+      case 'communityguidelines':
+        return <LegalPolicyScreen page="communityguidelines" onNavigate={handleScreenChange} />;
+      case 'tournamentrules':
+        return <LegalPolicyScreen page="tournamentrules" onNavigate={handleScreenChange} />;
       case 'instructions':
         return <InstructionsScreen />;
       case 'notification-test':

@@ -2,9 +2,13 @@ export const Footer = ({ onNavigate }) => {
   const links = [
     { key: 'privacy-policy', label: 'Privacy Policy', screen: 'privacy-policy' },
     { key: 'terms-conditions', label: 'Terms & Conditions', screen: 'terms-conditions' },
-    { key: 'refund-policy', label: 'Refund Policy', screen: 'refund-policy' },
+    { key: 'refund-policy', label: 'Refund & Cancellation Policy', screen: 'refund-policy' },
     { key: 'fair-play', label: 'Fair Play Policy', screen: 'fair-play' },
     { key: 'responsible-gaming', label: 'Responsible Gaming Policy', screen: 'responsible-gaming' },
+    { key: 'paymentwalletpolicy', label: 'Payment & Wallet Policy', screen: 'paymentwalletpolicy' },
+    { key: 'tournamentrules', label: 'Tournament Rules & Regulations', screen: 'tournamentrules' },
+    { key: 'communityguidelines', label: 'Community Guidelines', screen: 'communityguidelines' },
+    { key: 'grievanceredressal', label: 'Grievance Redressal Policy', screen: 'grievanceredressal' },
     { key: 'contacts', label: 'Contact Us', screen: 'contacts' },
   ];
 

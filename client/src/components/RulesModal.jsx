@@ -9,7 +9,7 @@ const rulesData = {
           <li>No hacks / scripts</li>
           <li>No third-party interference</li>
           <li>Same map & settings agreed before match</li>
-          <li>Net Problem → no refund</li>
+          <li>Technical or network problem → evidence-based review under the Refund & Cancellation Policy</li>
           <li>Always record your gameplay</li>
           <li>Payment disputes → admin review</li>
           <li>Result disputes → admin review</li>

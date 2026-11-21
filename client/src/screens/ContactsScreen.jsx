@@ -1,44 +1,53 @@
-export const ContactsScreen = () => {
+export const ContactsScreen = ({ onNavigate }) => {
   return (
     <div id="screen-contacts" className="screen-contacts">
       <div className="section">
         <div className="section-label">Contact Us</div>
         <div className="card">
-          <p className="card-text">Need help? Our support team is here to assist you.</p>
-          <p className="card-text">
-            If you have questions regarding payments, withdrawals, matches, account issues, or technical problems, you can contact us through the following channels.
-          </p>
+          <p className="card-text"><strong>Clutch Zone</strong></p>
+          <p className="card-text">Operated by: Akash Dinesh Shigvan</p>
+          <p className="card-text">GSTIN: 27SQJPS2378E1Z0</p>
+          <p className="card-text">Website: <a className="contact-inline-link" href="https://www.clutchzone.in">https://www.clutchzone.in</a></p>
 
           <div className="contact-section">
-            <h3 className="contact-section-title">Customer Support</h3>
+            <h3 className="contact-section-title">General and account support</h3>
             <div className="contact-row">
               <div>
-                <div className="contact-label">Email</div>
+                <div className="contact-label">Support Email</div>
                 <div className="contact-value">supportclutchzone@gmail.com</div>
-                <div className="contact-meta">Response Time: Within 24–48 hours.</div>
               </div>
-              <div className="contact-actions">
-                <a className="contact-btn" href="mailto:supportclutchzone@gmail.com">
-                  Send Email
-                </a>
-              </div>
+              <div className="contact-actions"><a className="contact-btn" href="mailto:supportclutchzone@gmail.com">Send Email</a></div>
+            </div>
+          </div>
+
+          {[
+            ['Payment complaints', 'Payments, deposits, duplicates or withdrawal status. Include the order ID or withdrawal reference.'],
+            ['Tournament complaints', 'Registrations, cancellations, lobby details, results or prize eligibility. Include the match or tournament ID.'],
+            ['Privacy concerns', 'Access, correction or deletion requests. Include your account identifier and the relevant information.'],
+            ['Host enquiries', 'Published tournament, room, participant or evidence questions. Include the tournament ID.'],
+            ['Legal and compliance enquiries', 'Policy, regulatory or notice questions. Do not send passwords or payment secrets.'],
+          ].map(([title, description]) => (
+            <div className="contact-section" key={title}>
+              <h3 className="contact-section-title">{title}</h3>
+              <p className="card-text">{description}</p>
+            </div>
+          ))}
+
+          <div className="contact-section">
+            <h3 className="contact-section-title">Grievance Redressal</h3>
+            <p className="card-text">
+              Use the grievance process for unresolved account, payment, tournament, refund, fairness or privacy complaints.
+            </p>
+            <div className="contact-actions">
+              <button type="button" className="contact-btn" onClick={() => onNavigate?.('grievanceredressal')}>
+                Open Grievance Policy
+              </button>
             </div>
           </div>
 
           <div className="contact-section">
-            <h3 className="contact-section-title">WhatsApp Support</h3>
-            <div className="contact-row">
-              <div>
-                <div className="contact-label">Phone</div>
-                <div className="contact-value">+91 82610 47808</div>
-                <div className="contact-meta">Available for general support and urgent assistance.</div>
-              </div>
-              <div className="contact-actions">
-                <a className="contact-btn" href="https://wa.me/918261047808" target="_blank" rel="noreferrer">
-                  Message
-                </a>
-              </div>
-            </div>
+            <h3 className="contact-section-title">Grievance officer</h3>
+            <p className="card-text">Name, designation and direct contact details are pending publication by the actual appointed officer. Until then, submit complaints to supportclutchzone@gmail.com.</p>
           </div>
 
           <div className="contact-section">

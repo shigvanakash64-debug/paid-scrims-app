@@ -3,9 +3,9 @@ import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 
 export const ClutchZoneLayout = ({ children, user, currentScreen, navVisible, onNavigate, onBack, canGoBack, onLogout }) => {
-  const hideBottomNavScreens = ['admin', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming'];
+  const hideBottomNavScreens = ['admin', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'paymentwalletpolicy', 'grievanceredressal', 'communityguidelines', 'tournamentrules', 'contacts'];
   const showBottomNav = Boolean(user && !hideBottomNavScreens.includes(currentScreen));
-  const showFooter = ['home', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'instructions'].includes(currentScreen);
+  const showFooter = ['home', 'contacts', 'privacy-policy', 'terms-conditions', 'refund-policy', 'fair-play', 'responsible-gaming', 'paymentwalletpolicy', 'grievanceredressal', 'communityguidelines', 'tournamentrules', 'instructions'].includes(currentScreen);
 
   return (
     <div className={`app ${currentScreen === 'admin' ? 'app-admin' : ''}`}>
