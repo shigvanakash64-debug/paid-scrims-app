@@ -120,6 +120,7 @@ export const getWalletBalance = async (req, res) => {
     return res.status(200).json({
       success: true,
       balance: Number(user.wallet?.balance || 0),
+      reservedBalance: Number(user.wallet?.reservedBalance || 0),
       bonusBalance: Number(user.wallet?.bonusBalance || 0),
       referralEarningsBalance: Number(user.wallet?.referralEarningsBalance || 0),
       totalWithdrawableBalance: Number(user.wallet?.balance || 0),
@@ -146,6 +147,7 @@ export const getWalletSummary = async (req, res) => {
         username: user.username,
       },
       balance: Number(user.wallet?.balance || 0),
+      reservedBalance: Number(user.wallet?.reservedBalance || 0),
       bonusBalance: Number(user.wallet?.bonusBalance || 0),
       referralEarningsBalance: Number(user.wallet?.referralEarningsBalance || 0),
       recentTransactions: (user.wallet?.transactions || []).slice(-5),

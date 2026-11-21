@@ -6,6 +6,10 @@ import BRMatchResult from "../models/BRMatchResult.js";
 import Tournament from "../models/Tournament.js";
 import TournamentParticipant from "../models/TournamentParticipant.js";
 import TournamentMatchResult from "../models/TournamentMatchResult.js";
+import TournamentIssueReport from "../models/TournamentIssueReport.js";
+import TournamentStageGroup from "../models/TournamentStageGroup.js";
+import TournamentStageRegistration from "../models/TournamentStageRegistration.js";
+import { releaseTournamentStageGroupShares } from "../services/tournamentStageRegistrationService.js";
 import { batchAutoResolveMatches } from "./autoResolveMatch.js";
 import { cleanupExpiredUploads } from "./cleanupExpiredUploads.js";
 import {
@@ -56,24 +60,54 @@ const pruneOldMatches = async () => {
 
 const pruneOldTournaments = async () => {
   const cutoff = new Date(Date.now() - RETENTION_WINDOW_MS);
-  const expiredTournaments = await Tournament.find({ createdAt: { $lt: cutoff } })
+  const expiredTournaments = await Tournament.find({ status: "completed", updatedAt: { $lt: cutoff } })
     .select("_id")
     .lean();
 
   if (expiredTournaments.length === 0) return 0;
 
-  const tournamentIds = expiredTournaments.map((tournament) => tournament._id);
+  const expiredIds = expiredTournaments.map((tournament) => tournament._id);
+  const pendingStageRegistrations = await TournamentStageRegistration.distinct("tournamentId", {
+    tournamentId: { $in: expiredIds },
+    status: "registered",
+    sharesReleasedAt: null,
+  });
+  const pendingIdSet = new Set(pendingStageRegistrations.map(String));
+  const tournamentIds = expiredIds.filter((tournamentId) => !pendingIdSet.has(String(tournamentId)));
+  if (tournamentIds.length === 0) return 0;
   await Promise.all([
     TournamentParticipant.deleteMany({ tournamentId: { $in: tournamentIds } }),
     TournamentMatchResult.deleteMany({ tournamentId: { $in: tournamentIds } }),
+    TournamentIssueReport.deleteMany({ tournamentId: { $in: tournamentIds } }),
+    TournamentStageGroup.deleteMany({ tournamentId: { $in: tournamentIds } }),
+    TournamentStageRegistration.deleteMany({ tournamentId: { $in: tournamentIds } }),
   ]);
   const result = await Tournament.deleteMany({ _id: { $in: tournamentIds } });
 
   if (result.deletedCount > 0) {
-    console.log(`[CRON] Deleted ${result.deletedCount} old tournaments and related records older than 2 days`);
+    console.log(`[CRON] Deleted ${result.deletedCount} completed tournaments and related records older than 2 days`);
   }
 
   return result.deletedCount;
+};
+
+const releaseCompletedTournamentStageShares = async () => {
+  const tournamentIds = await TournamentStageRegistration.distinct("tournamentId", {
+    status: "registered",
+    sharesReleasedAt: null,
+  });
+  const completedTournaments = await Tournament.find({
+    _id: { $in: tournamentIds },
+    status: "completed",
+  }).select("_id").lean();
+
+  for (const tournament of completedTournaments) {
+    try {
+      await releaseTournamentStageGroupShares(tournament._id);
+    } catch (error) {
+      console.error(`[CRON] Failed to release tournament stage earnings for ${tournament._id}:`, error);
+    }
+  }
 };
 
 const ensureResultDeadlines = async () => {
@@ -161,6 +195,7 @@ export const initializeCronJobs = (userModel, options = {}) => {
         console.log(`[CRON] Removed ${prunedMatches} stale matches older than 2 days`);
       }
 
+      await releaseCompletedTournamentStageShares();
       await pruneOldTournaments();
 
       const repairedMatches = await repairLegacyMatches(userModel, batchSize);

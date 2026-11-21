@@ -128,7 +128,7 @@ const MatchResultPanel = ({ match, onResultSubmitted }) => {
 
 export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) => {
   const { currentMatch, clearMatch, refreshMatch } = useMatch();
-  const { user: currentUser } = useUser();
+  const { user: currentUser, updateUser } = useUser();
   const { showNotification } = useNotifications();
   const [game, setGame] = useState('All');
   const [mode, setMode] = useState('All');
@@ -167,17 +167,8 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
                     key={`my-tournament-${item.tournament._id}`}
                     tournament={item.tournament}
                     user={user}
-                    onJoined={async () => {
-                      try {
-                        const response = await axios.get(`${API_BASE}/tournaments/public`, {
-                          headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
-                        });
-                        const tournaments = (response.data.tournaments || []).filter((tournament) => tournament.isRegistered);
-                        setRegisteredTournaments(tournaments);
-                      } catch (error) {
-                        console.error('Failed to refresh registered tournaments:', error);
-                      }
-                    }}
+                    onHostManage={() => onScreenChange?.('host')}
+                    onJoined={fetchPublicTournaments}
                   />
                 );
               }
@@ -339,12 +330,26 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
     fetchMatches();
   }, [game, entry]);
 
-  const fetchPublicTournaments = async () => {
+  const fetchPublicTournaments = async (joinResult = {}) => {
     try {
       const response = await axios.get(`${API_BASE}/tournaments/public`, {
         headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
       });
-      setPublicTournaments(response.data.tournaments || []);
+      const tournaments = response.data.tournaments || [];
+      setPublicTournaments(tournaments);
+      setRegisteredTournaments(tournaments.filter((tournament) => (
+        tournament.isRegistered || tournament.isStageRegistered || tournament.isHost
+      )));
+      if (currentUser && Number.isFinite(Number(joinResult.walletBalance))) {
+        updateUser({
+          ...currentUser,
+          wallet: {
+            ...currentUser.wallet,
+            balance: Number(joinResult.walletBalance),
+            ...(Number.isFinite(Number(joinResult.reservedBalance)) ? { reservedBalance: Number(joinResult.reservedBalance) } : {}),
+          },
+        });
+      }
     } catch (error) {
       console.error('Failed to load public tournaments:', error);
       setPublicTournaments([]);
@@ -353,6 +358,8 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
 
   useEffect(() => {
     fetchPublicTournaments();
+    const intervalId = window.setInterval(fetchPublicTournaments, 30000);
+    return () => window.clearInterval(intervalId);
   }, [currentUser?.id, currentUser?._id]);
 
   useEffect(() => {
@@ -379,7 +386,7 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
         ]);
 
         setMyMatches(matchResponse.data.matches || []);
-        const tournaments = (tournamentResponse.data.tournaments || []).filter((tournament) => tournament.isRegistered);
+        const tournaments = (tournamentResponse.data.tournaments || []).filter((tournament) => tournament.isRegistered || tournament.isStageRegistered || tournament.isHost);
         setRegisteredTournaments(tournaments);
       } catch (err) {
         console.error('Failed to load user matches:', err);
@@ -506,15 +513,21 @@ export const PairingScreen = ({ match, user, onScreenChange, onMatchSelect }) =>
   const visibleTournaments = useMemo(() => publicTournaments.filter((tournament) => {
     const registrationDeadline = tournament.registrationDeadline
       ? new Date(tournament.registrationDeadline).getTime()
-      : tournament.createdAt
-        ? new Date(tournament.createdAt).getTime() + 2 * 24 * 60 * 60 * 1000
-        : 0;
-    if (registrationDeadline <= visibilityTime) return false;
+      : 0;
+    const mainRegistrationOpen = !tournament.registrationClosedAt && registrationDeadline > visibilityTime;
+    const availableStageGroups = (tournament.stageRegistrationGroups || []).filter((group) =>
+      group.registrationOpen && Number(group.registeredCount) < Number(group.capacity)
+    );
+    const hasOpenStageGroup = availableStageGroups.length > 0;
+    if (tournament.isHost || (!mainRegistrationOpen && !hasOpenStageGroup)) return false;
     if (game !== 'All' && tournament.game !== game) return false;
     if (mode !== 'All' && getTournamentMode(tournament.format) !== mode) return false;
     if (selectedEntryRange?.min !== null && selectedEntryRange?.min !== undefined) {
-      const entryFee = rupeesToCz(Number(tournament.entryFee));
-      if (entryFee < selectedEntryRange.min || entryFee > selectedEntryRange.max) return false;
+      const availableEntryFees = [
+        ...(mainRegistrationOpen ? [Number(tournament.entryFee)] : []),
+        ...availableStageGroups.map((group) => Number(group.entryFee)),
+      ].map(rupeesToCz);
+      if (!availableEntryFees.some((entryFee) => entryFee >= selectedEntryRange.min && entryFee <= selectedEntryRange.max)) return false;
     }
     return true;
   }), [publicTournaments, game, mode, selectedEntryRange, visibilityTime]);

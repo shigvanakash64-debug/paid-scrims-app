@@ -58,6 +58,7 @@ const sanitizeUser = (user) => {
     eligibilityRestricted: Boolean(user.eligibilityRestricted),
     wallet: {
       balance: user.wallet?.balance || 0,
+      reservedBalance: user.wallet?.reservedBalance || 0,
       bonusBalance: user.wallet?.bonusBalance || 0,
       referralEarningsBalance: user.wallet?.referralEarningsBalance || 0,
       referralCode: user.wallet?.referralCode || null,

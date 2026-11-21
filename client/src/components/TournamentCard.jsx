@@ -16,11 +16,13 @@ const formatTime12Hour = (value) => {
   return `${formattedHour}:${String(minutes).padStart(2, '0')} ${suffix}`;
 };
 
-export const TournamentCard = ({ tournament, user, onJoined }) => {
+export const TournamentCard = ({ tournament, user, onJoined, onHostManage }) => {
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [inGameName, setInGameName] = useState(user?.username || '');
   const [joinError, setJoinError] = useState('');
   const [joining, setJoining] = useState(false);
+  const [joiningStageGroupKey, setJoiningStageGroupKey] = useState('');
+  const [stageJoinError, setStageJoinError] = useState('');
   const [activePanel, setActivePanel] = useState(null);
   const [results, setResults] = useState([]);
   const [selectedStageKey, setSelectedStageKey] = useState(null);
@@ -71,11 +73,35 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Unable to join tournament');
       setShowJoinForm(false);
-      onJoined?.();
+      onJoined?.(data);
     } catch (error) {
       setJoinError(error.message);
     } finally {
       setJoining(false);
+    }
+  };
+
+  const handleJoinStageGroup = async (group) => {
+    if (!user) {
+      window.alert('Please log in to join this group');
+      return;
+    }
+    if (!window.confirm(`Join ${group.name} for ₹${group.entryFee}?`)) return;
+
+    setJoiningStageGroupKey(group.groupKey);
+    setStageJoinError('');
+    try {
+      const response = await fetch(`${API_BASE}/tournaments/${tournament._id}/stages/${encodeURIComponent(group.stageKey)}/groups/${encodeURIComponent(group.groupKey)}/join`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to join this group');
+      onJoined?.(data);
+    } catch (error) {
+      setStageJoinError(error.message);
+    } finally {
+      setJoiningStageGroupKey('');
     }
   };
 
@@ -119,6 +145,12 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         ? 'Team vs Team Tournament'
         : tournament?.format;
   const isJoined = Boolean(tournament?.isRegistered || tournament?.registered || tournament?.joined);
+  const canContactHost = isJoined || Boolean(tournament?.isStageRegistered);
+  const mainRegistrationOpen = Boolean(
+    !tournament?.registrationClosedAt
+    && tournament?.registrationDeadline
+    && new Date(tournament.registrationDeadline).getTime() > Date.now(),
+  );
   const stages = useMemo(
     () => (Array.isArray(tournament?.stages) ? [...tournament.stages].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : []),
     [tournament?.stages],
@@ -149,7 +181,7 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         <div className="br-match-title">
           <div className="mb-1 text-xs text-[#A1A1A1]">Host: {hostUsername}</div>
           <h3>{tournament.name}</h3>
-          <span className={`br-status-badge ${teamBracketStarted ? 'text-[#FFB066]' : 'text-green-400'}`}>{teamBracketStarted ? 'BRACKET IN PROGRESS' : 'OPEN FOR REGISTRATION'}</span>
+          <span className={`br-status-badge ${teamBracketStarted ? 'text-[#FFB066]' : 'text-green-400'}`}>{tournament.isHost ? 'YOUR TOURNAMENT' : teamBracketStarted ? 'BRACKET IN PROGRESS' : mainRegistrationOpen ? 'OPEN FOR REGISTRATION' : 'STAGE REGISTRATION'}</span>
         </div>
       </div>
       <div className="br-match-grid">
@@ -180,10 +212,15 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
         </div>
       )}
       <div className="br-match-actions">
-        <span className="registered-badge">{formatTitle} · {teamBracketStarted ? 'BRACKET IN PROGRESS' : 'OPEN'}</span>
-        <button type="button" className="btn btn-sm btn-primary" onClick={() => setShowJoinForm(true)} disabled={isJoined || teamBracketStarted || tournament.successfulEntries >= tournament.maxTeams}>
-          {isJoined ? 'Joined' : teamBracketStarted ? 'Bracket Started' : tournament.successfulEntries >= tournament.maxTeams ? 'Full' : 'Join'}
+        <span className="registered-badge">{formatTitle} · {teamBracketStarted ? 'BRACKET IN PROGRESS' : mainRegistrationOpen ? 'OPEN' : 'CLOSED'}</span>
+        <button type="button" className="btn btn-sm btn-primary" onClick={() => setShowJoinForm(true)} disabled={tournament.isHost || !mainRegistrationOpen || isJoined || teamBracketStarted || tournament.successfulEntries >= tournament.maxTeams}>
+          {tournament.isHost ? 'Hosted by you' : isJoined ? 'Joined' : teamBracketStarted ? 'Bracket Started' : tournament.successfulEntries >= tournament.maxTeams ? 'Full' : mainRegistrationOpen ? 'Join' : 'Registration closed'}
         </button>
+        {tournament.isHost && (
+          <button type="button" className="btn btn-sm btn-secondary" onClick={() => onHostManage?.()}>
+            Manage
+          </button>
+        )}
         {!isPerKillTournament && (
           <button type="button" className="btn btn-sm btn-secondary" onClick={() => setActivePanel((current) => (current === 'structure' ? null : 'structure'))}>
             Match Structure
@@ -199,8 +236,45 @@ export const TournamentCard = ({ tournament, user, onJoined }) => {
           </button>
         )}
         {isJoined && <button type="button" className="btn btn-sm btn-secondary" onClick={handleLoadGroups}>Your Group</button>}
-        {isJoined && user && <TournamentSupport tournament={tournament} user={user} />}
+        {canContactHost && user && <TournamentSupport tournament={tournament} user={user} />}
       </div>
+
+      {tournament.stageRegistrationGroups?.length > 0 && (
+        <div className="mt-4 border-t border-[#1F1F1F] pt-3">
+          <div className="mb-2 text-xs uppercase tracking-wide text-[#A1A1A1]">Paid stage groups</div>
+          <div className="space-y-2">
+            {tournament.stageRegistrationGroups.map((group) => {
+              const isFull = Number(group.registeredCount) >= Number(group.capacity);
+              const canJoinGroup = group.registrationOpen && !isFull && !tournament.isHost && !group.isRegistered;
+              return (
+                <div key={group.groupKey} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#1F1F1F] bg-[#0B0B0B] p-3">
+                  <div>
+                    <div className="text-sm font-medium text-white">{group.name}</div>
+                    <div className="mt-1 text-xs text-[#A1A1A1]">
+                      {stages.find((stage) => stage.key === group.stageKey)?.name || 'Stage'} · ₹{group.entryFee} · {group.registeredCount}/{group.capacity} entries
+                    </div>
+                  </div>
+                  {group.isRegistered ? (
+                    <span className="text-xs font-semibold text-[#22C55E]">Registered</span>
+                  ) : tournament.isHost ? (
+                    <span className="text-xs text-[#A1A1A1]">{group.registrationOpen && !isFull ? 'Live' : isFull ? 'Full' : 'Closed'}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary"
+                      onClick={() => handleJoinStageGroup(group)}
+                      disabled={!canJoinGroup || joiningStageGroupKey === group.groupKey}
+                    >
+                      {joiningStageGroupKey === group.groupKey ? 'Joining...' : isFull ? 'Full' : group.registrationOpen ? 'Join group' : 'Closed'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {stageJoinError && <p className="mt-2 text-sm text-red-400" role="alert">{stageJoinError}</p>}
+        </div>
+      )}
 
       {activePanel && activePanel !== 'tvt-results' && (
         <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#0B0B0B] p-4" role="dialog" aria-modal="true">

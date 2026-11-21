@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { calculateTournamentStageFeeShares } from './services/tournamentStageRegistrationService.js';
 
 import { ALL_TOURNAMENT_GAMES, assignTournamentGroups, buildTeamTournamentGroups, buildTournamentBracket, buildTournamentIssueReportStatus, buildTournamentRegistrationWindowQuery, calculateFinancials, isCompletedTournamentExpired, normalizeInstagramUsername, normalizeResultEntry, normalizeTournamentRegistration, resolveTeamMatchClaims, TOURNAMENT_REPORT_ESCALATION_MS, validateTournamentInput as validateTournamentInputBase } from './controllers/tournamentController.js';
 
@@ -287,8 +288,10 @@ test('validateTournamentInput requires match schedule and room details', () => {
 
   const now = Date.UTC(2026, 8, 30);
   const registrationWindowQuery = buildTournamentRegistrationWindowQuery(now);
-  assert.equal(registrationWindowQuery.$or[0].registrationDeadline.$gt.getTime(), now);
-  assert.equal(registrationWindowQuery.$or[1].createdAt.$gte.getTime(), now - 2 * 24 * 60 * 60 * 1000);
+  assert.equal(registrationWindowQuery.registrationDeadline.$gt.getTime(), now);
+  assert.equal(registrationWindowQuery.registrationClosedAt, null);
+  assert.equal(registrationWindowQuery.createdAt, undefined);
+  assert.equal(registrationWindowQuery.$or, undefined);
 
   for (const format of ['br-per-kill', 'br-custom']) {
     const validated = validateTournamentInput({
@@ -303,6 +306,7 @@ test('validateTournamentInput requires match schedule and room details', () => {
       estimatedTime: '19:30',
       registrationDeadline: futureRegistrationDeadline,
     });
+
     assert.equal(validated.numericPerGroup, 25);
   }
 
@@ -354,6 +358,19 @@ test('validateTournamentInput requires match schedule and room details', () => {
     estimatedDate: '2026-09-15',
     registrationDeadline: futureRegistrationDeadline,
   }), /Invalid tournament format/i);
+});
+
+test('stage registration fees split 70/30 without rounding away CZ cents', () => {
+  assert.deepEqual(calculateTournamentStageFeeShares(10), {
+    feeCz: 100,
+    hostShareCz: 70,
+    adminShareCz: 30,
+  });
+  assert.deepEqual(calculateTournamentStageFeeShares(19.99), {
+    feeCz: 199.9,
+    hostShareCz: 139.93,
+    adminShareCz: 59.97,
+  });
 });
 
 test('normalizeResultEntry keeps both kills and points for custom tournament results', () => {

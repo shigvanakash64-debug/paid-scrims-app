@@ -30,6 +30,7 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
   const hasTeamBracket = Boolean(tournament?.stages?.some((stage) => stage.key.startsWith('tvt-round-')));
   const [startingBracket, setStartingBracket] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [groupDrafts, setGroupDrafts] = useState({});
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -75,6 +76,17 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
     () => tournament?.stages?.find((stage) => stage.key === selectedStageKey) || null,
     [tournament, selectedStageKey],
   );
+
+  const tournamentGroups = useMemo(() => {
+    const groups = new Map();
+    participants.forEach((participant) => {
+      const groupNumber = Number(participant.groupNumber) || 0;
+      const key = groupNumber > 0 ? `Group ${groupNumber}` : 'Unassigned';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(participant);
+    });
+    return [...groups.entries()];
+  }, [participants]);
 
   const stageParticipants = useMemo(() => {
     const optionMap = new Map();
@@ -295,6 +307,75 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
     }
   };
 
+  const createStageGroup = async (stage) => {
+    const draft = groupDrafts[stage.key] || { name: '', entryFee: '' };
+    if (!draft.name.trim()) {
+      setError('Enter a group name before creating it.');
+      return;
+    }
+    const entryFee = Number(draft.entryFee || 0);
+    if (!Number.isFinite(entryFee) || entryFee < 0) {
+      setError('Enter a valid group entry fee.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/stages/${encodeURIComponent(stage.key)}/groups`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}`,
+        },
+        body: JSON.stringify({ name: draft.name.trim(), entryFee }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to create group');
+      setGroupDrafts((current) => ({ ...current, [stage.key]: { name: '', entryFee: '' } }));
+      setError('');
+      setNotice(`Group ${data.group.name} created. Set it live when ready to accept entries.`);
+      await loadTournament();
+    } catch (createError) {
+      setError(createError.message);
+    }
+  };
+
+  const toggleStageGroupRegistration = async (group) => {
+    try {
+      const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/stages/${encodeURIComponent(group.stageKey)}/groups/${encodeURIComponent(group.groupKey)}/registration`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}`,
+        },
+        body: JSON.stringify({ registrationOpen: !group.registrationOpen, entryFee: group.entryFee }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to update group registration');
+      setNotice(group.registrationOpen ? 'Group registration ended.' : 'Paid group registration is now live in Matches.');
+      setError('');
+      await loadTournament();
+    } catch (updateError) {
+      setError(updateError.message);
+    }
+  };
+
+  const endMainRegistration = async () => {
+    if (!window.confirm('End registration for this tournament? Existing entries and stage groups will remain available.')) return;
+    try {
+      const response = await fetch(`${API_BASE}/tournaments/${tournamentId}/end-registration`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('clutchzone_token')}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to end registration');
+      setTournament(data.tournament);
+      setNotice('Main tournament registration is closed.');
+      setError('');
+    } catch (closeError) {
+      setError(closeError.message);
+    }
+  };
+
   const publishResult = async () => {
     if (!activeResult) return;
     if (form.entries.length === 0) {
@@ -450,6 +531,117 @@ export const HostTournamentMatchesPanel = ({ tournamentId, onBack }) => {
 
       {error && <p className="text-sm text-[#FCA5A5]">{error}</p>}
       {notice && <p className="text-sm text-[#22C55E]">{notice}</p>}
+
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold text-white">Tournament Groups</h2>
+            <p className="mt-1 text-xs text-[#A1A1A1]">Main tournament entries by their assigned group.</p>
+          </div>
+          {!tournament.registrationClosedAt && new Date(tournament.registrationDeadline || 0) > new Date() && (
+            <Button variant="secondary" size="sm" onClick={endMainRegistration}>End Registration</Button>
+          )}
+        </div>
+        {tournamentGroups.length === 0 ? (
+          <p className="mt-3 text-sm text-[#A1A1A1]">No players have registered yet.</p>
+        ) : (
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            {tournamentGroups.map(([groupName, groupParticipants]) => (
+              <div key={groupName} className="rounded-lg border border-[#252525] bg-[#0B0B0B] p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-white">{groupName}</h3>
+                  <span className="text-xs text-[#A1A1A1]">{groupParticipants.length} players/teams</span>
+                </div>
+                <div className="space-y-1">
+                  {groupParticipants.map((participant) => (
+                    <div key={participant._id} className="rounded bg-[#111111] px-2 py-1 text-sm text-[#E5E5E5]">
+                      {participant.teamName || participant.displayName || participant.userId?.username || 'Participant'}
+                      {participant.teamMembers?.length > 0 && <span className="ml-2 text-xs text-[#A1A1A1]">{participant.teamMembers.join(' · ')}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-xl font-bold text-white">Paid Stage Groups</h2>
+          <p className="mt-1 text-sm text-[#A1A1A1]">Create groups for a stage, choose its entry fee, then make that group live in Matches. Group capacity is {tournament.perGroup || 12} players/teams.</p>
+        </div>
+        {(tournament.stages || []).map((stage) => {
+          const draft = groupDrafts[stage.key] || { name: '', entryFee: '' };
+          const stageGroups = (tournament.stageRegistrationGroups || []).filter((group) => group.stageKey === stage.key);
+          return (
+            <Card key={`paid-groups-${stage.key}`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-semibold text-white">{stage.name}</h3>
+                <span className="text-xs text-[#A1A1A1]">{stageGroups.length} registration groups</span>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_150px_auto]">
+                <input
+                  type="text"
+                  maxLength={80}
+                  value={draft.name}
+                  onChange={(event) => setGroupDrafts((current) => ({ ...current, [stage.key]: { ...draft, name: event.target.value } }))}
+                  placeholder={`Group name (e.g. ${stage.name} 1)`}
+                  className="rounded-lg border border-[#333333] bg-[#0B0B0B] px-3 py-2 text-sm text-white"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={draft.entryFee}
+                  onChange={(event) => setGroupDrafts((current) => ({ ...current, [stage.key]: { ...draft, entryFee: event.target.value } }))}
+                  placeholder="Entry fee (₹)"
+                  className="rounded-lg border border-[#333333] bg-[#0B0B0B] px-3 py-2 text-sm text-white"
+                />
+                <Button variant="secondary" size="sm" onClick={() => createStageGroup(stage)}>Create Group</Button>
+              </div>
+              {stageGroups.length === 0 ? (
+                <p className="mt-3 text-sm text-[#A1A1A1]">No paid-registration groups created for this stage.</p>
+              ) : (
+                <div className="mt-3 space-y-3">
+                  {stageGroups.map((group) => {
+                    const groupRegistrations = (tournament.stageRegistrations || []).filter((registration) => (
+                      registration.stageKey === stage.key
+                      && registration.groupKey === group.groupKey
+                      && registration.status === 'registered'
+                    ));
+                    const isFull = Number(group.registeredCount) >= Number(group.capacity);
+                    return (
+                      <div key={group.groupKey} className="rounded-lg border border-[#252525] bg-[#0B0B0B] p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <h4 className="font-medium text-white">{group.name}</h4>
+                            <p className="mt-1 text-xs text-[#A1A1A1]">₹{group.entryFee} entry · {group.registeredCount}/{group.capacity} · {group.registrationOpen && !isFull ? 'Live' : isFull ? 'Full' : 'Closed'}</p>
+                          </div>
+                          <Button variant="secondary" size="sm" onClick={() => toggleStageGroupRegistration(group)}>
+                            {group.registrationOpen ? 'End Group Registration' : 'Live This Group'}
+                          </Button>
+                        </div>
+                        {groupRegistrations.length === 0 ? (
+                          <p className="mt-2 text-sm text-[#A1A1A1]">No paid entries yet.</p>
+                        ) : (
+                          <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                            {groupRegistrations.map((registration) => (
+                              <div key={registration._id} className="rounded bg-[#111111] px-2 py-1 text-sm text-[#E5E5E5]">
+                                {registration.userId?.username || registration.displayName || 'Player'}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </section>
 
       {isTeamTournament && (
         <div className="space-y-4">

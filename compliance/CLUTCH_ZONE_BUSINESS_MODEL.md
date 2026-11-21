@@ -18,7 +18,10 @@ Clutch Zone provides direct match pairing, tournaments, host-created tournaments
 
 ## Tournament flow
 - Hosts create tournaments and set game, format, team size, entry fee and schedule.
-- Users register using the wallet.
+- Main tournament registration closes at the configured deadline or when the host ends registration early.
+- Hosts can create named groups for tournament stages, set each group's entry fee and open/close paid registration. Each group uses the tournament's configured per-group capacity.
+- Eligible users pay from their wallet to register in a live stage group. These fees do not change the parent tournament prize pool; 70% is reserved for the host and 30% for the admin, then released when the tournament completes.
+- If the tournament is cancelled before completion, registered main and stage-group entries are refunded; reserved stage-group shares are reversed.
 - Hosts or administrators manage tournament stages, room details, results and disputes.
 - Prize amounts are credited through format-specific payout functions.
 

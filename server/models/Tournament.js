@@ -63,6 +63,8 @@ const tournamentSchema = new mongoose.Schema({
   estimatedDate: { type: Date, default: null },
   estimatedTime: { type: String, default: '', trim: true },
   registrationDeadline: { type: Date, default: null },
+  registrationClosedAt: { type: Date, default: null },
+  registrationClosedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   hostMessage: { type: String, default: '', trim: true, maxlength: 300 },
   hostInstagramUsername: { type: String, default: '', trim: true, maxlength: 30 },
   roomId: { type: String, default: '', trim: true },

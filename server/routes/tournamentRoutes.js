@@ -23,6 +23,10 @@ import {
 	confirmTournamentHostContact,
 	saveTournamentMatchDraft,
 	updateTournamentMessage,
+	endTournamentRegistration,
+	createTournamentStageGroup,
+	updateTournamentStageGroupRegistration,
+	joinTournamentStageGroup,
 	submitTeamTournamentResult,
 } from '../controllers/tournamentController.js';
 
@@ -31,6 +35,7 @@ const router = express.Router();
 router.get('/public', listPublicTournaments);
 router.get('/host/reports', authMiddleware, hostOnlyMiddleware, listMyTournamentIssueReports);
 router.post('/:tournamentId/join', authMiddleware, joinTournament);
+router.post('/:tournamentId/stages/:stageKey/groups/:groupKey/join', authMiddleware, joinTournamentStageGroup);
 router.get('/:tournamentId/support', authMiddleware, getTournamentSupport);
 router.post('/:tournamentId/reports', authMiddleware, createTournamentIssueReport);
 router.post('/:tournamentId/reports/:reportId/host-contact', authMiddleware, confirmTournamentHostContact);
@@ -42,6 +47,9 @@ router.patch('/:tournamentId/team-matches/:matchId/resolve', authMiddleware, hos
 router.get('/', authMiddleware, hostOnlyMiddleware, listMyTournaments);
 router.post('/', authMiddleware, hostOnlyMiddleware, createTournament);
 router.post('/:tournamentId/stages', authMiddleware, hostOnlyMiddleware, addTournamentStage);
+router.post('/:tournamentId/end-registration', authMiddleware, hostOnlyMiddleware, endTournamentRegistration);
+router.post('/:tournamentId/stages/:stageKey/groups', authMiddleware, hostOnlyMiddleware, createTournamentStageGroup);
+router.put('/:tournamentId/stages/:stageKey/groups/:groupKey/registration', authMiddleware, hostOnlyMiddleware, updateTournamentStageGroupRegistration);
 router.post('/:tournamentId/team-bracket', authMiddleware, hostOnlyMiddleware, generateTeamTournamentBracket);
 router.put('/:tournamentId/message', authMiddleware, hostOnlyMiddleware, updateTournamentMessage);
 router.delete('/:tournamentId', authMiddleware, hostMiddleware, deleteTournament);

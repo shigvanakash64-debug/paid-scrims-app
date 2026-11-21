@@ -17,6 +17,7 @@ export const getUserWalletSnapshot = async (userId) => {
     userId: user._id,
     username: user.username,
     balance: ensureNumber(user.wallet?.balance || 0),
+    reservedBalance: ensureNumber(user.wallet?.reservedBalance || 0),
     bonusBalance: ensureNumber(user.wallet?.bonusBalance || 0),
     referralEarningsBalance: ensureNumber(user.wallet?.referralEarningsBalance || 0),
     pendingWithdrawals: user.wallet?.pendingWithdrawals || [],

@@ -45,6 +45,7 @@ const SecurityNoticeCard = () => (
 
 export const WalletScreen = ({ user, onUserUpdate }) => {
   const [balance, setBalance] = useState(user?.wallet?.balance || 0);
+  const [reservedBalance, setReservedBalance] = useState(user?.wallet?.reservedBalance || 0);
   const [bonusBalance, setBonusBalance] = useState(user?.wallet?.bonusBalance || 0);
   const [referralEarningsBalance, setReferralEarningsBalance] = useState(user?.wallet?.referralEarningsBalance || 0);
   const [referralCode, setReferralCode] = useState(user?.wallet?.referralCode || '');
@@ -93,10 +94,13 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
         .filter((item) => item.type === 'deposit' && Number(item.amount) > 0)
         .reduce((sum, item) => sum + Number(item.amount || 0), 0);
       const qualifyingPayMatches = walletTransactions.filter(
-        (item) => item.type === 'fee' && Number(item.amount) <= -rupeesToCz(20)
+        (item) => item.type === 'fee'
+          && !String(item.referenceId || '').startsWith('TSR-')
+          && Number(item.amount) <= -rupeesToCz(20)
       ).length;
 
       setBalance(userData.wallet?.balance || 0);
+      setReservedBalance(userData.wallet?.reservedBalance || 0);
       setBonusBalance(userData.wallet?.bonusBalance || 0);
       setReferralEarningsBalance(userData.wallet?.referralEarningsBalance || 0);
       setReferralCode(userData.wallet?.referralCode || '');
@@ -332,6 +336,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
           <div className="text-5xl font-bold text-[#FF6A00] mb-3">CZ - {balance.toLocaleString()}</div>
           <div className="text-sm text-[#A1A1A1]">1 CZ = ₹0.10 · 10 CZ = ₹1.00</div>
           <div className="mt-1 text-xs text-[#737373]">Available value: ₹{czToRupees(balance).toLocaleString()}</div>
+          {reservedBalance > 0 && <div className="mt-2 text-xs text-[#FFB066]">Tournament stage earnings reserved until completion: CZ {reservedBalance.toLocaleString()}</div>}
         </div>
       </div>
 
@@ -581,6 +586,7 @@ export const WalletScreen = ({ user, onUserUpdate }) => {
                   {transaction.description && (
                     <div className="text-xs text-[#A1A1A1]">{transaction.description}</div>
                   )}
+                  {transaction.status === 'pending' && <div className="text-xs text-[#FFB066]">Reserved until tournament completion</div>}
                 </div>
                 <div className={`text-sm font-semibold ${
                   transaction.amount > 0 ? 'text-[#22C55E]' : 'text-[#EF4444]'
